@@ -53,7 +53,6 @@ Row {
             required property var modelData
             required property int index
             spacing: Interface.spaceNear
-            anchors.verticalCenter: parent.verticalCenter
 
             readonly property bool last: index === root.shown.length - 1
             readonly property bool activatable:

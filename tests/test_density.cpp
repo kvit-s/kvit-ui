@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include <QtTest/QtTest>
+#include <QFontInfo>
+#include <QGuiApplication>
 #include <QMetaProperty>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -33,6 +35,7 @@ private slots:
     void testEveryKvitHubTokenHasAHome_data();
     void testEveryKvitHubTokenHasAHome();
     void testTheFontFamiliesAreSeparateFromTheDocument();
+    void testTheResolvedFamiliesAreDrawable();
 
 private:
     // Every int property InterfaceMetrics publishes except fontSize itself and
@@ -369,6 +372,57 @@ void TestDensity::testTheFontFamiliesAreSeparateFromTheDocument()
     // face, where two references down a column stop lining up.
     metrics.setMonoFamily(QString());
     QCOMPARE(metrics.monoFamily(), QStringLiteral("monospace"));
+}
+
+void TestDensity::testTheResolvedFamiliesAreDrawable()
+{
+    // The bug this exists to prevent, which shipped once and was found by
+    // looking at a screenshot.
+    //
+    // `fontFamily` is empty by default and means "whatever this desktop
+    // uses". Assigning that empty string to a QML `font.family` does not mean
+    // that: Qt matches it against nothing and falls back to whichever
+    // installed face its font matching lands on. On a Linux desktop with the
+    // usual DejaVu set, that is `DejaVu Math TeX Gyre`, a serif maths face,
+    // and every label in the library was drawn in it.
+    //
+    // Nothing about that looks like an error. A serif interface is a
+    // plausible design, so no test that only checked the code would have
+    // caught it. What can be checked is that the resolved family is the one
+    // the desktop actually asked for.
+    InterfaceMetrics metrics;
+
+    QVERIFY(!metrics.resolvedFontFamily().isEmpty());
+    QVERIFY(!metrics.resolvedMonoFamily().isEmpty());
+
+    // With no preference set, the resolved family is the application's own
+    // default, and matching it gives the same face the desktop would.
+    const QString wanted = QFontInfo(QGuiApplication::font()).family();
+    QCOMPARE(QFontInfo(QFont(metrics.resolvedFontFamily())).family(), wanted);
+
+    // And the thing that went wrong: an empty family does *not* resolve to
+    // that. If this ever stops being true the resolved accessors become
+    // unnecessary, and this case is where that would be noticed.
+    QFont empty;
+    empty.setFamily(QString());
+    QVERIFY2(QFontInfo(empty).family() != wanted
+                 || QFontInfo(empty).family().isEmpty(),
+             "an empty font family now resolves to the application default; "
+             "if that holds on every platform the resolved accessors on "
+             "InterfaceMetrics can go away");
+
+    // A preference, once set, is what is drawn with.
+    metrics.setFontFamily(QStringLiteral("DejaVu Sans Mono"));
+    QCOMPARE(metrics.resolvedFontFamily(), QStringLiteral("DejaVu Sans Mono"));
+    // Clearing it goes back to the desktop rather than to nothing.
+    metrics.setFontFamily(QString());
+    QCOMPARE(metrics.fontFamily(), QString());
+    QCOMPARE(metrics.resolvedFontFamily(), QGuiApplication::font().family());
+
+    // The monospace side has to actually be fixed-pitch, or a column of
+    // identifiers stops lining up, which is the only reason it is a separate
+    // family at all.
+    QVERIFY(QFontInfo(QFont(metrics.resolvedMonoFamily())).fixedPitch());
 }
 
 QTEST_MAIN(TestDensity)

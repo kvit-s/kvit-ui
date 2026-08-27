@@ -90,7 +90,7 @@ Item {
             anchors.centerIn: parent
             text: "?"
             color: Theme.danger
-            font.family: Interface.fontFamily
+            font.family: Interface.resolvedFontFamily
             font.pixelSize: Math.max(1, Math.round(parent.height * 0.7))
             renderType: Text.NativeRendering
         }

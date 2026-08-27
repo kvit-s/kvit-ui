@@ -68,8 +68,10 @@ Item {
             readonly property real value:
                 root.maximumY - (root.maximumY - root.minimumY) * fraction
 
-            anchors.left: parent.left
-            anchors.right: parent.right
+            // Anchored to the trend itself by id: `parent` is null while a
+            // Repeater delegate is being built, and these evaluate then.
+            anchors.left: root.left
+            anchors.right: root.right
             y: Math.round(root.height * fraction)
             height: 1
 

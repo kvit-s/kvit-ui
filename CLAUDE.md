@@ -41,10 +41,10 @@ accessible name.
 **A hand-drawn symbol.** `KvitIcon`, by meaning name. An unknown name draws a
 marked placeholder and fails `tests/test_components`.
 
-## Two shapes that hang rather than warn
+## Three shapes that fail without saying so
 
-Both were hit while building this, and neither produces a warning — the
-process stops during construction, a long way from the file that caused it.
+All three were hit while building this, and none of them produces an error
+where the mistake is.
 
 **A container sized from its children while a child fills the container.**
 `implicitHeight: holder.childrenRect.height` with `holder { anchors.fill:
@@ -53,6 +53,16 @@ height from `childrenRect`, and nothing loops.
 
 **A non-URL passed to `Qt.createQmlObject`.** The third argument has to be a
 real URL. A plain string is not rejected; it hangs inside the creation.
+
+**An empty `font.family`.** It does not mean "the platform default". Qt
+matches it against nothing and falls back to whichever installed face its font
+matching lands on, which on a Linux desktop with the usual DejaVu set is
+`DejaVu Math TeX Gyre`, a serif maths face. Bind to
+`Interface.resolvedFontFamily` and `Interface.resolvedMonoFamily`, never to
+the stored preferences `fontFamily` and `monoFamily`, which are empty when the
+reader has not chosen one. This one shipped: every label in the library was
+drawn in a serif until somebody looked at a screenshot, because a serif
+interface looks like a decision rather than a defect.
 
 ## Generated files
 

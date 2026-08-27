@@ -32,7 +32,7 @@ TextField {
     placeholderTextColor: Theme.textFaint
     selectionColor: Theme.selectionActiveTint
     selectedTextColor: Theme.textPrimary
-    font.family: Interface.fontFamily
+    font.family: Interface.resolvedFontFamily
     font.pixelSize: Interface.body
     renderType: Text.NativeRendering
 

@@ -95,7 +95,7 @@ Column {
             wrapMode: TextEdit.NoWrap
             color: Theme.textSecondary
             selectionColor: Theme.selectionActiveTint
-            font.family: Interface.monoFamily
+            font.family: Interface.resolvedMonoFamily
             font.pixelSize: Interface.small
             renderType: Text.NativeRendering
         }

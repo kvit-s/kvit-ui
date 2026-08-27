@@ -66,9 +66,10 @@ class InterfaceMetrics : public QObject
     Q_PROPERTY(int minFontSize READ minFontSize CONSTANT)
     Q_PROPERTY(int maxFontSize READ maxFontSize CONSTANT)
 
-    // The two families the chrome draws in. Empty means the platform's own
-    // default, which is what a desktop application should look like unless
-    // somebody has asked otherwise.
+    // The two families the chrome draws in, as a stored preference and as a
+    // resolved value. The pair mirrors Theme's `themeId` and `resolvedTheme`,
+    // and exists for the same reason: the preference has a "follow the
+    // platform" state that nothing can be drawn with.
     //
     // These are here rather than on Typography for the same reason the sizes
     // are: Typography is the document, and a person who sets their notes in a
@@ -76,10 +77,26 @@ class InterfaceMetrics : public QObject
     // `typography.fontFamily` because it had nowhere else to look, and drawing
     // its chrome in the document font is the visible half of the settings
     // collision described in divergence 3.4.
+    //
+    // `fontFamily` is what a settings dialog binds to. Empty is the default
+    // and means "whatever this desktop uses".
     Q_PROPERTY(QString fontFamily READ fontFamily WRITE setFontFamily NOTIFY changed)
     // For an identifier: a reference, a hash, a key. A monospace family is
     // what makes two of them comparable down the column.
     Q_PROPERTY(QString monoFamily READ monoFamily WRITE setMonoFamily NOTIFY changed)
+
+    // What to draw with. Never empty.
+    //
+    // These are what a component binds `font.family` to, and the distinction
+    // is not decoration. Assigning an empty string to `font.family` does not
+    // mean "the default": Qt matches it against nothing and falls back to
+    // whichever installed face its font-matching lands on, which on a Linux
+    // desktop with the usual DejaVu set is `DejaVu Math TeX Gyre` — a serif
+    // maths face. Every label in this library was drawn in it until this pair
+    // existed, and nothing about that looked like an error, because a serif
+    // interface is a plausible design rather than a broken one.
+    Q_PROPERTY(QString resolvedFontFamily READ resolvedFontFamily NOTIFY changed)
+    Q_PROPERTY(QString resolvedMonoFamily READ resolvedMonoFamily NOTIFY changed)
 
     // The seven roles the chrome asks for by name. The comment on each is the
     // pixel size it answers at the default base, and what asks for it.
@@ -185,6 +202,8 @@ public:
     void setFontFamily(const QString &family);
     QString monoFamily() const { return m_monoFamily; }
     void setMonoFamily(const QString &family);
+    QString resolvedFontFamily() const;
+    QString resolvedMonoFamily() const;
     qreal scale() const { return m_fontSize / qreal(DefaultFontSize); }
     int minFontSize() const { return MinFontSize; }
     int maxFontSize() const { return MaxFontSize; }

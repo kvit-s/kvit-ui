@@ -112,7 +112,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "Scrolling a column of rows",
-                    "snippet": "KvitRegion {\n    width: parent.width; height: Interface.px(140)\n    Column {\n        width: parent.width\n        Repeater {\n            model: 12\n            KvitSlimRow { width: parent.width; name: \"Row \" + (index + 1) }\n        }\n    }\n}"
+                    "snippet": "KvitRegion {\n    width: 480; height: Interface.px(140)\n    Column {\n        id: rows\n        width: 460\n        Repeater {\n            model: 12\n            KvitSlimRow { width: rows.width; name: \"Row \" + (index + 1) }\n        }\n    }\n}"
                 },
             ]
         },
@@ -596,7 +596,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "Beside a scrolling column",
-                    "snippet": "KvitRegion {\n    width: parent.width; height: Interface.px(120)\n    Column {\n        width: parent.width\n        Repeater { model: 10; KvitSlimRow { width: parent.width\n                   name: \"Row \" + (index + 1) } }\n    }\n}"
+                    "snippet": "KvitRegion {\n    width: 480; height: Interface.px(120)\n    Column {\n        id: rows\n        width: 460\n        Repeater { model: 10; KvitSlimRow { width: rows.width\n                   name: \"Row \" + (index + 1) } }\n    }\n}"
                 },
             ]
         },

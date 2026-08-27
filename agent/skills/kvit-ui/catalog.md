@@ -249,12 +249,13 @@ A body that takes the height left over and scrolls what does not fit. The scroll
 
 ```qml
 KvitRegion {
-    width: parent.width; height: Interface.px(140)
+    width: 480; height: Interface.px(140)
     Column {
-        width: parent.width
+        id: rows
+        width: 460
         Repeater {
             model: 12
-            KvitSlimRow { width: parent.width; name: "Row " + (index + 1) }
+            KvitSlimRow { width: rows.width; name: "Row " + (index + 1) }
         }
     }
 }
@@ -1405,10 +1406,11 @@ A scroll bar, occupying its own strip rather than floating over content. Thirty-
 
 ```qml
 KvitRegion {
-    width: parent.width; height: Interface.px(120)
+    width: 480; height: Interface.px(120)
     Column {
-        width: parent.width
-        Repeater { model: 10; KvitSlimRow { width: parent.width
+        id: rows
+        width: 460
+        Repeater { model: 10; KvitSlimRow { width: rows.width
                    name: "Row " + (index + 1) } }
     }
 }

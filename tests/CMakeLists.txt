@@ -27,7 +27,11 @@ kvit_ui_test(test_interfacemetrics)
 # The density and spacing tokens, and the one claim the whole arrangement
 # rests on: one setting moves every type role and every geometry value, and
 # leaves the document type scale alone.
-kvit_ui_test(test_density)
+# Qt6::Gui, so QTEST_MAIN builds a QGuiApplication: the resolved font
+# families are checked against the one the platform theme actually chose, and
+# without an application there is no platform theme to ask.
+kvit_ui_test(test_density Qt6::Gui)
+set_tests_properties(test_density PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # The chart ramps, checked rather than asserted. This is what makes an edit to
 # a ramp fail the build instead of the eye: every step of all three ramps, in

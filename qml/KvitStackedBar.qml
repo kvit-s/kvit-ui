@@ -65,6 +65,7 @@ Item {
     }
 
     Row {
+        id: stack
         anchors.fill: parent
         // The gap between segments, in the surface colour. Two design pixels:
         // one is invisible against a saturated fill and three eats a small
@@ -76,7 +77,9 @@ Item {
             delegate: Rectangle {
                 required property var modelData
                 required property int index
-                height: parent.height
+                // `stack` by id rather than `parent`, which is null while the
+                // delegate is being built.
+                height: stack.height
                 width: {
                     if (root.scale <= 0)
                         return 0

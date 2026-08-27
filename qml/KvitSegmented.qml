@@ -66,7 +66,9 @@ Rectangle {
                 readonly property bool selected:
                     root.valueOf(modelData) === root.current
 
-                height: parent.height
+                // `row` by id rather than `parent`, which is null while the
+                // delegate is being built.
+                height: row.height
                 width: Math.max(implicitContentWidth + Interface.spaceLoose * 2,
                                 Interface.px(56))
 

@@ -33,7 +33,11 @@ Text {
     property bool tabular: false
 
     color: Theme.textPrimary
-    font.family: root.mono ? Interface.monoFamily : Interface.fontFamily
+    // The resolved families, never the stored preference: an empty
+    // `font.family` is matched against nothing and falls back to an
+    // arbitrary installed face rather than to the desktop default.
+    font.family: root.mono ? Interface.resolvedMonoFamily
+                           : Interface.resolvedFontFamily
     font.pixelSize: {
         switch (root.role) {
         case "caption":  return Interface.caption

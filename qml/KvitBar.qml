@@ -2,6 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+// Delegates in this file read ids from the enclosing component. Bound is what
+// makes that legal rather than accidental: without it a delegate resolves an
+// outer id at run time through the object hierarchy, which works until the
+// delegate is reused for a different row and quietly reads the wrong one.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Kvit.Ui
 
@@ -72,6 +78,7 @@ Item {
     // hatch-stroke colour, which is per theme so the stripes survive every
     // ground a bar can sit on.
     Item {
+        id: hatch
         anchors.fill: fill
         visible: root.measured && root.bounded
         clip: true
@@ -80,9 +87,12 @@ Item {
             delegate: Rectangle {
                 required property int index
                 width: Interface.hairline
-                height: parent.height * 3
-                x: index * Interface.spaceSnug - parent.height
-                y: -parent.height
+                // `hatch` by id rather than `parent`: a delegate's parent is
+                // null while it is being built, and a binding that reads it
+                // then warns before settling.
+                height: hatch.height * 3
+                x: index * Interface.spaceSnug - hatch.height
+                y: -hatch.height
                 rotation: 45
                 transformOrigin: Item.TopLeft
                 color: Theme.hatchAlt

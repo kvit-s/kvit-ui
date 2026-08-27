@@ -3,6 +3,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include "interfacemetrics.h"
 
+#include <QFont>
+#include <QGuiApplication>
 #include <QVariant>
 
 #include "settingsstore.h"
@@ -74,6 +76,25 @@ void InterfaceMetrics::setMonoFamily(const QString &family)
     if (m_settings && !m_loading)
         m_settings->setValue(kMonoFamily, m_monoFamily);
     emit changed();
+}
+
+QString InterfaceMetrics::resolvedFontFamily() const
+{
+    if (!m_fontFamily.isEmpty())
+        return m_fontFamily;
+    // The desktop's own default, asked for by name rather than left empty.
+    // QGuiApplication::font() is what the platform theme decided, and on a
+    // Linux desktop that is the generic "Sans Serif", which fontconfig
+    // resolves; an empty family is resolved against nothing.
+    return QGuiApplication::font().family();
+}
+
+QString InterfaceMetrics::resolvedMonoFamily() const
+{
+    // setMonoFamily already refuses to store an empty value, so this is the
+    // stored one unless something bypassed the setter — a hand-edited
+    // settings file loaded before setSettings runs, for instance.
+    return m_monoFamily.isEmpty() ? QStringLiteral("monospace") : m_monoFamily;
 }
 
 int InterfaceMetrics::px(int designPx) const
