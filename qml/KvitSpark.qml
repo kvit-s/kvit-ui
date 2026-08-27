@@ -50,44 +50,65 @@ Item {
     Accessible.name: root.label
     Accessible.description: qsTr("%n period(s)", "", root.values.length)
 
-    Row {
-        anchors.fill: parent
-        spacing: Interface.hairline
+    // The gap between bars, and where each bar starts.
+    //
+    // Not a Row with fractional widths. Twelve bars across 160 pixels with a
+    // one-pixel gap gives each one 12.4167 pixels, a Row lays them out at
+    // cumulative fractional positions, and the renderer snaps each bar to
+    // device pixels on its own — so the gaps come out one pixel in some
+    // places and two in others, which is what a reader sees as an unevenly
+    // spaced series.
+    //
+    // Rounding the *boundaries* instead makes every gap exactly `gap`. The
+    // bar widths then vary by at most one pixel, which nobody reads at this
+    // size, where uneven gaps are obvious. The slot arithmetic runs over
+    // `width + gap` so that the last bar ends exactly at the right edge
+    // rather than leaving a trailing gap.
+    // Not properties: a reader of the catalogue should see what this
+    // component takes, and a bar gap is not that.
+    function slotStart(index) {
+        const gap = Interface.hairline
+        const count = Math.max(1, root.values.length)
+        return Math.round(index * (root.width + gap) / count)
+    }
+    function slotWidth(index) {
+        return Math.max(1, root.slotStart(index + 1) - root.slotStart(index)
+                            - Interface.hairline)
+    }
 
-        Repeater {
-            model: root.values
-            delegate: Item {
-                required property var modelData
-                required property int index
-                width: Math.max(Interface.hairline,
-                                (root.width - Interface.hairline
-                                 * Math.max(0, root.values.length - 1))
-                                / Math.max(1, root.values.length))
-                height: root.height
+    Repeater {
+        model: root.values
+        delegate: Item {
+            id: slot
+            required property var modelData
+            required property int index
 
-                // A measured value: a bar of its height.
-                Rectangle {
-                    visible: parent.modelData !== null
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: parent.modelData === null ? 0
-                        : Math.max(Interface.hairline,
-                                   Math.round(root.height
-                                              * (parent.modelData / root.scale)))
-                    radius: Interface.radiusBar
-                    color: root.color
-                }
+            x: root.slotStart(slot.index)
+            width: root.slotWidth(slot.index)
+            height: root.height
 
-                // A period nobody measured: a tick on the baseline. Muted and
-                // one pixel tall, so it reads as an absence rather than as a
-                // very small value.
-                Rectangle {
-                    visible: parent.modelData === null
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: Interface.hairline
-                    color: Theme.textFaint
-                }
+            // A measured value: a bar of its height.
+            Rectangle {
+                visible: slot.modelData !== null
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: slot.modelData === null ? 0
+                    : Math.max(Interface.hairline,
+                               Math.round(root.height
+                                          * (slot.modelData / root.scale)))
+                radius: Interface.radiusBar
+                color: root.color
+            }
+
+            // A period nobody measured: a tick on the baseline. Muted and one
+            // pixel tall, so it reads as an absence rather than as a very
+            // small value.
+            Rectangle {
+                visible: slot.modelData === null
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: Interface.hairline
+                color: Theme.textFaint
             }
         }
     }

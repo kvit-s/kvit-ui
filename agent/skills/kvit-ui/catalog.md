@@ -212,10 +212,6 @@ Where the reader is and the way back. The last crumb is the current place and is
 | `trail` | var | A list of { label, id } objects, root first. |
 | `maximumVisible` | int |  |
 | `shown` | readonly var |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
-| `last` | readonly bool |  |
-| `activatable` | readonly bool |  |
 
 *A short trail and a long one*
 
@@ -294,8 +290,6 @@ The strip along the bottom: what is happening on the left, standing facts on the
 |---|---|---|
 | `activity` | string | What is happening now. |
 | `facts` | var | Standing facts, right aligned. |
-| `modelData` | string | **required.**  |
-| `index` | int | **required.**  |
 
 *Working, with two facts*
 
@@ -696,7 +690,6 @@ A row of dots standing for a small count — three of five days recorded. For co
 | `total` | int |  |
 | `color` | color |  |
 | `label` | string |  |
-| `index` | int | **required.**  |
 
 *Three of five, and none of four*
 
@@ -746,7 +739,6 @@ A button with words on it, in three forms. One primary per screen region: it is 
 | `busy` | bool | A button that is doing something. |
 | `busyText` | string |  |
 | `fill` | readonly color |  |
-| `foreground` | readonly color |  |
 
 *The three forms, and destructive*
 
@@ -865,8 +857,6 @@ A choice from a list too long to lay out. For two to four self-evident options, 
 | Property | Type | |
 |---|---|---|
 | `label` | string |  |
-| `model` | var | **required.**  |
-| `index` | int | **required.**  |
 
 *A currency picker*
 
@@ -1064,7 +1054,6 @@ One quantity against a stated scale. A bar with no value draws a tick rather tha
 | `label` | string | What this bar is, for a screen reader. |
 | `unit` | string |  |
 | `fraction` | readonly real |  |
-| `index` | int | **required.**  |
 
 *Measured, bounded and unmeasured*
 
@@ -1093,8 +1082,6 @@ Several quantities adding to one total. The two-pixel gap is the reason this is 
 | `label` | string |  |
 | `total` | readonly real |  |
 | `scale` | readonly real |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
 
 *A four-way breakdown*
 
@@ -1123,8 +1110,6 @@ The shape of a series, small enough to sit in a row. A period that was never mea
 | `label` | string |  |
 | `maximum` | real | The scale. |
 | `scale` | readonly real |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
 
 *With a hole in the middle*
 
@@ -1152,9 +1137,6 @@ A series with a value axis and a hover crosshair — read for values, where a sp
 | `hovered` | readonly int | Where the pointer is, as an index into `points`, or −1. |
 | `axisWidth` | readonly int |  |
 | `plotWidth` | readonly real |  |
-| `index` | int | **required.**  |
-| `fraction` | readonly real |  |
-| `value` | readonly real |  |
 
 *A series, and the empty state*
 
@@ -1370,14 +1352,6 @@ A dense, configurable, editable table over a C++ model. Holds smooth scrolling a
 | `hiddenColumns` | var | Column indices the reader has hidden. |
 | `selection` | readonly alias |  |
 | `view` | readonly alias |  |
-| `index` | int | **required.**  |
-| `row` | int | **required.**  |
-| `column` | int | **required.**  |
-| `selected` | bool | **required.**  |
-| `current` | bool | **required.**  |
-| `display` | var | **required.**  |
-| `measured` | bool | **required.**  |
-| `mark` | var | **required.**  |
 
 *Two hundred and fifty thousand rows*
 
@@ -1400,7 +1374,6 @@ A scroll bar, occupying its own strip rather than floating over content. Thirty-
 | `isVertical` | readonly bool |  |
 | `span` | readonly real | Guarded even though `flickable` is required, because a scroll bar outlives its flickable by one event loop turn when a view is torn down, and an unguarded binding re-evaluates in that gap and warns. |
 | `position` | readonly real |  |
-| `minimum` | readonly int | A minimum length, because a handle sized honestly against 250,000 rows is a fraction of a pixel and cannot be grabbed. |
 
 *Beside a scrolling column*
 
@@ -1475,14 +1448,6 @@ A nested list the reader can open and close. Twelve private versions; what a sha
 | Property | Type | |
 |---|---|---|
 | `label` | string | What a screen reader calls this tree. |
-| `treeView` | TreeView | **required.**  |
-| `isTreeNode` | bool | **required.**  |
-| `expanded` | bool | **required.**  |
-| `hasChildren` | bool | **required.**  |
-| `depth` | int | **required.**  |
-| `row` | int | **required.**  |
-| `display` | var | **required.**  |
-| `current` | readonly bool |  |
 
 *A small hierarchy*
 
@@ -1517,8 +1482,6 @@ One choice from a handful where the choice needs explaining. Arrow keys move wit
 | `options` | var | A list of { value, label, detail } objects. |
 | `current` | var |  |
 | `label` | string |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
 
 *Three options with detail*
 
@@ -1583,10 +1546,6 @@ KvitSlider { width: Interface.px(200); label: "Opacity"; value: 0.6
 
 Two regions the reader can resize. The handle is a wide invisible strip with a hairline down the middle, so the target is comfortable and the rule is still thin; it also moves with the arrow keys.
 
-| Property | Type | |
-|---|---|---|
-| `active` | readonly bool |  |
-
 *Two panes*
 
 ```qml
@@ -1608,9 +1567,6 @@ One choice from two to five short options, all visible — the shape kvit-cash's
 | `options` | var | A list of strings, or of { value, label } objects. |
 | `current` | var |  |
 | `label` | string |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
-| `selected` | readonly bool |  |
 
 *A period control*
 
@@ -1641,8 +1597,6 @@ A field offering matches as the reader types, for a list too long to read. `allo
 | `allowNew` | bool | **required.**  |
 | `maximumSuggestions` | int |  |
 | `matches` | readonly var |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
 
 *A category picker that will not invent categories*
 
@@ -1687,9 +1641,6 @@ What happened to something, newest first, with who did it. In an estate where an
 |---|---|---|
 | `entries` | var | A list of { when, what, who, detail, tone } objects, newest first. |
 | `label` | string |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
-| `toneColor` | readonly color |  |
 
 *An account's recent history*
 
@@ -1764,10 +1715,6 @@ Two lists with items moving between them: what is available, and what is chosen 
 | `chosen` | var |  |
 | `availableLabel` | string |  |
 | `chosenLabel` | string |  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
-| `modelData` | var | **required.**  |
-| `index` | int | **required.**  |
 
 *Choosing table columns*
 
@@ -1791,7 +1738,6 @@ Darken everything except one region and say something about it — the primitive
 | `shown` | bool |  |
 | `padding` | int |  |
 | `hole` | readonly rect |  |
-| `index` | int | **required.**  |
 
 *Focusing a button*
 

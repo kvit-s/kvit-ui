@@ -36,6 +36,13 @@ struct Property
 // it. A regular expression is enough because the shape being matched is one
 // line of QML with a fixed grammar, and anything it fails to match simply does
 // not appear rather than appearing wrong.
+//
+// Only declarations on the root object count, which here means exactly four
+// spaces of indentation. Without that rule the catalogue advertises every
+// `required property var modelData` inside a Repeater delegate as part of the
+// component's interface, and an agent reading it writes
+// `KvitSpark { modelData: ... }`. Fifteen of the sixty-eight components have a
+// delegate, so this is most of the ones that draw a list.
 QList<Property> propertiesOf(const QString &component)
 {
     QFile file(QStringLiteral(":/qt/qml/Kvit/Ui/%1.qml").arg(component));
@@ -45,7 +52,7 @@ QList<Property> propertiesOf(const QString &component)
         QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'));
 
     static const QRegularExpression declaration(
-        QStringLiteral("^\\s*(?:(readonly)\\s+)?(?:(required)\\s+)?property\\s+"
+        QStringLiteral("^    (?:(readonly)\\s+)?(?:(required)\\s+)?property\\s+"
                        "([A-Za-z_][\\w.<>]*)\\s+([A-Za-z_]\\w*)"));
 
     QList<Property> found;
