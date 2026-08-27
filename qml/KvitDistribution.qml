@@ -34,7 +34,16 @@ Item {
     property string unit: ""
 
     implicitHeight: Interface.barHeightWide
-    implicitWidth: parent ? parent.width : Interface.px(160)
+    // The natural width, which is what implicitWidth means: how wide this
+    // wants to be when nothing constrains it. A caller that wants it to fill
+    // something assigns `width`.
+    //
+    // Writing `parent.width` here instead says "fill my parent", and that is
+    // unusable inside anything that sizes itself to its children — a Column, a
+    // Row, an Item measured by childrenRect — because the child then asks the
+    // parent how wide it is while the parent is asking the child. Every one of
+    // these collapsed to zero width in a bare Column.
+    implicitWidth: Interface.px(160)
 
     function at(value) {
         const span = scaleMaximum - scaleMinimum

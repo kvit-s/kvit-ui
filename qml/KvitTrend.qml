@@ -40,7 +40,7 @@ Item {
     property int gridlines: 3
 
     implicitHeight: Interface.px(120)
-    implicitWidth: parent ? parent.width : Interface.px(320)
+    implicitWidth: Interface.px(320)
 
     // Where the pointer is, as an index into `points`, or −1.
     readonly property int hovered: hover.hovered && root.points.length > 0

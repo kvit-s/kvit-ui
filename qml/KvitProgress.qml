@@ -26,7 +26,7 @@ Item {
     property bool showPercent: true
 
     implicitHeight: Interface.rowHeightCompact
-    implicitWidth: parent ? parent.width : Interface.px(200)
+    implicitWidth: Interface.px(200)
 
     readonly property real fraction:
         maximum > 0 ? Math.max(0, Math.min(1, value / maximum)) : 0

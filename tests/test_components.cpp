@@ -4,6 +4,7 @@
 #include <QtTest/QtTest>
 #include <QDirIterator>
 #include <QQmlComponent>
+#include <QRegularExpression>
 #include <QQmlEngine>
 #include <QQuickItem>
 
@@ -33,6 +34,8 @@ private slots:
     void initTestCase();
     void testEveryComponentLoads_data();
     void testEveryComponentLoads();
+    void testEveryComponentHasANaturalWidth_data();
+    void testEveryComponentHasANaturalWidth();
     void testAnUnknownIconNameIsLoud();
     void testTheIconFontIsInTheModule();
 
@@ -188,6 +191,66 @@ void TestComponents::testEveryComponentLoads()
              qPrintable(QStringLiteral("%1 warned in the %2 theme:\n  %3")
                             .arg(url, theme,
                                  g_warnings.join(QStringLiteral("\n  ")))));
+}
+
+void TestComponents::testEveryComponentHasANaturalWidth_data()
+{
+    QTest::addColumn<QString>("url");
+    for (const QString &url : componentUrls())
+        QTest::newRow(qPrintable(url.section(QLatin1Char('/'), -1))) << url;
+}
+
+void TestComponents::testEveryComponentHasANaturalWidth()
+{
+    // No component's own implicit size may be read off its parent.
+    //
+    // `implicitWidth` means how wide something wants to be when nothing
+    // constrains it. Thirteen components had `implicitWidth: parent.width`
+    // instead, which says "fill my parent" — and inside anything that sizes
+    // itself to its children (a Column, a Row, an Item measured by
+    // childrenRect) that is a cycle: the child asks the parent how wide it is
+    // while the parent is measuring itself from the child. All thirteen
+    // settled at zero and drew nothing. KvitSlug was the one somebody noticed,
+    // because its gallery page was the only one whose specimen did not happen
+    // to pass an explicit width.
+    //
+    // Checked in the source rather than by measuring a built component,
+    // because zero width is the right answer for several of these when they
+    // are empty — a KvitLabel with no text, a KvitFigure with no value — and a
+    // measurement cannot tell that apart from the defect. What is wrong is the
+    // binding, so that is what is read.
+    //
+    // Root-level declarations only, at exactly four spaces of indentation.
+    // Inside a nested object `parent` means that object's parent, which is
+    // ordinary and correct: KvitCheck's tick is sized from the box it sits in.
+    QFETCH(QString, url);
+
+    // The url is "qrc" + the resource path, which is how componentUrls()
+    // builds it; QFile wants the resource path.
+    QFile file(url.mid(3));
+    QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
+             qPrintable(url));
+    const QStringList lines =
+        QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'));
+
+    static const QRegularExpression implicitSize(
+        QStringLiteral("^    implicit(Width|Height):(.*)$"));
+
+    QStringList offenders;
+    for (const QString &line : lines) {
+        const QRegularExpressionMatch match = implicitSize.match(line);
+        if (!match.hasMatch())
+            continue;
+        if (match.captured(2).contains(QLatin1String("parent")))
+            offenders.append(line.trimmed());
+    }
+
+    QVERIFY2(offenders.isEmpty(),
+             qPrintable(QStringLiteral("%1 sizes itself from its parent, so it "
+                                       "collapses inside anything that sizes "
+                                       "itself to its children:\n  %2")
+                            .arg(url.section(QLatin1Char('/'), -1),
+                                 offenders.join(QStringLiteral("\n  ")))));
 }
 
 void TestComponents::testAnUnknownIconNameIsLoud()

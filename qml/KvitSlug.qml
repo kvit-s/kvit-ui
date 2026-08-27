@@ -23,8 +23,14 @@ Rectangle {
     property bool ground: true
 
     implicitHeight: root.ground ? Interface.chipHeight : label.implicitHeight
-    implicitWidth: Math.min(label.implicitWidth + (root.ground ? Interface.spaceNear * 2 : 0),
-                            parent ? parent.width : label.implicitWidth)
+    // The natural width, which is what implicitWidth means. Capping it at
+    // `parent.width` here is what made this component draw nothing inside a
+    // Column: the child asks the parent how wide it is while the parent is
+    // measuring itself from the child, and the cycle settles at zero. A caller
+    // that wants it capped assigns `width`, and the middle elide takes care of
+    // what does not fit.
+    implicitWidth: label.implicitWidth
+                   + (root.ground ? Interface.spaceNear * 2 : 0)
     radius: Interface.radiusBar
     color: root.ground ? Theme.inlineCodeBackground : "transparent"
 

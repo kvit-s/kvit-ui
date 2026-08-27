@@ -25,7 +25,7 @@ AbstractButton {
     property int count: -1
 
     implicitHeight: Interface.rowHeightSlim
-    implicitWidth: parent ? parent.width : Interface.sidebarWidth
+    implicitWidth: Interface.sidebarWidth
 
     Accessible.role: Accessible.ListItem
     Accessible.name: root.count >= 0

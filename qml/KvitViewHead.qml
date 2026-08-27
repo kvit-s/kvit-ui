@@ -25,7 +25,7 @@ Item {
     default property alias controls: controlSlot.data
 
     implicitHeight: Interface.rowHeight
-    implicitWidth: parent ? parent.width : Interface.px(600)
+    implicitWidth: Interface.px(600)
 
     Accessible.role: Accessible.Heading
     Accessible.name: root.title

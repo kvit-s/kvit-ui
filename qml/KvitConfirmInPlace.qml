@@ -36,7 +36,7 @@ Rectangle {
     signal dismissed()
 
     implicitHeight: shown ? Interface.rowHeightSlim + Interface.space : 0
-    implicitWidth: parent ? parent.width : Interface.px(400)
+    implicitWidth: Interface.px(400)
 
     visible: implicitHeight > 0
     clip: true

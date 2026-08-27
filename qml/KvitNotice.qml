@@ -43,7 +43,7 @@ Rectangle {
 
     implicitHeight: Math.max(Interface.rowHeightSlim + Interface.space,
                              layout.implicitHeight + Interface.space)
-    implicitWidth: parent ? parent.width : Interface.px(600)
+    implicitWidth: Interface.px(600)
 
     radius: Interface.radiusControl
     color: Qt.alpha(root.toneColor, 0.12)

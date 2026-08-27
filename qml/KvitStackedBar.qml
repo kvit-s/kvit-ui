@@ -36,7 +36,7 @@ Item {
     property string label: ""
 
     implicitHeight: wide ? Interface.barHeightWide : Interface.barHeight
-    implicitWidth: parent ? parent.width : Interface.px(160)
+    implicitWidth: Interface.px(160)
 
     readonly property real total: {
         let sum = 0

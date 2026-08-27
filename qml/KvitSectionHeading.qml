@@ -43,7 +43,7 @@ Item {
     signal actioned()
 
     implicitHeight: Interface.rowHeightCompact
-    implicitWidth: parent ? parent.width : Interface.px(400)
+    implicitWidth: Interface.px(400)
 
     Rectangle {
         anchors.fill: parent

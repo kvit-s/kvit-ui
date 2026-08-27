@@ -30,7 +30,7 @@ Item {
 
     signal toggled(bool expanded)
 
-    implicitWidth: parent ? parent.width : Interface.px(400)
+    implicitWidth: Interface.px(400)
     implicitHeight: trigger.height + (expanded ? bodySlot.childrenRect.height
                                                  + Interface.space : 0)
 

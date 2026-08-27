@@ -28,7 +28,7 @@ Item {
     property string unit: ""
 
     implicitHeight: Interface.barHeightWide
-    implicitWidth: parent ? parent.width : Interface.px(160)
+    implicitWidth: Interface.px(160)
 
     readonly property real fraction:
         allowance > 0 ? Math.max(0, Math.min(1, value / allowance)) : 0
