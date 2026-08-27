@@ -79,10 +79,15 @@ Column {
                 implicitWidth: Interface.px(16)
                 implicitHeight: Interface.px(16)
                 x: 0
-                // Aligned to the first line rather than centred on the whole
-                // control: an option with a line of detail under it is two
-                // lines tall, and a circle centred on that sits between them.
-                y: Interface.spaceTight
+                // Centred on the first line rather than on the control.
+                //
+                // An option with a line of detail under it is two lines tall,
+                // and a circle centred on that sits between them. Centring on
+                // the label itself rather than on a fixed offset is what makes
+                // it right for both shapes: a constant nudge is 2 px too low
+                // on every option, which reads as sloppy on the one-line ones
+                // and is forgiven on the two-line one.
+                y: primary.y + (primary.height - height) / 2
                 radius: width / 2
                 color: "transparent"
                 border.width: Interface.hairline
@@ -111,6 +116,7 @@ Column {
                 spacing: Interface.spaceTight
 
                 KvitLabel {
+                    id: primary
                     width: option.availableWidth
                     text: option.modelData.label
                     role: "body"
