@@ -893,10 +893,23 @@ A short label next to a control after a pause. Never the only place a control's 
 *On a button*
 
 ```qml
-KvitButton {
-    text: "Reconcile"
-    ToolTip.visible: true
-    ToolTip.text: "Match these against the statement"
+Item {
+    id: stage
+    width: parent.width; height: Interface.px(80)
+    KvitButton {
+        id: action
+        x: Interface.px(60); y: Interface.px(40)
+        text: "Reconcile"
+        // KvitTooltip rather than the attached `ToolTip.text`: the attached
+        // one is the platform style's, which is a yellow box belonging to no
+        // theme here.
+        KvitTooltip {
+            id: hint
+            text: "Match these against the statement"
+            delay: 0
+            Component.onCompleted: if (stage.Window.window) hint.visible = true
+        }
+    }
 }
 ```
 
@@ -912,13 +925,19 @@ A small surface anchored to a control holding something to act on. Takes focus, 
 
 ```qml
 Item {
+    id: stage
     width: parent.width; height: Interface.px(150)
     KvitPopover {
-        visible: true; title: "Filter"
+        id: filter
+        parent: stage
+        title: "Filter"
         width: Interface.px(240)
+        // A Popup opens into a window, and `visible: true` on one with no
+        // parent does nothing at all.
+        Component.onCompleted: if (stage.Window.window) filter.open()
         Column {
             spacing: Interface.spaceNear
-            KvitCheck { text: "Settled" ; checked: true }
+            KvitCheck { text: "Settled"; checked: true }
             KvitCheck { text: "Pending" }
             KvitCheck { text: "Disputed" }
         }
@@ -1024,17 +1043,23 @@ A modal surface that has to be answered first. Expensive, and worth it only wher
 *A destructive confirmation*
 
 ```qml
+// Shown here without its modality so it sits on the page. A real one is
+// modal and centres itself on the window, which is what a dialog that has
+// to be answered first should do and is not something a gallery card can
+// contain.
 Item {
     id: stage
-    width: parent.width; height: Interface.px(190)
+    width: parent.width; height: Interface.px(210)
     KvitDialog {
-        visible: true
+        id: confirm
         parent: stage
+        modal: false
         anchors.centerIn: stage
         title: "Delete 40 transactions?"
         detail: "They will be removed from every report. This cannot be undone."
         confirmText: "Delete them"
         destructive: true
+        Component.onCompleted: if (stage.Window.window) confirm.open()
     }
 }
 ```

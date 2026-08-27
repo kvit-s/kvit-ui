@@ -49,12 +49,21 @@ AbstractButton {
     implicitWidth: Interface.controlHeight
     implicitHeight: Interface.controlHeight
 
-    // Both of these, because they answer different questions: a pointer user
-    // reads the tooltip and a screen reader reads the accessible name, and a
-    // control that has one and not the other is unusable by half its readers.
-    ToolTip.visible: hovered && ToolTip.text !== ""
-    ToolTip.text: label
-    ToolTip.delay: 500
+    // Both the tooltip and the accessible name, because they answer different
+    // questions: a pointer user reads the tooltip and a screen reader reads
+    // the name, and a control that has one and not the other is unusable by
+    // half its readers. Both come from `label`, so they cannot disagree.
+    //
+    // An explicit KvitTooltip rather than the attached `ToolTip.text`. The
+    // attached property instantiates Qt Quick Controls' own ToolTip, which
+    // arrives in the platform style — a yellow box with black text that
+    // belongs to no theme in this estate and ignores the interface size. Every
+    // tooltip in the library was one of those until this was written.
+    KvitTooltip {
+        text: root.label
+        visible: root.hovered && root.label !== ""
+    }
+
     Accessible.role: Accessible.Button
     Accessible.name: label
     Accessible.onPressAction: root.clicked()

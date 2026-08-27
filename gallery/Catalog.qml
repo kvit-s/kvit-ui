@@ -409,7 +409,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "On a button",
-                    "snippet": "KvitButton {\n    text: \"Reconcile\"\n    ToolTip.visible: true\n    ToolTip.text: \"Match these against the statement\"\n}"
+                    "snippet": "Item {\n    id: stage\n    width: parent.width; height: Interface.px(80)\n    KvitButton {\n        id: action\n        x: Interface.px(60); y: Interface.px(40)\n        text: \"Reconcile\"\n        // KvitTooltip rather than the attached `ToolTip.text`: the attached\n        // one is the platform style's, which is a yellow box belonging to no\n        // theme here.\n        KvitTooltip {\n            id: hint\n            text: \"Match these against the statement\"\n            delay: 0\n            Component.onCompleted: if (stage.Window.window) hint.visible = true\n        }\n    }\n}"
                 },
             ]
         },
@@ -420,7 +420,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "Open, holding a form",
-                    "snippet": "Item {\n    width: parent.width; height: Interface.px(150)\n    KvitPopover {\n        visible: true; title: \"Filter\"\n        width: Interface.px(240)\n        Column {\n            spacing: Interface.spaceNear\n            KvitCheck { text: \"Settled\" ; checked: true }\n            KvitCheck { text: \"Pending\" }\n            KvitCheck { text: \"Disputed\" }\n        }\n    }\n}"
+                    "snippet": "Item {\n    id: stage\n    width: parent.width; height: Interface.px(150)\n    KvitPopover {\n        id: filter\n        parent: stage\n        title: \"Filter\"\n        width: Interface.px(240)\n        // A Popup opens into a window, and `visible: true` on one with no\n        // parent does nothing at all.\n        Component.onCompleted: if (stage.Window.window) filter.open()\n        Column {\n            spacing: Interface.spaceNear\n            KvitCheck { text: \"Settled\"; checked: true }\n            KvitCheck { text: \"Pending\" }\n            KvitCheck { text: \"Disputed\" }\n        }\n    }\n}"
                 },
             ]
         },
@@ -464,7 +464,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "A destructive confirmation",
-                    "snippet": "Item {\n    id: stage\n    width: parent.width; height: Interface.px(190)\n    KvitDialog {\n        visible: true\n        parent: stage\n        anchors.centerIn: stage\n        title: \"Delete 40 transactions?\"\n        detail: \"They will be removed from every report. This cannot be undone.\"\n        confirmText: \"Delete them\"\n        destructive: true\n    }\n}"
+                    "snippet": "// Shown here without its modality so it sits on the page. A real one is\n// modal and centres itself on the window, which is what a dialog that has\n// to be answered first should do and is not something a gallery card can\n// contain.\nItem {\n    id: stage\n    width: parent.width; height: Interface.px(210)\n    KvitDialog {\n        id: confirm\n        parent: stage\n        modal: false\n        anchors.centerIn: stage\n        title: \"Delete 40 transactions?\"\n        detail: \"They will be removed from every report. This cannot be undone.\"\n        confirmText: \"Delete them\"\n        destructive: true\n        Component.onCompleted: if (stage.Window.window) confirm.open()\n    }\n}"
                 },
             ]
         },

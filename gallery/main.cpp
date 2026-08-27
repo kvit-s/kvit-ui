@@ -86,6 +86,15 @@ int main(int argc, char *argv[])
     if (parser.isSet(size)) {
         KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
             parser.value(size).toInt());
+    } else if (parser.isSet(shots)) {
+        // A screenshot run starts from the default interface size unless it
+        // is told otherwise.
+        //
+        // The gallery remembers the size it was last left at, which is right
+        // when browsing and wrong here: a set written after somebody looked
+        // at one page at 20 px is a set that cannot be diffed against the
+        // last one, and nothing about the images says why they all moved.
+        KvitUi::DefaultServices::interfaceMetrics()->resetToDefaults();
     }
 
     QQmlApplicationEngine engine;

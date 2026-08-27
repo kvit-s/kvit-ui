@@ -36,9 +36,15 @@ AbstractButton {
 
     // The tooltip is what makes the rail usable: collapsed, the label is the
     // only thing that says where this goes.
-    ToolTip.visible: root.collapsed && root.hovered
-    ToolTip.text: root.text
-    ToolTip.delay: 400
+    //
+    // KvitTooltip rather than the attached `ToolTip.text`, which instantiates
+    // the platform style's own and arrives as a yellow box belonging to no
+    // theme here.
+    KvitTooltip {
+        text: root.text
+        visible: root.collapsed && root.hovered
+        delay: 400
+    }
 
     background: Rectangle {
         color: root.selected ? Theme.selectionTint

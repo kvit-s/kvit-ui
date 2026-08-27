@@ -204,6 +204,18 @@ KvitWindow {
         readonly property var themes: ["light", "dark", "sepia", "highContrast"]
 
         function start() {
+            // Still every animation for the duration of the run.
+            //
+            // A screenshot is taken one frame after the page changes, and
+            // anything with a transition is then captured mid-flight: a
+            // KvitPopover fading in over 100 ms is grabbed at opacity zero,
+            // which is why its page was a blank card. Reduced motion sets
+            // Theme.motionScale to 0, and every duration in the library is
+            // written as `n * Theme.motionScale`, so the whole set becomes
+            // deterministic rather than a race against the frame clock.
+            //
+            // It also happens to be a state worth having screenshots of.
+            Theme.reducedMotion = true
             running = true
             themeIndex = 0
             pageIndex = 0
