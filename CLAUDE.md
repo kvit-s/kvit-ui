@@ -41,9 +41,9 @@ accessible name.
 **A hand-drawn symbol.** `KvitIcon`, by meaning name. An unknown name draws a
 marked placeholder and fails `tests/test_components`.
 
-## Three shapes that fail without saying so
+## Four shapes that fail without saying so
 
-All three were hit while building this, and none of them produces an error
+All four were hit while building this, and none of them produces an error
 where the mistake is.
 
 **A container sized from its children while a child fills the container.**
@@ -53,6 +53,15 @@ height from `childrenRect`, and nothing loops.
 
 **A non-URL passed to `Qt.createQmlObject`.** The third argument has to be a
 real URL. A plain string is not rejected; it hangs inside the creation.
+
+**A `contentItem` that positions itself.** A `Control` places its content item
+at `(leftPadding, topPadding)` and overwrites any `x` or `y` it was given, so a
+content item that indents itself past an indicator lands underneath it instead.
+Put the offset in the control's `leftPadding` and leave the content item alone.
+`KvitCheck` and `KvitSwitch` reach the same result by giving their label its own
+`leftPadding`, which works because a `KvitLabel` has no ground; the control's
+padding is the version to copy, because it is what makes `availableWidth` the
+real content width.
 
 **An empty `font.family`.** It does not mean "the platform default". Qt
 matches it against nothing and falls back to whichever installed face its font

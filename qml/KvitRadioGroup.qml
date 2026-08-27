@@ -54,6 +54,20 @@ Column {
             ButtonGroup.group: exclusive
             spacing: Interface.space
 
+            // The indicator sits at the left edge and the content is indented
+            // past it by the control's own padding.
+            //
+            // Not by setting `x` on the contentItem: a Control positions its
+            // contentItem at (leftPadding, topPadding) and overwrites whatever
+            // `x` it was given, so a content item that indents itself lands
+            // under the indicator instead of beside it. That is what this
+            // component did, and a radio circle drawn over the first letter of
+            // every label is what it looked like.
+            leftPadding: indicator.width + spacing
+            rightPadding: 0
+            topPadding: 0
+            bottomPadding: 0
+
             Accessible.role: Accessible.RadioButton
             Accessible.name: modelData.detail !== undefined && modelData.detail !== ""
                 ? qsTr("%1. %2").arg(modelData.label).arg(modelData.detail)
@@ -64,7 +78,10 @@ Column {
             indicator: Rectangle {
                 implicitWidth: Interface.px(16)
                 implicitHeight: Interface.px(16)
-                x: option.leftPadding
+                x: 0
+                // Aligned to the first line rather than centred on the whole
+                // control: an option with a line of detail under it is two
+                // lines tall, and a circle centred on that sits between them.
                 y: Interface.spaceTight
                 radius: width / 2
                 color: "transparent"
@@ -91,23 +108,25 @@ Column {
             }
 
             contentItem: Column {
-                x: option.indicator.width + option.spacing
                 spacing: Interface.spaceTight
 
                 KvitLabel {
+                    width: option.availableWidth
                     text: option.modelData.label
                     role: "body"
                     color: option.enabled ? Theme.textPrimary : Theme.textDisabled
-                    elide: Text.ElideNone
                 }
                 KvitLabel {
-                    width: root.width - option.indicator.width - option.spacing
+                    width: option.availableWidth
                     visible: option.modelData.detail !== undefined
                              && option.modelData.detail !== ""
                     text: option.modelData.detail === undefined
                           ? "" : option.modelData.detail
                     role: "small"
                     color: Theme.textMuted
+                    // The detail is a sentence, so it wraps where the label
+                    // elides: cutting the end off an explanation loses the
+                    // half that explains.
                     wrapMode: Text.WordWrap
                     elide: Text.ElideNone
                 }
