@@ -1,0 +1,109 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import QtQuick
+import QtQuick.Controls
+import Kvit.Ui
+
+// A button with words on it, in three forms.
+//
+//   primary   filled with the accent. One per screen region: it is the
+//             action the screen is for, and a screen with three primary
+//             buttons has told the reader nothing about which to press.
+//   ordinary  outlined. Everything else that is an action.
+//   quiet     no ground until hover. For a dense strip where a row of
+//             outlines would read as a fence.
+//
+// `danger` is separate from the form rather than a fourth form, because a
+// destructive action can be any of the three: a primary Delete in a
+// confirmation dialog, an ordinary one in a settings row, a quiet one in a
+// context menu.
+//
+// The label colour on a filled button comes from Theme.labelOn rather than
+// from onAccent, because onAccent answers only for the accent and a filled
+// danger button needs the label that contrasts with its own fill
+// (accessibility.md Finding 3).
+AbstractButton {
+    id: root
+
+    // "primary" | "ordinary" | "quiet"
+    property string form: "ordinary"
+    property bool danger: false
+    property string symbol: ""
+    // A button that is doing something. It stays enabled so its accessible
+    // name can say what is happening, and the label changes rather than a
+    // spinner appearing, because a spinner says "wait" without saying for what.
+    property bool busy: false
+    property string busyText: qsTr("Working…")
+
+    readonly property color fill: root.danger ? Theme.danger : Theme.accent
+
+    implicitHeight: Interface.controlHeight
+    implicitWidth: content.implicitWidth + Interface.spaceLoose * 2
+    padding: Interface.space
+    font.pixelSize: Interface.body
+
+    Accessible.role: Accessible.Button
+    Accessible.name: root.busy ? root.busyText : root.text
+    Accessible.onPressAction: root.clicked()
+
+    background: Rectangle {
+        radius: Interface.radiusControl
+        color: {
+            if (!root.enabled)
+                return root.form === "primary" ? Theme.chipBackground : "transparent"
+            if (root.form === "primary")
+                return root.pressed ? Qt.darker(root.fill, 1.15) : root.fill
+            if (root.pressed)
+                return Theme.selectionTint
+            if (root.hovered)
+                return Theme.hoverTint
+            return "transparent"
+        }
+        border.width: root.form === "ordinary" ? Interface.hairline : 0
+        border.color: root.enabled
+            ? (root.danger ? Theme.danger : Theme.borderStrong)
+            : Theme.border
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -Interface.focusRingWidth
+            visible: root.visualFocus
+            color: "transparent"
+            radius: parent.radius + Interface.focusRingWidth
+            border.width: Interface.focusRingWidth
+            border.color: Theme.focusRing
+        }
+    }
+
+    contentItem: Row {
+        id: content
+        spacing: Interface.spaceNear
+        anchors.centerIn: parent
+
+        readonly property color foreground: {
+            if (!root.enabled)
+                return Theme.textDisabled
+            if (root.form === "primary")
+                return Theme.labelOn(root.fill)
+            return root.danger ? Theme.danger : Theme.textPrimary
+        }
+
+        KvitIcon {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.symbol !== ""
+            name: root.symbol === "" ? "dot" : root.symbol
+            color: content.foreground
+            implicitWidth: Interface.iconSizeSmall
+            implicitHeight: Interface.iconSizeSmall
+        }
+        KvitLabel {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.busy ? root.busyText : root.text
+            role: "body"
+            color: content.foreground
+            elide: Text.ElideNone
+        }
+    }
+}

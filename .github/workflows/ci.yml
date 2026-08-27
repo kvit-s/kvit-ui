@@ -1,0 +1,97 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# What has to hold before a change lands.
+#
+# Two build shapes, because they fail differently. A static build is what
+# ships; a shared build is what catches an undeclared dependency, since a
+# PRIVATE dependency of a static library still reaches the consumer's link
+# line and stays invisible until something is built shared.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux, static
+            os: ubuntu-latest
+            shared: 'OFF'
+          - name: Linux, shared
+            os: ubuntu-latest
+            shared: 'ON'
+          - name: Windows
+            os: windows-latest
+            shared: 'OFF'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          modules: 'qtshadertools'
+          cache: true
+
+      # The QML tests need a scene graph. `offscreen` gives one without a
+      # display; on Linux the platform plugin still wants the X libraries.
+      - name: Install the Linux runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DKVIT_UI_SHARED_LIBS=${{ matrix.shared }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      # Everything: the ported token tests, the density and spacing scale, the
+      # chart-ramp validator, the icon catalogue, the 250,000-row table
+      # benchmark, every component loading in four themes, every gallery
+      # sample compiling, qmllint at full strength, and the three generated
+      # files matching their sources.
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+      # The licence header on every first-party source. Cheap, and the kind of
+      # thing that is only ever noticed at release time otherwise.
+      - name: Licence headers
+        if: runner.os == 'Linux'
+        run: tools/apply-license-headers.sh --check
+
+      # The screenshot set, kept as an artifact so a change that moves pixels
+      # can be reviewed as a diff against the previous run rather than as
+      # sixty images looked at again.
+      - name: Screenshots
+        if: runner.os == 'Linux' && matrix.shared == 'OFF'
+        run: |
+          mkdir -p build/screenshots
+          ./build/gallery/kvit-ui-gallery --shots build/screenshots
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Upload the screenshot set
+        if: runner.os == 'Linux' && matrix.shared == 'OFF'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gallery-screenshots
+          path: build/screenshots

@@ -1,0 +1,6 @@
+build*/
+renders/
+screenshots/
+*.user
+.qtc_clangd/
+compile_commands.json
