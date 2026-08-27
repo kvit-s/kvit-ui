@@ -46,6 +46,20 @@ Column {
             implicitHeight: Math.max(Interface.rowHeightSlim,
                                      body.implicitHeight + Interface.space)
 
+            readonly property bool first: index === 0
+            readonly property bool last: index === root.entries.length - 1
+
+            // Where the mark sits: the middle of the entry's first line, not
+            // the middle of the entry.
+            //
+            // An entry with a line of detail under it is two lines tall, and a
+            // dot centred on that block sits between them rather than beside
+            // the thing it marks. Centring on the first line is right for both
+            // shapes, and it is what the spine's ends are measured from too,
+            // so the rule starts and stops exactly at a dot.
+            readonly property real markCentre:
+                body.y + headline.y + headline.height / 2
+
             readonly property color toneColor: {
                 switch (modelData.tone) {
                 case "success": return Theme.success
@@ -61,21 +75,31 @@ Column {
                 .arg(modelData.what === undefined ? "" : modelData.what)
                 .arg(modelData.who === undefined ? "" : modelData.who)
 
-            // The spine: a rule down the left with a dot per entry. It stops
-            // at the last entry rather than running past it, because a line
-            // continuing past the oldest event says there is more below.
+            // The spine: a rule down the left with a dot per entry. It starts
+            // at the first mark and stops at the last, rather than running
+            // past either, because a line continuing past the oldest event
+            // says there is more below.
             Rectangle {
                 x: Interface.spaceNear
-                y: entry.index === 0 ? entry.height / 2 : 0
+                y: entry.first ? entry.markCentre : 0
                 width: Interface.hairline
-                height: entry.index === root.entries.length - 1
-                        ? entry.height / 2 : entry.height
+                height: {
+                    // A history of one entry has a dot and no line: a spine
+                    // needs two marks to run between.
+                    if (entry.first && entry.last)
+                        return 0
+                    if (entry.first)
+                        return entry.height - entry.markCentre
+                    if (entry.last)
+                        return entry.markCentre
+                    return entry.height
+                }
                 color: Theme.border
             }
 
             KvitDot {
                 x: Interface.spaceSnug
-                y: entry.height / 2 - height / 2
+                y: entry.markCentre - height / 2
                 width: Interface.spaceNear
                 height: Interface.spaceNear
                 color: entry.toneColor
@@ -97,6 +121,7 @@ Column {
                 spacing: Interface.spaceTight
 
                 Row {
+                    id: headline
                     spacing: Interface.space
                     KvitLabel {
                         text: entry.modelData.what === undefined
