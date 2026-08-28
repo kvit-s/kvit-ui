@@ -32,6 +32,8 @@ Column {
             snippet: modelData.snippet
             extraImports: modelData.extraImports === undefined
                           ? [] : modelData.extraImports
+            showRender: modelData.showRender === undefined
+                        ? true : modelData.showRender
         }
     }
 }

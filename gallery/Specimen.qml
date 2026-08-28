@@ -28,6 +28,12 @@ Column {
     // Extra imports the snippet needs beyond QtQuick and Kvit.Ui.
     property var extraImports: []
     property bool showSource: true
+    // False for the one thing a page cannot draw: a component whose root is a
+    // Window, which has no place inside another window's item tree. The
+    // snippet is then shown and not built here — tests/test_gallery still
+    // compiles and runs it, so it is checked exactly like every other one,
+    // and what a reader copies is real QML rather than a sketch of it.
+    property bool showRender: true
 
     // What went wrong, empty when the snippet built. Read by the gallery test.
     property string error: ""
@@ -45,6 +51,7 @@ Column {
     // transparent background is still visible.
     Rectangle {
         width: parent.width
+        visible: root.showRender
         height: Math.max(Interface.rowHeight,
                          stage.height + Interface.spaceLoose * 2)
         radius: Interface.radiusCard
@@ -104,6 +111,8 @@ Column {
     Component.onCompleted: build()
 
     function build() {
+        if (!root.showRender)
+            return
         const imports = ["import QtQuick", "import QtQuick.Controls",
                          "import QtQuick.Layouts", "import Kvit.Ui"]
             .concat(root.extraImports)

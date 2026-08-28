@@ -317,16 +317,55 @@ The application shell: header, optional sidebar, body and status bar, with the s
 | `sidebarCollapsed` | readonly bool |  |
 | `narrow` | readonly bool |  |
 
-*The shape of a window*
+*The whole shell*
 
 ```qml
-KvitLabel {
-    width: parent.width
-    wrapMode: Text.WordWrap
-    elide: Text.ElideNone
-    role: "small"
-    color: Theme.textMuted
-    text: "KvitWindow { header: KvitHeader {...}; sidebar: KvitSidebar {...}; body: KvitRegion {...}; statusBar: KvitStatusBar {...} }"
+// Source only: a Window has no place inside another window's item tree, so
+// this is the one page that shows a sample without drawing it. It is compiled
+// and run by tests/test_gallery like every other sample.
+//
+// Each of the four slots takes one item, and each fills the slot it is in.
+KvitWindow {
+    id: window
+    title: "kvit-cash"
+
+    header: KvitHeader {
+        anchors.fill: parent
+        wordmark: "kvit"
+        Row {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Interface.space
+            KvitTab { text: "Accounts"; selected: true }
+            KvitTab { text: "Budget" }
+        }
+    }
+
+    sidebar: KvitSidebar {
+        anchors.fill: parent
+        // The window says when it is narrow; the sidebar draws itself as a
+        // rail when it is.
+        collapsed: window.sidebarCollapsed
+        KvitSidebarItem { text: "Everyday"; symbol: "wallet"; selected: true }
+        KvitSidebarItem { text: "Savings"; symbol: "bank" }
+        KvitSidebarItem { text: "Budget"; symbol: "chart-line" }
+    }
+
+    body: KvitRegion {
+        anchors.fill: parent
+        Column {
+            id: rows
+            width: parent.width
+            KvitSlimRow { width: rows.width; name: "Checking" }
+            KvitSlimRow { width: rows.width; name: "Joint checking" }
+            KvitSlimRow { width: rows.width; name: "Emergency fund" }
+        }
+    }
+
+    statusBar: KvitStatusBar {
+        anchors.fill: parent
+        activity: "Matching 4 of 26 statements"
+        facts: ["1,284 transactions", "last synced 14:02"]
+    }
 }
 ```
 
