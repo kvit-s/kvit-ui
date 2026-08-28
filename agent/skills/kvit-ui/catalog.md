@@ -1473,13 +1473,26 @@ A nested list the reader can open and close. Twelve private versions; what a sha
 | Property | Type | |
 |---|---|---|
 | `label` | string | What a screen reader calls this tree. |
+| `nodes` | var | A hierarchy written out here, for a tree whose shape is fixed: account groups, a category hierarchy, the sections of a settings page. |
 
 *A small hierarchy*
 
 ```qml
 Item {
-    width: parent.width; height: Interface.px(140)
-    KvitTree { anchors.fill: parent; label: "Folders" }
+    width: parent.width; height: Interface.px(250)
+    KvitTree {
+        anchors.fill: parent
+        label: "Accounts"
+        nodes: [
+            { label: "Everyday", children: [
+                "Checking", "Joint checking", "Cash"] },
+            { label: "Savings", children: [
+                "Emergency fund",
+                { label: "Certificates", children: ["18 months", "3 years"] }] },
+            "Credit card"
+        ]
+        Component.onCompleted: expandRecursively(-1, 1)
+    }
 }
 ```
 

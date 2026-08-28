@@ -150,6 +150,8 @@ qt_add_qml_module(kvit-ui-qml
         ../src/qml/tablemodelbase.cpp
         ../src/qml/benchmarktablemodel.h
         ../src/qml/benchmarktablemodel.cpp
+        ../src/qml/treenodemodel.h
+        ../src/qml/treenodemodel.cpp
     QML_FILES
         ${KVIT_UI_QML_FOUNDATION}
         ${KVIT_UI_QML_STRUCTURE}

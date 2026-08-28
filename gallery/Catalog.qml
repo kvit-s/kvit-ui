@@ -629,7 +629,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "A small hierarchy",
-                    "snippet": "Item {\n    width: parent.width; height: Interface.px(140)\n    KvitTree { anchors.fill: parent; label: \"Folders\" }\n}"
+                    "snippet": "Item {\n    width: parent.width; height: Interface.px(250)\n    KvitTree {\n        anchors.fill: parent\n        label: \"Accounts\"\n        nodes: [\n            { label: \"Everyday\", children: [\n                \"Checking\", \"Joint checking\", \"Cash\"] },\n            { label: \"Savings\", children: [\n                \"Emergency fund\",\n                { label: \"Certificates\", children: [\"18 months\", \"3 years\"] }] },\n            \"Credit card\"\n        ]\n        Component.onCompleted: expandRecursively(-1, 1)\n    }\n}"
                 },
             ]
         },

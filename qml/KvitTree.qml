@@ -28,6 +28,24 @@ TreeView {
     // What a screen reader calls this tree.
     property string label: ""
 
+    // A hierarchy written out here, for a tree whose shape is fixed: account
+    // groups, a category hierarchy, the sections of a settings page. Each
+    // entry is a string, or an object with `label` and optional `children`.
+    //
+    // A TreeView takes a QAbstractItemModel and nothing else, and QML has no
+    // tree model of its own, so without this every use of KvitTree — a
+    // six-row settings outline included — starts with a C++ class. A tree over
+    // something unbounded, kvit-notes' vault being the case that matters,
+    // still wants one: set `model` and leave `nodes` alone.
+    property var nodes: []
+
+    TreeNodeModel {
+        id: declaredNodes
+        nodes: root.nodes === undefined ? [] : root.nodes
+    }
+
+    model: declaredNodes
+
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     rowHeightProvider: () => Interface.rowHeightSlim
@@ -51,7 +69,11 @@ TreeView {
         implicitWidth: Interface.sidebarWidth
         implicitHeight: Interface.rowHeightSlim
 
-        readonly property bool current: node.treeView.currentRow === node.row
+        // `treeView` is null for a moment while a delegate is being torn down
+        // or handed back to the reuse pool, and an unguarded read of it there
+        // prints a TypeError for every row on screen.
+        readonly property bool current: node.treeView
+                                        && node.treeView.currentRow === node.row
 
         Rectangle {
             anchors.fill: parent
