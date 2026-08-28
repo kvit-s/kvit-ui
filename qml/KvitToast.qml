@@ -62,12 +62,20 @@ Rectangle {
 
     // The tone stripe down the leading edge: the second channel beside the
     // symbol's colour, so a warning and a confirmation differ by more than hue.
+    //
+    // It stops short of the corners by the card's own radius, because that is
+    // where the card's left edge has already curved inward: a stripe run to the
+    // full height ends in the space outside the rounded corner, sitting beside
+    // the card rather than on it.
     Rectangle {
         anchors.left: parent.left
+        anchors.leftMargin: parent.border.width
         anchors.top: parent.top
+        anchors.topMargin: parent.radius
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: parent.radius
         width: Interface.spaceTight
-        radius: parent.radius
+        radius: Interface.radiusBar
         color: root.toneColor
     }
 
