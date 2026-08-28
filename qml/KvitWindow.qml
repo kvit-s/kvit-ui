@@ -49,6 +49,22 @@ Window {
     height: Interface.px(960)
     color: Theme.windowBackground
 
+    // The same ground again, as an item this time.
+    //
+    // `Window.color` is the surface's clear colour and is not part of the
+    // content item, so an `Item.grabToImage` of the window comes back with
+    // alpha zero everywhere no opaque item was drawn — the body behind a
+    // transparent KvitRegion being most of the picture. Saved as a PNG that
+    // reads as black, which is why the gallery's light and sepia screenshot
+    // sets looked like they had been shot in the dark theme. Painting the
+    // ground here as well makes a grab of this window opaque; the Window's
+    // own colour is kept because it is what the compositor shows during a
+    // resize and before the first frame.
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.windowBackground
+    }
+
     Item {
         id: headerSlot
         anchors.top: parent.top
