@@ -776,10 +776,12 @@ from the numbers.*
 kvit-hub roles and the five `InterfaceMetrics` roles side by side, the owner judges the images, and
 the resulting scale is written back into this section.
 
-**Built, 2026-08-27, pending the owner's judgement of the images.** Seven roles, in pixels, off the
-existing base of 12. The five `InterfaceMetrics` names keep their meanings and their values, so
-kvit-notes' chrome is pixel-identical after Wave 2 and its call sites need no rename; `headline` and
-`display` are new, and cover what kvit-hub had above `title` and kvit-notes did not.
+**Judged and settled, 2026-08-29.** Seven roles, in pixels, off the existing base of 12. The five
+`InterfaceMetrics` names keep their meanings and their values, so kvit-notes' chrome is
+pixel-identical after Wave 2 and its call sites need no rename; `headline` and `display` are new,
+and cover what kvit-hub had above `title` and kvit-notes did not. The owner looked at six kvit-hub
+screens rendered through both stylesheets and accepted the merged scale as rendered, so this is the
+scale the system is built on.
 
 | Role | px at base 12 | What it is for | Replaces |
 |---|---|---|---|
@@ -794,14 +796,16 @@ kvit-notes' chrome is pixel-identical after Wave 2 and its call sites need no re
 kvit-hub's nine collapse onto seven because `typeSecondary`, `typeRow` and `typeBody` were three
 names for the two sizes ordinary row text is set at, and `typeName` is what `strong` already meant.
 
-**What this changes, and what to look at.** kvit-hub's scale was written in points off a base of 15,
-which at 96 dpi is 12 to 25 pixels; the merged scale is 10 to 20. Its chrome therefore gets
-noticeably smaller, and that is the judgement the images are for. Rendering `conventions.html`
-through the shared pipeline before and after: 11.4% of pixels differ, and holding the type sizes at
-kvit-hub's old values drops that to 0.83% — all of which is the four drifted colours being
-corrected. So the whole visible change is the type scale, and it is one image to look at rather
-than a number to argue about. `ux/tokens.css` carries kvit-hub's nine old names mapped onto the
-merged scale, so the 31 existing mockups keep rendering until Wave 3 moves them over deliberately.
+**What this changes.** kvit-hub's scale was written in points off a base of 15, which at 96 dpi is
+12 to 25 pixels; the merged scale is 10 to 20. Its chrome is therefore smaller, and its rows carry
+more space around their text, since the row heights barely moved while the text in them dropped
+from 16 pixels to 12. Six of its mockups rendered through both stylesheets at 1440x960 differ by
+between 9.6% and 26.7% of their pixels; holding the nine old type sizes and changing nothing else
+leaves between 0.8% and 3.3%, all of which is the four drifted colours being corrected. So the
+whole visible change is the type scale. The renders are in `data/type-scale/renders/`, one
+directory per version, and they are what the decision above was made on. `ux/tokens.css` carries
+kvit-hub's nine old names mapped onto the merged scale, so the 31 existing mockups keep rendering
+until Wave 3 moves them over deliberately.
 
 Changing the answer is one line per role in `src/tokens/interfacemetrics.h`; the density values, the
 generated stylesheet and the gallery all follow from it.
