@@ -41,9 +41,9 @@ accessible name.
 **A hand-drawn symbol.** `KvitIcon`, by meaning name. An unknown name draws a
 marked placeholder and fails `tests/test_components`.
 
-## Four shapes that fail without saying so
+## Five shapes that fail without saying so
 
-All four were hit while building this, and none of them produces an error
+All five were hit while building this, and none of them produces an error
 where the mistake is.
 
 **A container sized from its children while a child fills the container.**
@@ -62,6 +62,15 @@ Put the offset in the control's `leftPadding` and leave the content item alone.
 `leftPadding`, which works because a `KvitLabel` has no ground; the control's
 padding is the version to copy, because it is what makes `availableWidth` the
 real content width.
+
+**A QML function whose name a base type already uses.** `Window` has a
+`show()` slot taking no arguments, so a `window.show(name)` written for a
+navigation function that was never declared compiles, runs, re-shows the
+window and drops the name, saying only `Too many arguments, ignoring 1` on the
+console. The gallery's component list did nothing when clicked for as long as
+that line stood. Name a function for what it does to the content —
+`showPage`, not `show` — and a test that calls it by name from C++ is what
+holds it.
 
 **An empty `font.family`.** It does not mean "the platform default". Qt
 matches it against nothing and falls back to whichever installed face its font

@@ -33,6 +33,7 @@ private slots:
     void testEverySnippetBuilds_data();
     void testEverySnippetBuilds();
     void testEveryPageSaysWhatTheComponentIsFor();
+    void testTheComponentListNavigates();
     void testTheCatalogueWriterRuns();
 
 private:
@@ -228,6 +229,38 @@ void TestGallery::testEveryPageSaysWhatTheComponentIsFor()
              qPrintable(QStringLiteral("these pages have no summary or no "
                                        "specimens: %1")
                             .arg(silent.join(QStringLiteral(", ")))));
+}
+
+void TestGallery::testTheComponentListNavigates()
+{
+    // Opening a component's page by name, which is what a click in the
+    // component list and `--page` both go through.
+    //
+    // This is tested from C++ rather than left to the eye because the way it
+    // failed says nothing. The call was `window.show(name)`; a Window already
+    // has a `show()` slot that takes no arguments, so it re-showed a window
+    // that was already visible, discarded the name, and left the first
+    // component on screen. The only sign was one line on the console about an
+    // argument being ignored. Nothing in the build noticed, because the
+    // screenshot run assigns the page index itself and never calls this.
+    QQmlComponent component(&m_engine);
+    component.setData("import QtQuick\nimport Kvit.Gallery\n"
+                      "Gallery { visible: false }",
+                      QUrl(QStringLiteral("qrc:/test/gallery.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> window(component.create());
+    QVERIFY2(!window.isNull(), qPrintable(component.errorString()));
+
+    QCOMPARE(window->property("current").toInt(), 0);
+
+    // The last component in the catalogue, so a page that does not move fails
+    // rather than passing on the one already showing.
+    const int last = m_catalog.size() - 1;
+    const QString wanted =
+        m_catalog.at(last).toMap().value(QStringLiteral("name")).toString();
+    QVERIFY(QMetaObject::invokeMethod(window.data(), "showPage",
+                                      Q_ARG(QString, wanted)));
+    QCOMPARE(window->property("current").toInt(), last);
 }
 
 void TestGallery::testTheCatalogueWriterRuns()

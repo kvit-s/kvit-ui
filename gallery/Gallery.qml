@@ -52,9 +52,28 @@ KvitWindow {
         return found
     }
 
+    // Open one component's page by name.
+    //
+    // Not `show`. A Window already has a `show()` slot, taking no arguments
+    // and doing something else entirely, and the call site does not read as
+    // ambiguous: `window.show(name)` compiles, runs, re-shows the window that
+    // is already visible, and discards the name with one line on the console
+    // that says nothing about pages. Every click in the component list did
+    // that instead of changing the page, and so did `--page`, while the
+    // screenshot run kept working because it assigns `current` itself.
+    function showPage(name: string) {
+        for (let i = 0; i < Catalog.components.length; ++i) {
+            if (Catalog.components[i].name === name) {
+                window.current = i
+                return
+            }
+        }
+        console.warn("no gallery page for", name)
+    }
+
     Component.onCompleted: {
         if (window.startingPage !== "")
-            window.show(window.startingPage)
+            window.showPage(window.startingPage)
         if (window.shotDirectory !== "")
             shotStart.start()
     }
@@ -139,7 +158,7 @@ KvitWindow {
                             selected: window.currentEntry !== undefined
                                       && window.currentEntry.name
                                          === listing.modelData.name
-                            onActivated: window.show(listing.modelData.name)
+                            onActivated: window.showPage(listing.modelData.name)
 
                             KvitLabel {
                                 anchors.fill: parent
