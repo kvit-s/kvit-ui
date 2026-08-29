@@ -45,7 +45,11 @@ h1, h2, h3, h4 {
   font-weight: 700;
   line-height: 1.2;
 }
-h1 { font-size: var(--type-title); }
+/* display, not title: in the merged scale `title` is a section heading at 15
+ * and the page-title role is `display` at 20. This rule was written against
+ * kvit-hub's older scale, where `title` was the page title at 25, and left
+ * unchanged it sets an h1 and an h2 at the same size. */
+h1 { font-size: var(--type-display); }
 h2 { font-size: var(--type-heading); }
 h3 { font-size: var(--type-name); }
 h4 { font-size: var(--type-body); color: var(--text-secondary); }
