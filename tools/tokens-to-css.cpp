@@ -88,6 +88,7 @@ const QList<Group> &groups()
             "pinColor", "link", "marker", "inlineCodeBackground",
             "highlightBackground", "searchMatchBackground",
             "searchCurrentBackground", "changedTextBackground",
+            "addedTextBackground", "removedTextBackground",
             "calloutTip" } },
         { "code, for a mockup that shows a document",
           { "codeKeyword", "codeType", "codeString", "codeComment",

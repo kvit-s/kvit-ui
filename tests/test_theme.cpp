@@ -135,7 +135,8 @@ void TestTheme::testTablesAreCompleteAndDistinct()
             t.success, t.warning, t.pinColor, t.marker,
             t.inlineCodeBackground, t.highlightBackground, t.link,
             t.searchMatchBackground, t.searchCurrentBackground,
-            t.changedTextBackground,
+            t.changedTextBackground, t.addedTextBackground,
+            t.removedTextBackground,
             t.codeKeyword, t.codeType, t.codeString, t.codeComment,
             t.codeNumber, t.calloutTip,
             t.axisAttention, t.axisAttentionText, t.axisAgent,
@@ -153,6 +154,16 @@ void TestTheme::testTablesAreCompleteAndDistinct()
             for (int j = i + 1; j < codeTokens.size(); ++j)
                 QVERIFY2(codeTokens[i] != codeTokens[j],
                          qPrintable(id + ": code tokens must be distinct"));
+
+        // The three version tints mark three different claims about a line —
+        // added, removed, and differing from another version without a
+        // direction — so no theme may draw two of them the same.
+        const QList<QColor> versionTints{ t.addedTextBackground,
+            t.removedTextBackground, t.changedTextBackground };
+        for (int i = 0; i < versionTints.size(); ++i)
+            for (int j = i + 1; j < versionTints.size(); ++j)
+                QVERIFY2(versionTints[i] != versionTints[j],
+                         qPrintable(id + ": version tints must be distinct"));
     }
 
     // The three themes are actually different appearances.
@@ -241,6 +252,10 @@ void TestTheme::testEveryTokenPairMeetsItsFloor_data()
          &Theme::Tokens::selectionActiveTint, 4.5},
         {"textPrimary on changed text", &Theme::Tokens::textPrimary,
          &Theme::Tokens::changedTextBackground, 4.5},
+        {"textPrimary on an added line", &Theme::Tokens::textPrimary,
+         &Theme::Tokens::addedTextBackground, 4.5},
+        {"textPrimary on a removed line", &Theme::Tokens::textPrimary,
+         &Theme::Tokens::removedTextBackground, 4.5},
         {"borderStrong on window", &Theme::Tokens::borderStrong,
          &Theme::Tokens::windowBackground, 3.0},
         {"mutedGlyph on panel", &Theme::Tokens::mutedGlyph,

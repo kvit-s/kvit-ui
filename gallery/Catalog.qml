@@ -247,6 +247,10 @@ QtObject {
                     "caption": "With an action",
                     "snippet": "KvitEmptyState {\n    width: parent.width\n    symbol: \"wallet\"\n    title: \"No transactions yet\"\n    detail: \"Import a statement or add one by hand, and it will appear here.\"\n    action: \"Import a statement\"\n}"
                 },
+                {
+                    "caption": "Dashed, as a drop target",
+                    "snippet": "KvitEmptyState {\n    width: parent.width\n    dashed: true\n    symbol: \"file-arrow-down\"\n    title: \"Drop a statement here\"\n    detail: \"CSV, OFX and QIF. The file is read on this machine and nothing is sent anywhere.\"\n    action: \"Choose a file\"\n}"
+                },
             ]
         },
         {
@@ -323,6 +327,17 @@ QtObject {
                 {
                     "caption": "Measured, unmeasured and bounded",
                     "snippet": "Column {\n    spacing: Interface.spaceNear\n    KvitFigure { value: \"1,284.50\"; unit: \"GBP\" }\n    KvitFigure { value: \"0\"; unit: \"d\"; }\n    KvitFigure { measured: false }\n    KvitFigure { value: \"12\"; unit: \"d\"; bounded: true }\n    KvitFigure { value: \"94\"; unit: \"%\"; role: \"display\" }\n}"
+                },
+            ]
+        },
+        {
+            "name": "KvitBeforeAfter",
+            "group": "Quantities",
+            "summary": "One value as it stands and the value something proposes to replace it with. Position, colour weight and the arrow all say which is which, so no reader depends on separating the two colours. A record being added has no before, and the em dash says so.",
+            "specimens": [
+                {
+                    "caption": "Changed, added, removed and unchanged",
+                    "snippet": "Column {\n    spacing: Interface.spaceNear\n    KvitBeforeAfter { label: \"Amount\"; before: \"42.00\"; after: \"44.50\"; unit: \"GBP\" }\n    KvitBeforeAfter { label: \"Category\"; before: \"\"; beforeMeasured: false; after: \"Groceries\" }\n    KvitBeforeAfter { label: \"Payee\"; before: \"TESCO 4471\"; after: \"\"; afterMeasured: false }\n    KvitBeforeAfter { label: \"Date\"; before: \"2026-08-14\"; after: \"2026-08-14\" }\n    KvitBeforeAfter { before: \"1,284.50\"; after: \"1,301.75\"; unit: \"GBP\"; role: \"strong\" }\n}"
                 },
             ]
         },
@@ -505,11 +520,15 @@ QtObject {
         {
             "name": "KvitTrend",
             "group": "Data",
-            "summary": "A series with a value axis and a hover crosshair \u2014 read for values, where a spark is read for shape. A gap in the data draws as a gap: interpolating over a hole asserts values nobody measured.",
+            "summary": "A series with a value axis and a hover crosshair \u2014 read for values, where a spark is read for shape. A gap in the data draws as a gap: interpolating over a hole asserts values nobody measured. A second series is dashed as well as differently coloured, and both are named in the key and in the crosshair.",
             "specimens": [
                 {
                     "caption": "A series, and the empty state",
                     "snippet": "Column {\n    width: parent.width\n    spacing: Interface.spaceLoose\n    KvitTrend {\n        width: parent.width\n        label: \"Balance\"; unit: \"GBP\"\n        minimumY: 0; maximumY: 2000\n        points: [{ y: 400 }, { y: 620 }, { y: 580 }, { y: 900 },\n                 { y: null }, { y: 1400 }, { y: 1250 }, { y: 1700 }]\n    }\n    KvitTrend { width: parent.width; height: Interface.px(90); label: \"Savings\" }\n}"
+                },
+                {
+                    "caption": "Two series, with an annotation drawn over the plot",
+                    "snippet": "KvitTrend {\n    id: worth\n    width: parent.width\n    height: Interface.px(150)\n    label: \"Assets\"; secondLabel: \"Liabilities\"; unit: \"GBP\"\n    minimumY: 0; maximumY: 2000\n    points: [{ y: 400 }, { y: 620 }, { y: 580 }, { y: 900 },\n             { y: 1150 }, { y: 1400 }, { y: 1250 }, { y: 1700 }]\n    secondPoints: [{ y: null }, { y: null }, { y: 300 }, { y: 340 },\n                   { y: 320 }, { y: 290 }, { y: 260 }, { y: 240 }]\n\n    // Where the second account's history begins. The plot rectangle is\n    // published, so an overlay lines up with the same arithmetic.\n    Rectangle {\n        x: worth.axisWidth + worth.plotWidth * 2 / 7\n        y: worth.plotTop\n        width: Interface.hairline\n        height: worth.plotHeight\n        color: Theme.marker\n    }\n    KvitLabel {\n        x: worth.axisWidth + worth.plotWidth * 2 / 7 + Interface.spaceSnug\n        y: worth.plotTop + worth.plotHeight - height\n        text: \"history starts here\"\n        role: \"caption\"\n        color: Theme.textFaint\n    }\n}"
                 },
             ]
         },

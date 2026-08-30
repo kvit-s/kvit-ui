@@ -338,7 +338,9 @@ hand:
    `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`.
 3. **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitPip`, `KvitDot`.
 4. **Quantities** — `KvitFigure`: tabular numerals, the unit in muted colour, and an em dash where
-   a value was not measured rather than a zero.
+   a value was not measured rather than a zero. `KvitBeforeAfter` pairs one of those with the
+   value something proposes to replace it with, which is the shape of every screen that asks the
+   reader to approve a change.
 5. **Controls** — `KvitButton` in primary, ordinary and quiet forms, `KvitStepper`, `KvitField`,
    `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`.
 6. **Feedback** — `KvitToast`, `KvitPopover`, `KvitHoverCard`, `KvitDialog`, `KvitTooltip`.

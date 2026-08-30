@@ -19,7 +19,7 @@ that does not work stops the build.
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitPip`
-**Quantities** — `KvitFigure`
+**Quantities** — `KvitFigure`, `KvitBeforeAfter`
 **Controls** — `KvitButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
 **Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`
 **Data** — `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable`
@@ -583,6 +583,7 @@ What a view says when it has nothing to show: what would be here, why it is not,
 | `detail` | string | Why it is not, or what to do about it. |
 | `symbol` | string |  |
 | `action` | string | The action that would fill it, if there is one. |
+| `dashed` | bool | Draw a dashed outline around the whole thing: this is a region something can be put into, rather than a region that happens to be empty. |
 
 *With an action*
 
@@ -593,6 +594,19 @@ KvitEmptyState {
     title: "No transactions yet"
     detail: "Import a statement or add one by hand, and it will appear here."
     action: "Import a statement"
+}
+```
+
+*Dashed, as a drop target*
+
+```qml
+KvitEmptyState {
+    width: parent.width
+    dashed: true
+    symbol: "file-arrow-down"
+    title: "Drop a statement here"
+    detail: "CSV, OFX and QIF. The file is read on this machine and nothing is sent anywhere."
+    action: "Choose a file"
 }
 ```
 
@@ -763,6 +777,34 @@ Column {
     KvitFigure { measured: false }
     KvitFigure { value: "12"; unit: "d"; bounded: true }
     KvitFigure { value: "94"; unit: "%"; role: "display" }
+}
+```
+
+### KvitBeforeAfter
+
+One value as it stands and the value something proposes to replace it with. Position, colour weight and the arrow all say which is which, so no reader depends on separating the two colours. A record being added has no before, and the em dash says so.
+
+| Property | Type | |
+|---|---|---|
+| `before` | string | The values, already formatted. |
+| `after` | string |  |
+| `unit` | string | Drawn once after each value, in the muted colour, as KvitFigure does. |
+| `beforeMeasured` | bool | False draws the em dash on that side: a record being added has no before, and one being deleted has no after. |
+| `afterMeasured` | bool |  |
+| `label` | string | What the pair is a value of — "Amount", "Category", "Date". |
+| `role` | string | "body" \| "small" \| "caption" \| "strong" — passed to both figures, so the two are always the same size. |
+| `unchanged` | readonly bool | True when the two values are the same, which a preview listing every field of a record needs in order to draw the unchanged ones quietly. |
+
+*Changed, added, removed and unchanged*
+
+```qml
+Column {
+    spacing: Interface.spaceNear
+    KvitBeforeAfter { label: "Amount"; before: "42.00"; after: "44.50"; unit: "GBP" }
+    KvitBeforeAfter { label: "Category"; before: ""; beforeMeasured: false; after: "Groceries" }
+    KvitBeforeAfter { label: "Payee"; before: "TESCO 4471"; after: ""; afterMeasured: false }
+    KvitBeforeAfter { label: "Date"; before: "2026-08-14"; after: "2026-08-14" }
+    KvitBeforeAfter { before: "1,284.50"; after: "1,301.75"; unit: "GBP"; role: "strong" }
 }
 ```
 
@@ -1187,7 +1229,7 @@ KvitSpark {
 
 ### KvitTrend
 
-A series with a value axis and a hover crosshair — read for values, where a spark is read for shape. A gap in the data draws as a gap: interpolating over a hole asserts values nobody measured.
+A series with a value axis and a hover crosshair — read for values, where a spark is read for shape. A gap in the data draws as a gap: interpolating over a hole asserts values nobody measured. A second series is dashed as well as differently coloured, and both are named in the key and in the crosshair.
 
 | Property | Type | |
 |---|---|---|
@@ -1198,9 +1240,16 @@ A series with a value axis and a hover crosshair — read for values, where a sp
 | `label` | string |  |
 | `unit` | string |  |
 | `gridlines` | int | How many horizontal gridlines to draw, including the two extremes. |
-| `hovered` | readonly int | Where the pointer is, as an index into `points`, or −1. |
-| `axisWidth` | readonly int |  |
+| `secondPoints` | var | A second series over the same periods, drawn on the same axis: assets against liabilities, spending against income, this year against last. |
+| `secondColor` | color | The second series is dashed as well as differently coloured. |
+| `secondLabel` | string | What each line is. |
+| `hasSecond` | readonly bool |  |
+| `periods` | readonly int | How many periods the x axis spans. |
+| `hovered` | readonly int | Where the pointer is, as an index into `points`, or -1. |
+| `axisWidth` | readonly int | The plot rectangle, published so a caller can draw over it — an annotation marking where an account's history begins, a band behind a period, a threshold rule. |
 | `plotWidth` | readonly real |  |
+| `plotTop` | readonly real |  |
+| `plotHeight` | readonly real |  |
 
 *A series, and the empty state*
 
@@ -1216,6 +1265,39 @@ Column {
                  { y: null }, { y: 1400 }, { y: 1250 }, { y: 1700 }]
     }
     KvitTrend { width: parent.width; height: Interface.px(90); label: "Savings" }
+}
+```
+
+*Two series, with an annotation drawn over the plot*
+
+```qml
+KvitTrend {
+    id: worth
+    width: parent.width
+    height: Interface.px(150)
+    label: "Assets"; secondLabel: "Liabilities"; unit: "GBP"
+    minimumY: 0; maximumY: 2000
+    points: [{ y: 400 }, { y: 620 }, { y: 580 }, { y: 900 },
+             { y: 1150 }, { y: 1400 }, { y: 1250 }, { y: 1700 }]
+    secondPoints: [{ y: null }, { y: null }, { y: 300 }, { y: 340 },
+                   { y: 320 }, { y: 290 }, { y: 260 }, { y: 240 }]
+
+    // Where the second account's history begins. The plot rectangle is
+    // published, so an overlay lines up with the same arithmetic.
+    Rectangle {
+        x: worth.axisWidth + worth.plotWidth * 2 / 7
+        y: worth.plotTop
+        width: Interface.hairline
+        height: worth.plotHeight
+        color: Theme.marker
+    }
+    KvitLabel {
+        x: worth.axisWidth + worth.plotWidth * 2 / 7 + Interface.spaceSnug
+        y: worth.plotTop + worth.plotHeight - height
+        text: "history starts here"
+        role: "caption"
+        color: Theme.textFaint
+    }
 }
 ```
 

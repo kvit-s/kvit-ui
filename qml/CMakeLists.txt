@@ -47,6 +47,7 @@ set(KVIT_UI_QML_MARKS
 
 set(KVIT_UI_QML_QUANTITIES
     KvitFigure.qml
+    KvitBeforeAfter.qml
 )
 
 set(KVIT_UI_QML_CONTROLS

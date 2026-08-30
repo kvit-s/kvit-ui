@@ -113,6 +113,15 @@ a target. `success` is finished and nothing else. `warning` is something to
 look at. `danger` is stalled or destructive, and appears only where something
 can be settled today. `focusRing` is the keyboard, and nothing else uses it.
 
+**Versions of the same text.** `changedTextBackground` marks text that differs
+from another version without saying in which direction; `addedTextBackground`
+and `removedTextBackground` are the two directions, for a diff. They are not
+`success` and `danger` — a removed line is not an error, and using the colour
+that means one everywhere else says it is. All three are close in luminance
+so that text stays equally legible on any of them, which means they separate
+by hue alone and are never the only mark: a diff draws the `+` or `-` in the
+gutter and tints the line behind it.
+
 **The portfolio vocabulary**, used by kvit-hub and available to anything else:
 `axisAttention` is the reader's own time and `axisAgent` is agent time,
 everywhere, and the two never share a scale or a total. Each has a separate,

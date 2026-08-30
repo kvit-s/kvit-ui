@@ -68,6 +68,8 @@
   --search-match-background: #264f78;
   --search-current-background: #96601f;
   --changed-text-background: #3d3060;
+  --added-text-background: #1d3a26;
+  --removed-text-background: #45211f;
   --callout-tip: #4db6ac;
 
   /* code, for a mockup that shows a document */
@@ -166,6 +168,8 @@
   --search-match-background: #b5dcff;
   --search-current-background: #ffb454;
   --changed-text-background: #e4d7f2;
+  --added-text-background: #d3edd8;
+  --removed-text-background: #f6d5d2;
   --callout-tip: #2a9d8f;
 
   /* code, for a mockup that shows a document */
@@ -264,6 +268,8 @@
   --search-match-background: #cfd9a8;
   --search-current-background: #e8a94e;
   --changed-text-background: #ded0e0;
+  --added-text-background: #d5e6c9;
+  --removed-text-background: #f2d6c8;
   --callout-tip: #3a8a7a;
 
   /* code, for a mockup that shows a document */
@@ -362,6 +368,8 @@
   --search-match-background: #0055aa;
   --search-current-background: #995a00;
   --changed-text-background: #4b0082;
+  --added-text-background: #00420f;
+  --removed-text-background: #5c0000;
   --callout-tip: #33ffdd;
 
   /* code, for a mockup that shows a document */

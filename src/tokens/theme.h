@@ -131,6 +131,23 @@ class Theme : public QObject
     // have to work out which mark they are looking at.
     Q_PROPERTY(QColor changedTextBackground READ changedTextBackground NOTIFY themeChanged)
 
+    // The wash behind a line a diff says was added, and behind one it says
+    // was removed. Separate from changedTextBackground, which marks text that
+    // differs from another version without saying in which direction.
+    //
+    // They are close to each other in luminance on purpose: text set on
+    // either has to stay as legible as text on the other, so the two are
+    // separated by hue, and hue is exactly the channel a reader may not have.
+    // Neither is ever the only mark. A diff draws a "+" or a "-" in the
+    // gutter and these tint the line behind it, which is the rule
+    // visual-language.md states for every state in the estate.
+    //
+    // They are not success and danger. A removed line is not an error, and
+    // borrowing the colour that means one everywhere else in the estate would
+    // say it is.
+    Q_PROPERTY(QColor addedTextBackground READ addedTextBackground NOTIFY themeChanged)
+    Q_PROPERTY(QColor removedTextBackground READ removedTextBackground NOTIFY themeChanged)
+
     // Code-block syntax highlighting: the five
     // token colors the code highlighter paints, read the same way the inline
     // tokens above are. codeType is the "function/type" color.
@@ -225,7 +242,8 @@ public:
         QColor accent, danger, dangerBright, success, warning, pinColor;
         QColor marker, inlineCodeBackground, highlightBackground, link,
             searchMatchBackground, searchCurrentBackground,
-            changedTextBackground;
+            changedTextBackground, addedTextBackground,
+            removedTextBackground;
         QColor codeKeyword, codeType, codeString, codeComment, codeNumber;
         QColor calloutTip;
         QColor axisAttention, axisAttentionText, axisAgent, axisAgentText,
@@ -308,6 +326,8 @@ public:
     QColor searchMatchBackground() const { return m_tokens.searchMatchBackground; }
     QColor searchCurrentBackground() const { return m_tokens.searchCurrentBackground; }
     QColor changedTextBackground() const { return m_tokens.changedTextBackground; }
+    QColor addedTextBackground() const { return m_tokens.addedTextBackground; }
+    QColor removedTextBackground() const { return m_tokens.removedTextBackground; }
     QColor codeKeyword() const { return m_tokens.codeKeyword; }
     QColor codeType() const { return m_tokens.codeType; }
     QColor codeString() const { return m_tokens.codeString; }

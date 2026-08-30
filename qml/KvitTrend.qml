@@ -39,23 +39,74 @@ Item {
     // How many horizontal gridlines to draw, including the two extremes.
     property int gridlines: 3
 
+    // A second series over the same periods, drawn on the same axis: assets
+    // against liabilities, spending against income, this year against last.
+    // Empty for the ordinary one-series chart, which draws exactly as it did
+    // before this existed.
+    //
+    // It is here rather than left to the caller as an overlay because the
+    // crosshair cannot be. The readout names the value under the pointer, and
+    // an overlay drawn on top of this cannot reach into it — a chart drawing
+    // two lines and naming one value is a chart that answers the reader's
+    // question with the wrong number half the time.
+    //
+    // Both series are indexed together: `secondPoints[i]` is the same period
+    // as `points[i]`. Where one is shorter than the other it simply stops —
+    // an account opened partway through the range is the ordinary case — and
+    // the x axis spans whichever runs longest.
+    property var secondPoints: []
+    // The second series is dashed as well as differently coloured. That is
+    // not decoration: the estate's rule is that no distinction rests on hue
+    // alone, and two solid lines separated only by colour is that mistake in
+    // the one place a reader is most likely to be reading for values.
+    property color secondColor: Theme.categoricalRamp.length > 1
+        ? Theme.categoricalRamp[1] : Theme.warning
+    // What each line is. Drawn as a key above the plot when there are two
+    // series, because two unlabelled lines cannot be told apart at all.
+    property string secondLabel: ""
+
+    readonly property bool hasSecond: root.secondPoints.length > 0
+
+    // How many periods the x axis spans. Both series are placed on this same
+    // grid, so a series that stops early stops early rather than being
+    // stretched across the whole width.
+    readonly property int periods:
+        Math.max(root.points.length, root.secondPoints.length)
+
     implicitHeight: Interface.px(120)
     implicitWidth: Interface.px(320)
 
-    // Where the pointer is, as an index into `points`, or −1.
-    readonly property int hovered: hover.hovered && root.points.length > 0
-        ? Math.max(0, Math.min(root.points.length - 1,
-                               Math.round(hover.point.position.x / plotWidth
-                                          * (root.points.length - 1))))
+    // Where the pointer is, as an index into `points`, or -1. The pointer
+    // position is measured from the left edge of the whole item and the
+    // fraction spans the plot only, so the axis has to come off first;
+    // without that the crosshair names a period to the left of the one it is
+    // drawn over, and names the wrong one everywhere except the far left.
+    readonly property int hovered: hover.hovered && root.periods > 0
+        ? Math.max(0, Math.min(root.periods - 1,
+                               Math.round((hover.point.position.x - axisWidth)
+                                          / plotWidth * (root.periods - 1))))
         : -1
 
+    // The plot rectangle, published so a caller can draw over it — an
+    // annotation marking where an account's history begins, a band behind a
+    // period, a threshold rule. All four are needed: the key above a
+    // two-series chart takes height off the top, so a caller that knew only
+    // the width would line up horizontally and be wrong vertically.
     readonly property int axisWidth: Interface.px(36)
     readonly property real plotWidth: Math.max(1, width - axisWidth)
+    readonly property real plotTop: root.hasSecond
+        ? key.implicitHeight + Interface.spaceSnug : 0
+    readonly property real plotHeight: Math.max(1, height - plotTop)
 
     Accessible.role: Accessible.Chart
     Accessible.name: root.label
-    Accessible.description: qsTr("%n point(s), %1 to %2 %3", "", root.points.length)
-        .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
+    Accessible.description: root.hasSecond
+        ? qsTr("%n period(s), %1 to %2 %3, two series: %4 and %5", "",
+               root.periods)
+            .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
+            .arg(root.label).arg(root.secondLabel)
+        : qsTr("%n point(s), %1 to %2 %3", "", root.points.length)
+            .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
 
     // The gridlines and their labels. Drawn before the series so the line sits
     // over them.
@@ -72,7 +123,7 @@ Item {
             // Repeater delegate is being built, and these evaluate then.
             anchors.left: root.left
             anchors.right: root.right
-            y: Math.round(root.height * fraction)
+            y: Math.round(root.plotTop + root.plotHeight * fraction)
             height: 1
 
             Rectangle {
@@ -99,8 +150,9 @@ Item {
     Canvas {
         id: plot
         x: root.axisWidth
+        y: root.plotTop
         width: root.plotWidth
-        height: root.height
+        height: root.plotHeight
         renderStrategy: Canvas.Cooperative
 
         // Repaint whenever anything it draws from changes. Without the
@@ -111,6 +163,8 @@ Item {
             target: root
             function onPointsChanged() { plot.requestPaint() }
             function onColorChanged() { plot.requestPaint() }
+            function onSecondPointsChanged() { plot.requestPaint() }
+            function onSecondColorChanged() { plot.requestPaint() }
             function onWidthChanged() { plot.requestPaint() }
             function onHeightChanged() { plot.requestPaint() }
         }
@@ -122,7 +176,7 @@ Item {
         onPaint: {
             const ctx = getContext("2d")
             ctx.reset()
-            const count = root.points.length
+            const count = root.periods
             if (count === 0)
                 return
 
@@ -132,7 +186,6 @@ Item {
             const toX = i => count > 1 ? (i / (count - 1)) * width : width / 2
 
             ctx.lineWidth = Math.max(1, Interface.px(2))
-            ctx.strokeStyle = root.color
             ctx.lineJoin = "round"
             ctx.lineCap = "round"
 
@@ -140,61 +193,155 @@ Item {
             // so a gap in the data draws as a gap in the line rather than as a
             // straight segment across it. Interpolating over a hole is the
             // chart asserting values nobody measured.
-            let drawing = false
-            ctx.beginPath()
-            for (let i = 0; i < count; ++i) {
-                const p = root.points[i]
-                if (p === null || p.y === null || p.y === undefined) {
-                    drawing = false
-                    continue
+            const stroke = series => {
+                let drawing = false
+                ctx.beginPath()
+                for (let i = 0; i < count; ++i) {
+                    const p = i < series.length ? series[i] : null
+                    if (p === null || p.y === null || p.y === undefined) {
+                        drawing = false
+                        continue
+                    }
+                    if (!drawing) {
+                        ctx.moveTo(toX(i), toY(p.y))
+                        drawing = true
+                    } else {
+                        ctx.lineTo(toX(i), toY(p.y))
+                    }
                 }
-                if (!drawing) {
-                    ctx.moveTo(toX(i), toY(p.y))
-                    drawing = true
-                } else {
-                    ctx.lineTo(toX(i), toY(p.y))
-                }
+                ctx.stroke()
             }
-            ctx.stroke()
+
+            // The second series first, so where the two cross the primary
+            // one stays on top and stays readable.
+            if (root.hasSecond) {
+                ctx.strokeStyle = root.secondColor
+                ctx.setLineDash([Interface.px(5), Interface.px(4)])
+                stroke(root.secondPoints)
+                ctx.setLineDash([])
+            }
+
+            ctx.strokeStyle = root.color
+            stroke(root.points)
         }
     }
 
     // The crosshair: a rule at the hovered point and the value beside it.
     Rectangle {
         visible: root.hovered >= 0
-        x: root.axisWidth + (root.points.length > 1
-            ? root.hovered / (root.points.length - 1) * root.plotWidth
+        x: root.axisWidth + (root.periods > 1
+            ? root.hovered / (root.periods - 1) * root.plotWidth
             : root.plotWidth / 2)
+        y: root.plotTop
         width: Interface.hairline
-        height: root.height
+        height: root.plotHeight
         color: Theme.textMuted
     }
 
-    KvitLabel {
-        visible: root.hovered >= 0 && root.points.length > 0
-        anchors.top: parent.top
+    // What the hovered period was, one line per series. Both lines are named
+    // when there are two, because a bare pair of numbers leaves the reader
+    // matching them to lines by guessing.
+    Column {
+        id: readout
+        visible: root.hovered >= 0
+        y: root.plotTop
         x: Math.min(root.width - width,
-                    root.axisWidth + (root.points.length > 1
-                        ? root.hovered / (root.points.length - 1) * root.plotWidth
+                    root.axisWidth + (root.periods > 1
+                        ? root.hovered / (root.periods - 1) * root.plotWidth
                         : 0) + Interface.spaceSnug)
-        text: {
-            if (root.hovered < 0 || root.hovered >= root.points.length)
-                return ""
-            const p = root.points[root.hovered]
+        spacing: Interface.spaceTight
+
+        // The value of one series at the hovered index, as words. An index
+        // past the end of a series reads the same as a null: the period is
+        // there and this series has nothing for it.
+        function valueAt(series) {
+            if (root.hovered < 0 || root.hovered >= series.length)
+                return qsTr("not measured")
+            const p = series[root.hovered]
             if (p === null || p.y === null || p.y === undefined)
                 return qsTr("not measured")
             return qsTr("%1 %2").arg(p.y).arg(root.unit)
         }
-        role: "caption"
-        tabular: true
-        elide: Text.ElideNone
+
+        KvitLabel {
+            text: root.hasSecond && root.label !== ""
+                ? qsTr("%1: %2").arg(root.label)
+                                .arg(readout.valueAt(root.points))
+                : readout.valueAt(root.points)
+            role: "caption"
+            color: root.hasSecond ? root.color : Theme.textPrimary
+            tabular: true
+            elide: Text.ElideNone
+        }
+        KvitLabel {
+            visible: root.hasSecond
+            text: root.secondLabel !== ""
+                ? qsTr("%1: %2").arg(root.secondLabel)
+                                .arg(readout.valueAt(root.secondPoints))
+                : readout.valueAt(root.secondPoints)
+            role: "caption"
+            color: root.secondColor
+            tabular: true
+            elide: Text.ElideNone
+        }
+    }
+
+    // The key. Only drawn when there are two series, and it takes its room
+    // off the top of the plot rather than sitting over the lines.
+    //
+    // Each entry is a sample of the stroke it stands for, so the dashed line
+    // is identified by being dashed and not only by its colour. That is the
+    // same rule the second series is drawn under, applied to the thing that
+    // explains it.
+    Row {
+        id: key
+        visible: root.hasSecond
+        x: root.axisWidth
+        spacing: Interface.spaceLoose
+
+        Repeater {
+            model: root.hasSecond
+                ? [{ "text": root.label, "color": root.color, "dashed": false },
+                   { "text": root.secondLabel, "color": root.secondColor,
+                     "dashed": true }]
+                : []
+            delegate: Row {
+                id: entry
+                required property var modelData
+                spacing: Interface.spaceSnug
+
+                // The stroke sample: one dash for the solid series, two for
+                // the dashed one, at the same weight the plot draws them.
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: entry.modelData.dashed ? Interface.px(3) : 0
+                    Repeater {
+                        model: entry.modelData.dashed ? 2 : 1
+                        delegate: Rectangle {
+                            width: entry.modelData.dashed
+                                ? Interface.px(6) : Interface.px(15)
+                            height: Math.max(1, Interface.px(2))
+                            radius: Interface.radiusBar
+                            color: entry.modelData.color
+                        }
+                    }
+                }
+                KvitLabel {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: entry.modelData.text
+                    role: "caption"
+                    color: Theme.textMuted
+                    elide: Text.ElideNone
+                }
+            }
+        }
     }
 
     HoverHandler { id: hover }
 
     KvitEmptyState {
         anchors.centerIn: parent
-        visible: root.points.length === 0
+        visible: root.periods === 0
         title: qsTr("Nothing recorded yet")
         detail: qsTr("%1 will appear here once there is something to plot.")
                     .arg(root.label !== "" ? root.label : qsTr("The series"))
