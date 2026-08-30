@@ -64,6 +64,16 @@ Item {
     readonly property alias selection: selectionModel
     readonly property alias view: table
 
+    // How many rows the table is showing, which after a filter is fewer than
+    // the model holds. TableView keeps this in step with the model; a binding
+    // written as `model.rowCount() === 0` does not, because a call is
+    // evaluated once and nothing tells QML to evaluate it again. That is how
+    // an empty state comes to sit over a full table: the view is built while
+    // a filter matches nothing, the reader clears the filter, the rows arrive
+    // and the overlay never hears about it. An application wanting to say
+    // "24 of 250,000" should read this rather than call the model.
+    readonly property int rowCount: table.rows
+
     // Hiding a column changes what columnWidthProvider answers, and TableView
     // caches those answers: without the relayout the column keeps its old
     // width and the hide does nothing visible.
@@ -209,7 +219,7 @@ Item {
 
     KvitEmptyState {
         anchors.centerIn: parent
-        visible: !root.model || root.model.rowCount() === 0
+        visible: root.rowCount === 0
         title: root.emptyTitle
         detail: root.emptyDetail
         symbol: "list"

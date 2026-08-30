@@ -607,6 +607,10 @@ QtObject {
                     "caption": "Two hundred and fifty thousand rows",
                     "snippet": "Item {\n    width: parent.width; height: Interface.px(260)\n    BenchmarkTableModel { id: rows }\n    KvitTable { anchors.fill: parent; model: rows }\n}"
                 },
+                {
+                    "caption": "Nothing to show",
+                    "snippet": "Item {\n    width: parent.width; height: Interface.px(200)\n    BenchmarkTableModel { id: rows; totalRows: 0 }\n    KvitTable {\n        anchors.fill: parent\n        model: rows\n        emptyTitle: qsTr(\"No transactions\")\n        emptyDetail: qsTr(\"Nothing matches the current filter.\")\n    }\n}"
+                },
             ]
         },
         {

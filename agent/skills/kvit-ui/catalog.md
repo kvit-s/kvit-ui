@@ -1498,6 +1498,7 @@ A dense, configurable, editable table over a C++ model. Holds smooth scrolling a
 | `hiddenColumns` | var | Column indices the reader has hidden. |
 | `selection` | readonly alias |  |
 | `view` | readonly alias |  |
+| `rowCount` | readonly int | How many rows the table is showing, which after a filter is fewer than the model holds. |
 
 *Two hundred and fifty thousand rows*
 
@@ -1506,6 +1507,21 @@ Item {
     width: parent.width; height: Interface.px(260)
     BenchmarkTableModel { id: rows }
     KvitTable { anchors.fill: parent; model: rows }
+}
+```
+
+*Nothing to show*
+
+```qml
+Item {
+    width: parent.width; height: Interface.px(200)
+    BenchmarkTableModel { id: rows; totalRows: 0 }
+    KvitTable {
+        anchors.fill: parent
+        model: rows
+        emptyTitle: qsTr("No transactions")
+        emptyDetail: qsTr("Nothing matches the current filter.")
+    }
 }
 ```
 

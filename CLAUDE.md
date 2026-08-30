@@ -41,10 +41,10 @@ accessible name.
 **A hand-drawn symbol.** `KvitIcon`, by meaning name. An unknown name draws a
 marked placeholder and fails `tests/test_components`.
 
-## Five shapes that fail without saying so
+## Six shapes that fail without saying so
 
-All five were hit while building this, and none of them produces an error
-where the mistake is.
+Every one of these was hit in real work on this library or on an application
+consuming it, and none of them produces an error where the mistake is.
 
 **A container sized from its children while a child fills the container.**
 `implicitHeight: holder.childrenRect.height` with `holder { anchors.fill:
@@ -71,6 +71,16 @@ console. The gallery's component list did nothing when clicked for as long as
 that line stood. Name a function for what it does to the content —
 `showPage`, not `show` — and a test that calls it by name from C++ is what
 holds it.
+
+**A binding to the result of a method call.** `visible:
+model.rowCount() === 0` is evaluated when the binding is set up and never
+again: a call is not a property, so nothing tells QML there is anything to
+re-evaluate. The view keeps whatever answer the model gave at load time, and
+a table filtered to nothing when the view was built keeps saying "nothing
+here yet" over a full grid after the filter is cleared. Bind to a property
+that has a change signal — `TableView.rows` for a row count, which is what
+`KvitTable.rowCount` exposes — and read that from an application rather than
+calling the model.
 
 **An empty `font.family`.** It does not mean "the platform default". Qt
 matches it against nothing and falls back to whichever installed face its font

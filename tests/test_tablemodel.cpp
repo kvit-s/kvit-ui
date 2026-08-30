@@ -40,6 +40,7 @@ private slots:
     void testFilteringStaysUnderTheBudget();
     void testEditingSurvivesAFilterChange();
     void testTheViewScrollsSmoothly();
+    void testTheEmptyStateFollowsTheRowCount();
 
 private:
     // What "sub-100 ms filtering" means: one filter change over 250,000 rows.
@@ -311,6 +312,94 @@ void TestTableModel::testTheViewScrollsSmoothly()
                                        "row count means they are not being "
                                        "recycled")
                             .arg(PagesScrolled).arg(live)));
+}
+
+namespace {
+
+// The KvitEmptyState inside a KvitTable. It has no id a test can reach and no
+// object name, so it is found by type: a QML-defined type's class name is its
+// file name with a suffix on it.
+QQuickItem *findEmptyState(QQuickItem *item)
+{
+    const auto children = item->childItems();
+    for (QQuickItem *child : children) {
+        if (QByteArray(child->metaObject()->className()).startsWith("KvitEmptyState"))
+            return child;
+        if (QQuickItem *found = findEmptyState(child))
+            return found;
+    }
+    return nullptr;
+}
+
+}   // namespace
+
+void TestTableModel::testTheEmptyStateFollowsTheRowCount()
+{
+    // The overlay that says "nothing here yet" has to disappear when rows
+    // arrive. Written as a binding to `model.rowCount()` it does not: a
+    // function call is evaluated when the binding is set up and nothing tells
+    // QML to evaluate it again, so the table shows the message over a full
+    // grid for as long as the view lives. That is what this case holds, and
+    // it is worth a windowed test rather than a reading of the property
+    // because what the reader sees is the item's visibility.
+    if (!m_haveWindow)
+        QSKIP("no scene graph on this platform; the view half cannot run");
+
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\n"
+        "import Kvit.Ui\n"
+        "Item {\n"
+        "    width: 800; height: 400\n"
+        "    property alias table: table\n"
+        "    property alias model: model\n"
+        "    BenchmarkTableModel { id: model; totalRows: 400 }\n"
+        "    KvitTable { id: table; anchors.fill: parent; model: model }\n"
+        "}\n",
+        QUrl(QStringLiteral("qrc:/test/emptystate.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QScopedPointer<QObject> holder(component.create());
+    QVERIFY2(!holder.isNull(), qPrintable(component.errorString()));
+
+    QQuickWindow window;
+    auto *content = qobject_cast<QQuickItem *>(holder.data());
+    QVERIFY(content);
+    content->setParentItem(window.contentItem());
+    window.resize(800, 400);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    auto *table = content->property("table").value<QQuickItem *>();
+    QVERIFY(table);
+    auto *model = content->property("model").value<QObject *>();
+    QVERIFY(model);
+    QQuickItem *empty = findEmptyState(table);
+    QVERIFY2(empty, "KvitTable has no KvitEmptyState in it");
+
+    // Four hundred rows, so no message.
+    QTRY_COMPARE(table->property("rowCount").toInt(), 400);
+    QVERIFY(!empty->isVisible());
+
+    // A filter nothing matches, so the message.
+    QVERIFY(model->setProperty("filter", QStringLiteral("zzzzz")));
+    QTRY_COMPARE(table->property("rowCount").toInt(), 0);
+    QTRY_VERIFY(empty->isVisible());
+
+    // Clearing it puts the rows back, and this is the assertion the bug
+    // failed: the count changes underneath a view that was built empty.
+    QVERIFY(model->setProperty("filter", QString()));
+    QTRY_COMPARE(table->property("rowCount").toInt(), 400);
+    QTRY_VERIFY(!empty->isVisible());
+
+    // And a filter that matches some of the rows leaves the message off while
+    // the count follows the model down.
+    QVERIFY(model->setProperty("filter", QStringLiteral("Harlow")));
+    const int matched = model->property("matchedRows").toInt();
+    QVERIFY(matched > 0 && matched < 400);
+    QTRY_COMPARE(table->property("rowCount").toInt(), matched);
+    QVERIFY(!empty->isVisible());
 }
 
 QTEST_MAIN(TestTableModel)
