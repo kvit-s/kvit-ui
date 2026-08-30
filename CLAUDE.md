@@ -131,9 +131,9 @@ kvit-notes takes `Theme`, `Typography`, `InterfaceMetrics`, `SettingsStore`,
 `SystemAppearance` and `PerfLog` from here, as a pinned submodule at
 `third_party/kvit-ui` linked as `kvit-ui-tokens`. It no longer has copies of
 its own; the duplication window that Wave 2 existed to close is closed, and
-the freeze on those files in kvit-notes is over. kvit-notes-pro has a second
-pin beside its `core/` one, inert until `core/` is bumped to a kvit-notes
-commit that has the new CMake.
+the freeze on those files in kvit-notes is over. kvit-notes-pro pins the
+same commit beside its `core/` one and points `KVIT_UI_ROOT` at it before
+adding the editor, so the two cannot drift by nested-submodule accident.
 
 Two things follow for work done here.
 
