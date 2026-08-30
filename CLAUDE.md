@@ -125,11 +125,26 @@ against the previous run rather than the whole set again.
 `tests/test_gallery` fails on a component with no page, so step 2 is not
 optional.
 
-## The duplication window
+## Who consumes this, and what that costs
 
-`Theme`, `Typography` and `InterfaceMetrics` exist in this repository *and* in
-kvit-notes' `src/platform/` until Wave 2 moves that application onto this one.
-The six source pairs in kvit-notes are frozen for the duration: a change made
-there has to be re-made here by hand, the two have already diverged on the
-type scale, and no automatic check can reconcile them. If kvit-notes needs a
-token added meanwhile, add it here and cherry-pick the same hunk there.
+kvit-notes takes `Theme`, `Typography`, `InterfaceMetrics`, `SettingsStore`,
+`SystemAppearance` and `PerfLog` from here, as a pinned submodule at
+`third_party/kvit-ui` linked as `kvit-ui-tokens`. It no longer has copies of
+its own; the duplication window that Wave 2 existed to close is closed, and
+the freeze on those files in kvit-notes is over. kvit-notes-pro has a second
+pin beside its `core/` one, inert until `core/` is bumped to a kvit-notes
+commit that has the new CMake.
+
+Two things follow for work done here.
+
+**A token change reaches an application only when somebody bumps its pin.**
+There is no automatic propagation and no check that the four are on the same
+commit. An application can sit on an older kvit-ui indefinitely, which is the
+arrangement working as intended rather than a problem to fix.
+
+**kvit-notes imports `Kvit`, not `Kvit.Ui`.** The singletons keep their old
+QML names on its own module, backed by the C++ objects from here. It cannot
+import both, because `KvitDialog` exists in both and every dialog would become
+ambiguous. Wave 5 is what moves it onto the library's components; until then,
+renaming a singleton or changing a property name here breaks it silently at
+the QML layer, where nothing in this repository's suite will see it.
