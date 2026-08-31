@@ -50,6 +50,7 @@ Row {
         model: root.shown
         delegate: Row {
             id: crumb
+            anchors.verticalCenter: root.verticalCenter
             required property var modelData
             required property int index
             spacing: Interface.spaceNear
