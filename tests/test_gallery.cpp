@@ -33,6 +33,7 @@ private slots:
     void testEverySnippetBuilds_data();
     void testEverySnippetBuilds();
     void testEveryPageSaysWhatTheComponentIsFor();
+    void testAlignmentSensitiveControlsCoverEveryInterfaceExtreme();
     void testTheComponentListNavigates();
     void testTheCatalogueWriterRuns();
 
@@ -229,6 +230,37 @@ void TestGallery::testEveryPageSaysWhatTheComponentIsFor()
              qPrintable(QStringLiteral("these pages have no summary or no "
                                        "specimens: %1")
                             .arg(silent.join(QStringLiteral(", ")))));
+}
+
+void TestGallery::testAlignmentSensitiveControlsCoverEveryInterfaceExtreme()
+{
+    // The Windows native-text path is where off-centre button content first
+    // showed up. Keep named screenshot variants for both controls whose
+    // content is centred by the shared wrapper, so that path is reviewed at
+    // the same three sizes the geometry test exercises.
+    const QStringList expected = {
+        QStringLiteral("minimum"), QStringLiteral("default"),
+        QStringLiteral("maximum"),
+    };
+    for (const QString &name : { QStringLiteral("KvitButton"),
+                                 QStringLiteral("KvitTab") }) {
+        QVariantMap found;
+        for (const QVariant &entry : m_catalog) {
+            const QVariantMap candidate = entry.toMap();
+            if (candidate.value(QStringLiteral("name")).toString() == name) {
+                found = candidate;
+                break;
+            }
+        }
+        QVERIFY2(!found.isEmpty(), qPrintable(name));
+
+        QStringList actual;
+        for (const QVariant &size :
+             found.value(QStringLiteral("shotSizes")).toList()) {
+            actual.append(size.toString());
+        }
+        QCOMPARE(actual, expected);
+    }
 }
 
 void TestGallery::testTheComponentListNavigates()

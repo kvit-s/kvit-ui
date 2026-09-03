@@ -11,6 +11,7 @@ set(KVIT_UI_QML_FOUNDATION
     KvitLabel.qml
     KvitIcon.qml
     KvitIconButton.qml
+    KvitLink.qml
 )
 
 set(KVIT_UI_QML_STRUCTURE
@@ -63,6 +64,7 @@ set(KVIT_UI_QML_CONTROLS
 set(KVIT_UI_QML_FEEDBACK
     KvitToast.qml
     KvitPopover.qml
+    KvitHint.qml
     KvitHoverCard.qml
     KvitDialog.qml
     KvitTooltip.qml

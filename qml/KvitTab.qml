@@ -19,8 +19,8 @@ AbstractButton {
     // A count beside the label — how many things this tab holds.
     property int count: -1
 
-    implicitHeight: Interface.tabHeight
-    implicitWidth: content.implicitWidth + Interface.spaceLoose * 2
+    implicitHeight: Math.max(Interface.tabHeight, contentRow.implicitHeight)
+    implicitWidth: contentRow.implicitWidth + Interface.spaceLoose * 2
 
     Accessible.role: Accessible.PageTab
     Accessible.name: root.count >= 0
@@ -53,27 +53,36 @@ AbstractButton {
         }
     }
 
-    contentItem: Row {
-        id: content
-        anchors.centerIn: parent
-        spacing: Interface.spaceNear
+    contentItem: Item {
+        implicitWidth: contentRow.implicitWidth
+        implicitHeight: contentRow.implicitHeight
 
-        KvitLabel {
+        Row {
+            id: contentRow
+            objectName: "contentRow"
+            anchors.horizontalCenter: parent.horizontalCenter
+            // Native text must be centred deliberately on both rendering
+            // paths; relying on the Row's assigned height shifts on Windows.
             anchors.verticalCenter: parent.verticalCenter
-            text: root.text
-            role: "body"
-            font.bold: root.selected
-            color: root.selected ? Theme.textPrimary : Theme.textMuted
-            elide: Text.ElideNone
-        }
-        KvitLabel {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: root.count >= 0
-            text: String(root.count)
-            role: "caption"
-            color: Theme.textFaint
-            tabular: true
-            elide: Text.ElideNone
+            spacing: Interface.spaceNear
+
+            KvitLabel {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.text
+                role: "body"
+                font.bold: root.selected
+                color: root.selected ? Theme.textPrimary : Theme.textMuted
+                elide: Text.ElideNone
+            }
+            KvitLabel {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.count >= 0
+                text: String(root.count)
+                role: "caption"
+                color: Theme.textFaint
+                tabular: true
+                elide: Text.ElideNone
+            }
         }
     }
 }

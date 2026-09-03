@@ -39,8 +39,12 @@ AbstractButton {
 
     readonly property color fill: root.danger ? Theme.danger : Theme.accent
 
-    implicitHeight: Interface.controlHeight
-    implicitWidth: content.implicitWidth + Interface.spaceLoose * 2
+    implicitHeight: Math.max(Interface.controlHeight, contentRow.implicitHeight)
+    // Measure the words and symbol, not the content item's assigned width.
+    // Control stretches its content item across the available rectangle; a
+    // Row used directly therefore reports the right natural width but lays
+    // its children out at the stretched item's left edge.
+    implicitWidth: contentRow.implicitWidth + Interface.spaceLoose * 2
     padding: Interface.space
     font.pixelSize: Interface.body
 
@@ -77,10 +81,10 @@ AbstractButton {
         }
     }
 
-    contentItem: Row {
+    contentItem: Item {
         id: content
-        spacing: Interface.spaceNear
-        anchors.centerIn: parent
+        implicitWidth: contentRow.implicitWidth
+        implicitHeight: contentRow.implicitHeight
 
         readonly property color foreground: {
             if (!root.enabled)
@@ -90,20 +94,30 @@ AbstractButton {
             return root.danger ? Theme.danger : Theme.textPrimary
         }
 
-        KvitIcon {
+        Row {
+            id: contentRow
+            objectName: "contentRow"
+            anchors.horizontalCenter: parent.horizontalCenter
+            // Keep this explicit. Native-rendered text can otherwise settle
+            // on a different baseline on Windows than it does on Linux.
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.symbol !== ""
-            name: root.symbol === "" ? "dot" : root.symbol
-            color: content.foreground
-            implicitWidth: Interface.iconSizeSmall
-            implicitHeight: Interface.iconSizeSmall
-        }
-        KvitLabel {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.busy ? root.busyText : root.text
-            role: "body"
-            color: content.foreground
-            elide: Text.ElideNone
+            spacing: Interface.spaceNear
+
+            KvitIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.symbol !== ""
+                name: root.symbol === "" ? "dot" : root.symbol
+                color: content.foreground
+                implicitWidth: Interface.iconSizeSmall
+                implicitHeight: Interface.iconSizeSmall
+            }
+            KvitLabel {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.busy ? root.busyText : root.text
+                role: "body"
+                color: content.foreground
+                elide: Text.ElideNone
+            }
         }
     }
 }

@@ -240,13 +240,13 @@ KvitWindow {
 
 | Group | Components |
 |---|---|
-| **Foundation** | `KvitLabel`, `KvitIcon`, `KvitIconButton` |
+| **Foundation** | `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink` |
 | **Structure** | `KvitWindow`, `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar` |
 | **Content** | `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState` |
 | **Marks** | `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitPip` |
 | **Quantities** | `KvitFigure` |
 | **Controls** | `KvitButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab` |
-| **Feedback** | `KvitTooltip`, `KvitPopover`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog` |
+| **Feedback** | `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog` |
 | **Data** | `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable` |
 | **Flow** | `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight` |
 
@@ -317,14 +317,14 @@ screen.
 kvit-ui-gallery                                  # browse
 kvit-ui-gallery --page KvitSlimRow --theme dark  # one component, one theme
 kvit-ui-gallery --interface-size 16              # at a chosen size
-kvit-ui-gallery --shots <directory>              # 68 components x 4 themes
+kvit-ui-gallery --shots <directory>              # 71 components x 4 themes, plus control-size variants
 kvit-ui-gallery --catalog <file>                 # write the skill catalogue
 ```
 
 The gallery is both the reference and the review surface. Each page carries
 the component's states and a working code sample, and those samples are the
 same strings `tests/test_gallery` compiles, so a sample that does not work
-stops the build. The screenshot run writes a fixed set of 272 images; what
+stops the build. The screenshot run writes a fixed set of 300 images; what
 gets looked at after a token change is the diff against the previous run.
 
 ## AI agent skills

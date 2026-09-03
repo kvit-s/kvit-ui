@@ -45,8 +45,8 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     const QCommandLineOption shots(
         QStringLiteral("shots"),
-        QStringLiteral("Write one PNG per page per theme into <directory> and "
-                       "exit."),
+        QStringLiteral("Write one PNG per page per theme, plus declared "
+                       "interface-size variants, into <directory> and exit."),
         QStringLiteral("directory"));
     const QCommandLineOption page(
         QStringLiteral("page"),

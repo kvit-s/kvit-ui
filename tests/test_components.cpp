@@ -2,12 +2,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include <QtTest/QtTest>
+#include <QAccessible>
 #include <QDirIterator>
 #include <QQmlComponent>
 #include <QRegularExpression>
 #include <QQmlEngine>
+#include <QQuickWindow>
+#include <QScreen>
 #include <QQuickItem>
 
+#include "interfacemetrics.h"
 #include "theme.h"
 #include "uiservices.h"
 
@@ -36,6 +40,11 @@ private slots:
     void testEveryComponentLoads();
     void testEveryComponentHasANaturalWidth_data();
     void testEveryComponentHasANaturalWidth();
+    void testButtonContentIsCentered_data();
+    void testButtonContentIsCentered();
+    void testTabContentIsCentered_data();
+    void testTabContentIsCentered();
+    void testLinksHintsAndKeyboardTooltips();
     void testAnUnknownIconNameIsLoud();
     void testTheIconFontIsInTheModule();
 
@@ -60,6 +69,11 @@ QVariantMap TestComponents::requiredFor(const QString &name)
     if (name == QLatin1String("KvitIconButton.qml")) {
         return { { QStringLiteral("symbol"), QStringLiteral("close") },
                  { QStringLiteral("label"), QStringLiteral("Close") } };
+    }
+    if (name == QLatin1String("KvitHint.qml")) {
+        return { { QStringLiteral("label"), QStringLiteral("About this value") },
+                 { QStringLiteral("text"),
+                   QStringLiteral("A longer explanation of this value.") } };
     }
     // The two data marks that require a scale. `maximum` is required on
     // purpose: a bar drawn against the largest value in its own list rescales
@@ -107,6 +121,33 @@ namespace {
 // resolve.
 QStringList g_warnings;
 QtMessageHandler g_previous = nullptr;
+
+QString centeringError(QQuickItem *control)
+{
+    QQuickItem *row = control->findChild<QQuickItem *>(
+        QStringLiteral("contentRow"));
+    if (!row)
+        return QStringLiteral("the natural-size content Row was not found");
+
+    const QPointF origin = row->mapToItem(control, QPointF(0, 0));
+    const qreal left = origin.x();
+    const qreal right = control->width() - origin.x() - row->width();
+    const qreal top = origin.y();
+    const qreal bottom = control->height() - origin.y() - row->height();
+    const QScreen *screen = QGuiApplication::primaryScreen();
+    const qreal devicePixelRatio = screen ? screen->devicePixelRatio() : 1.0;
+
+    const qreal horizontalError = qAbs(left - right) * devicePixelRatio;
+    const qreal verticalError = qAbs(top - bottom) * devicePixelRatio;
+    if (horizontalError <= 1.0 + 0.001 && verticalError <= 1.0 + 0.001)
+        return {};
+
+    return QStringLiteral(
+               "content insets are L %1 / R %2 and T %3 / B %4 at DPR %5 "
+               "(%6 horizontal and %7 vertical device pixels apart)")
+        .arg(left).arg(right).arg(top).arg(bottom).arg(devicePixelRatio)
+        .arg(horizontalError).arg(verticalError);
+}
 
 void collect(QtMsgType type, const QMessageLogContext &context,
              const QString &message)
@@ -251,6 +292,209 @@ void TestComponents::testEveryComponentHasANaturalWidth()
                                        "itself to its children:\n  %2")
                             .arg(url.section(QLatin1Char('/'), -1),
                                  offenders.join(QStringLiteral("\n  ")))));
+}
+
+void TestComponents::testButtonContentIsCentered_data()
+{
+    QTest::addColumn<QString>("form");
+    QTest::addColumn<QString>("symbol");
+    QTest::addColumn<bool>("busy");
+    QTest::addColumn<int>("interfaceSize");
+
+    struct ContentState {
+        const char *name;
+        const char *symbol;
+        bool busy;
+    };
+    const ContentState states[] = {
+        { "text", "", false },
+        { "icon-text", "calendar", false },
+        { "busy-text", "", true },
+    };
+    for (int size : { InterfaceMetrics::MinFontSize,
+                      InterfaceMetrics::DefaultFontSize,
+                      InterfaceMetrics::MaxFontSize }) {
+        for (const char *form : { "primary", "ordinary", "quiet" }) {
+            for (const ContentState &state : states) {
+                const QByteArray name = QByteArray(form) + '-' + state.name
+                    + '-' + QByteArray::number(size);
+                QTest::newRow(name.constData())
+                    << QString::fromLatin1(form)
+                    << QString::fromLatin1(state.symbol)
+                    << state.busy << size;
+            }
+        }
+    }
+}
+
+void TestComponents::testButtonContentIsCentered()
+{
+    QFETCH(QString, form);
+    QFETCH(QString, symbol);
+    QFETCH(bool, busy);
+    QFETCH(int, interfaceSize);
+
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(interfaceSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\nimport Kvit.Ui\n"
+        "KvitButton { text: \"Save\"; busyText: \"Working…\" }\n",
+        QUrl(QStringLiteral("qrc:/test/centred-button.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QScopedPointer<QObject> instance(component.createWithInitialProperties({
+        { QStringLiteral("form"), form },
+        { QStringLiteral("symbol"), symbol },
+        { QStringLiteral("busy"), busy },
+    }));
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *control = qobject_cast<QQuickItem *>(instance.data());
+    QVERIFY(control);
+    QCoreApplication::processEvents();
+
+    const QString error = centeringError(control);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+}
+
+void TestComponents::testTabContentIsCentered_data()
+{
+    QTest::addColumn<int>("count");
+    QTest::addColumn<int>("interfaceSize");
+
+    for (int size : { InterfaceMetrics::MinFontSize,
+                      InterfaceMetrics::DefaultFontSize,
+                      InterfaceMetrics::MaxFontSize }) {
+        QTest::newRow(qPrintable(QStringLiteral("text-%1").arg(size)))
+            << -1 << size;
+        QTest::newRow(qPrintable(QStringLiteral("counted-%1").arg(size)))
+            << 47 << size;
+    }
+}
+
+void TestComponents::testTabContentIsCentered()
+{
+    QFETCH(int, count);
+    QFETCH(int, interfaceSize);
+
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(interfaceSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\nimport Kvit.Ui\nKvitTab { text: \"Projects\" }\n",
+        QUrl(QStringLiteral("qrc:/test/centred-tab.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QScopedPointer<QObject> instance(component.createWithInitialProperties({
+        { QStringLiteral("count"), count },
+    }));
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *control = qobject_cast<QQuickItem *>(instance.data());
+    QVERIFY(control);
+    QCoreApplication::processEvents();
+
+    const QString error = centeringError(control);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+}
+
+void TestComponents::testLinksHintsAndKeyboardTooltips()
+{
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 480
+            height: 240
+            property int linkActivations: 0
+
+            KvitLink {
+                objectName: "link"
+                x: 20; y: 20
+                text: "Privacy policy"
+                onActivated: window.linkActivations += 1
+            }
+            KvitIconButton {
+                objectName: "iconButton"
+                x: 20; y: 70
+                symbol: "settings"
+                label: "Settings"
+            }
+            KvitHint {
+                objectName: "hint"
+                x: 420; y: 20
+                label: "About automatic matching"
+                text: "Automatic matching compares the date, amount and reference."
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/interactive-primitives.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QTRY_VERIFY(window->isVisible());
+
+    auto *link = window->findChild<QQuickItem *>(QStringLiteral("link"));
+    auto *iconButton = window->findChild<QQuickItem *>(
+        QStringLiteral("iconButton"));
+    auto *hint = window->findChild<QQuickItem *>(QStringLiteral("hint"));
+    QVERIFY(link);
+    QVERIFY(iconButton);
+    QVERIFY(hint);
+
+    QAccessibleInterface *linkAccessible =
+        QAccessible::queryAccessibleInterface(link);
+    QVERIFY2(linkAccessible, "KvitLink has no accessible interface");
+    QCOMPARE(linkAccessible->role(), QAccessible::Link);
+    QCOMPARE(linkAccessible->text(QAccessible::Name),
+             QStringLiteral("Privacy policy"));
+
+    const qreal naturalWidth = link->implicitWidth();
+    auto *linkLabel = link->findChild<QQuickItem *>(QStringLiteral("label"));
+    QVERIFY(linkLabel);
+    QVERIFY(linkLabel->width() + 1.0 >= linkLabel->implicitWidth());
+    link->setWidth(60);
+    QCoreApplication::processEvents();
+    QVERIFY(naturalWidth > link->width());
+    QVERIFY(linkLabel->width() <= link->width());
+
+    link->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(link->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_COMPARE(window->property("linkActivations").toInt(), 1);
+
+    QObject *tooltip = iconButton->findChild<QObject *>(
+        QStringLiteral("tooltip"));
+    QVERIFY(tooltip);
+    iconButton->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(iconButton->hasActiveFocus());
+    QTRY_VERIFY(tooltip->property("visible").toBool());
+
+    auto *trigger = hint->findChild<QQuickItem *>(QStringLiteral("trigger"));
+    QVERIFY(trigger);
+    QAccessibleInterface *triggerAccessible =
+        QAccessible::queryAccessibleInterface(trigger);
+    QVERIFY2(triggerAccessible, "KvitHint's trigger has no accessible interface");
+    QCOMPARE(triggerAccessible->role(), QAccessible::Button);
+    QCOMPARE(triggerAccessible->text(QAccessible::Name),
+             QStringLiteral("About automatic matching"));
+
+    trigger->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(trigger->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Space);
+    QTRY_VERIFY(hint->property("opened").toBool());
+    QTest::keyClick(window, Qt::Key_Escape);
+    QTRY_VERIFY(!hint->property("opened").toBool());
 }
 
 void TestComponents::testAnUnknownIconNameIsLoud()

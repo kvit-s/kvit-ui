@@ -60,8 +60,9 @@ AbstractButton {
     // belongs to no theme in this estate and ignores the interface size. Every
     // tooltip in the library was one of those until this was written.
     KvitTooltip {
+        objectName: "tooltip"
         text: root.label
-        visible: root.hovered && root.label !== ""
+        visible: (root.hovered || root.visualFocus) && root.label !== ""
     }
 
     Accessible.role: Accessible.Button

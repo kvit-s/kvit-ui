@@ -53,11 +53,26 @@ QtObject {
         {
             "name": "KvitIconButton",
             "group": "Foundation",
-            "summary": "A button whose whole label is a symbol. A real AbstractButton, so it takes tab focus and a screen reader is told it is there; `label` fills both the tooltip and the accessible name so the two cannot disagree.",
+            "summary": "A button whose whole label is a symbol. A real AbstractButton, so it takes tab focus and a screen reader is told it is there; `label` fills both the accessible name and the tooltip shown on pointer hover or keyboard focus.",
             "specimens": [
                 {
                     "caption": "Quiet, ordinary and checked",
-                    "snippet": "Row {\n    spacing: Interface.space\n    KvitIconButton { symbol: \"pencil\"; label: \"Edit\" }\n    KvitIconButton { symbol: \"trash\"; label: \"Delete\"; form: \"ordinary\" }\n    KvitIconButton { symbol: \"pin\"; label: \"Pin\"; checked_: true }\n    KvitIconButton { symbol: \"copy\"; label: \"Copy\"; enabled: false }\n}"
+                    "snippet": "Row {\n    spacing: Interface.space\n    KvitIconButton { symbol: \"pencil\"; label: \"Edit\" }\n    KvitIconButton { symbol: \"trash\"; label: \"Delete\"; form: \"ordinary\" }\n    KvitIconButton { symbol: \"pin\"; label: \"Pin\"; checked_: true }\n    KvitIconButton { symbol: \"copy\"; label: \"Copy\"; enabled: false }\n    KvitIconButton {\n        symbol: \"settings\"; label: \"Settings\"\n        Component.onCompleted: if (Window.window)\n            forceActiveFocus(Qt.TabFocusReason)\n    }\n}"
+                },
+            ]
+        },
+        {
+            "name": "KvitLink",
+            "group": "Foundation",
+            "summary": "An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented.",
+            "specimens": [
+                {
+                    "caption": "Plain, symbolic and keyboard-focused",
+                    "snippet": "Row {\n    spacing: Interface.spaceLoose\n    KvitLink { text: \"Privacy policy\" }\n    KvitLink { text: \"Open calendar\"; symbol: \"calendar\" }\n    KvitLink {\n        text: \"Keyboard focus\"\n        Component.onCompleted: if (Window.window)\n            forceActiveFocus(Qt.TabFocusReason)\n    }\n}"
+                },
+                {
+                    "caption": "Elided in a narrow column",
+                    "snippet": "KvitLink {\n    width: Interface.px(120)\n    text: \"A destination whose full name does not fit here\"\n}"
                 },
             ]
         },
@@ -345,10 +360,15 @@ QtObject {
             "name": "KvitButton",
             "group": "Controls",
             "summary": "A button with words on it, in three forms. One primary per screen region: it is the action the screen is for. `danger` is separate from the form, because a destructive action can be any of the three.",
+            "shotSizes": ["minimum", "default", "maximum"],
             "specimens": [
                 {
-                    "caption": "The three forms, and destructive",
-                    "snippet": "Column {\n    spacing: Interface.space\n    Row {\n        spacing: Interface.space\n        KvitButton { text: \"Save\"; form: \"primary\" }\n        KvitButton { text: \"Cancel\"; form: \"ordinary\" }\n        KvitButton { text: \"More\"; form: \"quiet\" }\n        KvitButton { text: \"Disabled\"; form: \"ordinary\"; enabled: false }\n    }\n    Row {\n        spacing: Interface.space\n        KvitButton { text: \"Delete\"; form: \"primary\"; danger: true }\n        KvitButton { text: \"Delete\"; form: \"ordinary\"; danger: true; symbol: \"trash\" }\n        KvitButton { text: \"Save\"; form: \"primary\"; busy: true }\n    }\n}"
+                    "caption": "Text, icon plus text, and busy text in every form",
+                    "snippet": "Column {\n    spacing: Interface.space\n    Row {\n        spacing: Interface.space\n        KvitButton { text: \"Save\"; form: \"primary\" }\n        KvitButton { text: \"Save\"; form: \"ordinary\" }\n        KvitButton { text: \"Save\"; form: \"quiet\" }\n    }\n    Row {\n        spacing: Interface.space\n        KvitButton { text: \"Schedule\"; symbol: \"calendar\"; form: \"primary\" }\n        KvitButton { text: \"Schedule\"; symbol: \"calendar\"; form: \"ordinary\" }\n        KvitButton { text: \"Schedule\"; symbol: \"calendar\"; form: \"quiet\" }\n    }\n    Row {\n        spacing: Interface.space\n        KvitButton { text: \"Save\"; busy: true; form: \"primary\" }\n        KvitButton { text: \"Save\"; busy: true; form: \"ordinary\" }\n        KvitButton { text: \"Save\"; busy: true; form: \"quiet\" }\n    }\n}"
+                },
+                {
+                    "caption": "Destructive and disabled",
+                    "snippet": "Row {\n    spacing: Interface.space\n    KvitButton { text: \"Delete\"; form: \"primary\"; danger: true }\n    KvitButton { text: \"Delete\"; form: \"ordinary\"; danger: true; symbol: \"trash\" }\n    KvitButton { text: \"Disabled\"; form: \"ordinary\"; enabled: false }\n}"
                 },
             ]
         },
@@ -411,6 +431,7 @@ QtObject {
             "name": "KvitTab",
             "group": "Controls",
             "summary": "One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight \u2014 selection shown by colour alone is the most common place the rule gets broken.",
+            "shotSizes": ["minimum", "default", "maximum"],
             "specimens": [
                 {
                     "caption": "Selected, counted and plain",
@@ -437,6 +458,17 @@ QtObject {
                 {
                     "caption": "Open, holding a form",
                     "snippet": "Item {\n    id: stage\n    width: parent.width; height: Interface.px(150)\n    KvitPopover {\n        id: filter\n        parent: stage\n        title: \"Filter\"\n        width: Interface.px(240)\n        // A Popup opens into a window, and `visible: true` on one with no\n        // parent does nothing at all.\n        Component.onCompleted: if (stage.Window.window) filter.open()\n        Column {\n            spacing: Interface.spaceNear\n            KvitCheck { text: \"Settled\"; checked: true }\n            KvitCheck { text: \"Pending\" }\n            KvitCheck { text: \"Disputed\" }\n        }\n    }\n}"
+                },
+            ]
+        },
+        {
+            "name": "KvitHint",
+            "group": "Feedback",
+            "summary": "An information-icon trigger for an explanation too long for a tooltip. Click or keyboard activation keeps its KvitPopover open for reading, and Escape or an outside click dismisses it.",
+            "specimens": [
+                {
+                    "caption": "Open for a longer explanation",
+                    "snippet": "Item {\n    width: parent.width; height: Interface.px(130)\n    KvitHint {\n        label: \"About automatic matching\"\n        text: \"Automatic matching compares the date, amount and reference. It never changes the imported statement.\"\n        Component.onCompleted: if (Window.window) open()\n    }\n}"
                 },
             ]
         },

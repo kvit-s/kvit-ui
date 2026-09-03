@@ -15,8 +15,9 @@ import Kvit.Gallery
 //
 // The controls are at the top rather than in a settings dialog because they
 // are the point. What the gallery is for is looking at the same component in
-// four themes and at two interface sizes; a control that takes two clicks to
-// reach makes that comparison something a reviewer stops doing.
+// four themes, with alignment-sensitive controls also captured at the minimum
+// and maximum interface sizes; a control that takes two clicks to reach makes
+// that comparison something a reviewer stops doing.
 KvitWindow {
     id: window
 
@@ -220,7 +221,27 @@ KvitWindow {
         property string progress: ""
         property int themeIndex: 0
         property int pageIndex: 0
+        property int sizeIndex: 0
+        property int baselineSize: Interface.fontSize
         readonly property var themes: ["light", "dark", "sepia", "highContrast"]
+
+        function sizesForPage() {
+            const requested = Catalog.components[pageIndex].shotSizes
+            if (requested === undefined)
+                return [baselineSize]
+
+            const resolved = []
+            for (let i = 0; i < requested.length; ++i) {
+                let size = baselineSize
+                if (requested[i] === "minimum")
+                    size = Interface.minFontSize
+                else if (requested[i] === "maximum")
+                    size = Interface.maxFontSize
+                if (resolved.indexOf(size) < 0)
+                    resolved.push(size)
+            }
+            return resolved
+        }
 
         function start() {
             // Still every animation for the duration of the run.
@@ -236,8 +257,10 @@ KvitWindow {
             // It also happens to be a state worth having screenshots of.
             Theme.reducedMotion = true
             running = true
+            baselineSize = Interface.fontSize
             themeIndex = 0
             pageIndex = 0
+            sizeIndex = 0
             step()
         }
 
@@ -248,8 +271,11 @@ KvitWindow {
                 return
             }
             Theme.themeId = themes[themeIndex]
+            const sizes = sizesForPage()
+            Interface.fontSize = sizes[sizeIndex]
             window.current = pageIndex
             progress = themes[themeIndex] + " / "
+                       + Interface.fontSize + " px / "
                        + Catalog.components[pageIndex].name
             // One turn of the event loop before grabbing, so the page has
             // built and its bindings have settled. Without it the first
@@ -259,7 +285,10 @@ KvitWindow {
 
         function capture() {
             const name = Catalog.components[pageIndex].name
-            const path = window.shotDirectory + "/" + themes[themeIndex] + "-" + name
+            const sizePart = Interface.fontSize === baselineSize
+                ? "" : "-" + Interface.fontSize + "px"
+            const path = window.shotDirectory + "/" + themes[themeIndex]
+                         + sizePart + "-" + name
                          + ".png"
             // grabToImage on the content item, not grabWindow on the Window:
             // the latter is a C++ method that QML cannot call, so a run
@@ -275,10 +304,14 @@ KvitWindow {
         }
 
         function advance() {
-            pageIndex += 1
-            if (pageIndex >= Catalog.components.length) {
-                pageIndex = 0
-                themeIndex += 1
+            sizeIndex += 1
+            if (sizeIndex >= sizesForPage().length) {
+                sizeIndex = 0
+                pageIndex += 1
+                if (pageIndex >= Catalog.components.length) {
+                    pageIndex = 0
+                    themeIndex += 1
+                }
             }
             Qt.callLater(shots.step)
         }

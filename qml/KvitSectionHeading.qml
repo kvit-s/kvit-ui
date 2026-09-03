@@ -113,18 +113,12 @@ Item {
             color: Theme.textFaint
             tabular: true
         }
-        KvitLabel {
+        KvitLink {
             Layout.leftMargin: Interface.stackGap
             visible: root.action !== ""
-            text: root.action + " ›"
+            text: root.action
             role: "small"
-            color: actHover.hovered ? Theme.accent : Theme.link
-            // Underlined on hover as well as recoloured, because a link that
-            // is only a colour is a link a colour-blind reader cannot find.
-            font.underline: actHover.hovered
-
-            HoverHandler { id: actHover; cursorShape: Qt.PointingHandCursor }
-            TapHandler { onTapped: root.actioned() }
+            onActivated: root.actioned()
         }
     }
 }

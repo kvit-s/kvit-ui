@@ -15,13 +15,13 @@ that does not work stops the build.
 ## What there is
 
 
-**Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`
+**Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
 **Controls** — `KvitButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
-**Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`
+**Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`
 **Data** — `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable`
 **Flow** — `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight`
 
@@ -103,7 +103,7 @@ KvitIcon { name: "not-a-symbol" }
 
 ### KvitIconButton
 
-A button whose whole label is a symbol. A real AbstractButton, so it takes tab focus and a screen reader is told it is there; `label` fills both the tooltip and the accessible name so the two cannot disagree.
+A button whose whole label is a symbol. A real AbstractButton, so it takes tab focus and a screen reader is told it is there; `label` fills both the accessible name and the tooltip shown on pointer hover or keyboard focus.
 
 | Property | Type | |
 |---|---|---|
@@ -122,6 +122,45 @@ Row {
     KvitIconButton { symbol: "trash"; label: "Delete"; form: "ordinary" }
     KvitIconButton { symbol: "pin"; label: "Pin"; checked_: true }
     KvitIconButton { symbol: "copy"; label: "Copy"; enabled: false }
+    KvitIconButton {
+        symbol: "settings"; label: "Settings"
+        Component.onCompleted: if (Window.window)
+            forceActiveFocus(Qt.TabFocusReason)
+    }
+}
+```
+
+### KvitLink
+
+An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented.
+
+| Property | Type | |
+|---|---|---|
+| `symbol` | string |  |
+| `role` | string |  |
+| `elide` | int |  |
+
+*Plain, symbolic and keyboard-focused*
+
+```qml
+Row {
+    spacing: Interface.spaceLoose
+    KvitLink { text: "Privacy policy" }
+    KvitLink { text: "Open calendar"; symbol: "calendar" }
+    KvitLink {
+        text: "Keyboard focus"
+        Component.onCompleted: if (Window.window)
+            forceActiveFocus(Qt.TabFocusReason)
+    }
+}
+```
+
+*Elided in a narrow column*
+
+```qml
+KvitLink {
+    width: Interface.px(120)
+    text: "A destination whose full name does not fit here"
 }
 ```
 
@@ -821,7 +860,7 @@ A button with words on it, in three forms. One primary per screen region: it is 
 | `busyText` | string |  |
 | `fill` | readonly color |  |
 
-*The three forms, and destructive*
+*Text, icon plus text, and busy text in every form*
 
 ```qml
 Column {
@@ -829,16 +868,32 @@ Column {
     Row {
         spacing: Interface.space
         KvitButton { text: "Save"; form: "primary" }
-        KvitButton { text: "Cancel"; form: "ordinary" }
-        KvitButton { text: "More"; form: "quiet" }
-        KvitButton { text: "Disabled"; form: "ordinary"; enabled: false }
+        KvitButton { text: "Save"; form: "ordinary" }
+        KvitButton { text: "Save"; form: "quiet" }
     }
     Row {
         spacing: Interface.space
-        KvitButton { text: "Delete"; form: "primary"; danger: true }
-        KvitButton { text: "Delete"; form: "ordinary"; danger: true; symbol: "trash" }
-        KvitButton { text: "Save"; form: "primary"; busy: true }
+        KvitButton { text: "Schedule"; symbol: "calendar"; form: "primary" }
+        KvitButton { text: "Schedule"; symbol: "calendar"; form: "ordinary" }
+        KvitButton { text: "Schedule"; symbol: "calendar"; form: "quiet" }
     }
+    Row {
+        spacing: Interface.space
+        KvitButton { text: "Save"; busy: true; form: "primary" }
+        KvitButton { text: "Save"; busy: true; form: "ordinary" }
+        KvitButton { text: "Save"; busy: true; form: "quiet" }
+    }
+}
+```
+
+*Destructive and disabled*
+
+```qml
+Row {
+    spacing: Interface.space
+    KvitButton { text: "Delete"; form: "primary"; danger: true }
+    KvitButton { text: "Delete"; form: "ordinary"; danger: true; symbol: "trash" }
+    KvitButton { text: "Disabled"; form: "ordinary"; enabled: false }
 }
 ```
 
@@ -1022,6 +1077,30 @@ Item {
             KvitCheck { text: "Pending" }
             KvitCheck { text: "Disputed" }
         }
+    }
+}
+```
+
+### KvitHint
+
+An information-icon trigger for an explanation too long for a tooltip. Click or keyboard activation keeps its KvitPopover open for reading, and Escape or an outside click dismisses it.
+
+| Property | Type | |
+|---|---|---|
+| `label` | string | **required.**  |
+| `text` | string | **required.**  |
+| `popoverWidth` | int |  |
+| `opened` | readonly alias |  |
+
+*Open for a longer explanation*
+
+```qml
+Item {
+    width: parent.width; height: Interface.px(130)
+    KvitHint {
+        label: "About automatic matching"
+        text: "Automatic matching compares the date, amount and reference. It never changes the imported statement."
+        Component.onCompleted: if (Window.window) open()
     }
 }
 ```
