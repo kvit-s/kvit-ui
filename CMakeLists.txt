@@ -53,6 +53,19 @@ else()
     set(KVIT_UI_LIB_TYPE STATIC)
 endif()
 
+# Link a QML module as a normal CMake target so its public includes and
+# transitive libraries propagate, then override only the link feature for a
+# static build. A static QML module is registered by an object with no ordinary
+# symbol reference; without WHOLE_ARCHIVE MSVC legitimately discards it and an
+# import reports that the module is not installed at runtime.
+function(kvit_ui_link_qml_module consumer visibility module)
+    target_link_libraries(${consumer} ${visibility} ${module})
+    if(NOT KVIT_UI_SHARED_LIBS)
+        set_property(TARGET ${consumer} PROPERTY
+            "LINK_LIBRARY_OVERRIDE_${module}" WHOLE_ARCHIVE)
+    endif()
+endfunction()
+
 option(KVIT_UI_BUILD_GALLERY "Build the gallery application" ON)
 option(KVIT_UI_BUILD_TESTS "Build the test suite" ON)
 
@@ -62,6 +75,11 @@ option(KVIT_UI_BUILD_TESTS "Build the test suite" ON)
 # Typography's comment describes.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Werror=switch)
+endif()
+if(MSVC)
+    # Sources, generated catalogues and test names contain typographic Unicode.
+    # Make their interpretation independent of the Windows locale code page.
+    add_compile_options(/utf-8)
 endif()
 
 add_subdirectory(src/tokens)

@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQuickStyle>
 #include <QQuickWindow>
 #include <QStandardPaths>
 
@@ -35,6 +36,10 @@
 //   kvit-ui-gallery --catalog <file>      # write the skill's catalogue
 int main(int argc, char *argv[])
 {
+    // Every Kvit control supplies its own indicator/content/background. The
+    // Windows native style intentionally refuses those customizations; Fusion
+    // is the same cross-platform base style used by both consumer apps.
+    QQuickStyle::setStyle(QStringLiteral("Fusion"));
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("kvit-ui-gallery"));
     app.setOrganizationName(QStringLiteral("kvit"));
@@ -71,6 +76,12 @@ int main(int argc, char *argv[])
     parser.addOption(catalog);
     parser.addOption(size);
     parser.process(app);
+
+    if (parser.isSet(shots) && !QDir().mkpath(parser.value(shots))) {
+        qCritical().noquote() << "Could not create screenshot directory:"
+                              << parser.value(shots);
+        return 1;
+    }
 
     // The gallery persists its own settings — which theme and size it was left
     // at — beside the applications rather than in their file, so browsing it

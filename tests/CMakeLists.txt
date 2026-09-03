@@ -1,5 +1,20 @@
 find_package(Qt6 REQUIRED COMPONENTS Test QuickTest)
 
+# Offscreen is the deterministic headless platform on Unix. On Windows it has
+# no native font database, so even the system fixed font cannot be resolved;
+# use the real Windows platform there. The tests do not show interactive UI.
+if(WIN32)
+    set(KVIT_UI_TEST_QPA_PLATFORM windows)
+else()
+    set(KVIT_UI_TEST_QPA_PLATFORM offscreen)
+endif()
+
+function(kvit_ui_gui_test name)
+    set_tests_properties(${name} PROPERTIES
+        ENVIRONMENT
+            "QT_QPA_PLATFORM=${KVIT_UI_TEST_QPA_PLATFORM};QT_QUICK_CONTROLS_STYLE=Fusion")
+endfunction()
+
 # One executable per test class, which looks wasteful and is not: QTest runs
 # one QObject per binary, and a suite squeezed into fewer binaries has to
 # either give up QTEST_MAIN or run unrelated cases in one process, where a
@@ -19,9 +34,9 @@ endfunction()
 # QGuiApplication::styleHints(), so without it QTEST_MAIN builds a
 # QCoreApplication and the system-theme cases assert against a null pointer.
 kvit_ui_test(test_theme Qt6::Gui)
-set_tests_properties(test_theme PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_theme)
 kvit_ui_test(test_typography Qt6::Gui)
-set_tests_properties(test_typography PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_typography)
 kvit_ui_test(test_interfacemetrics)
 
 # The density and spacing tokens, and the one claim the whole arrangement
@@ -31,39 +46,42 @@ kvit_ui_test(test_interfacemetrics)
 # families are checked against the one the platform theme actually chose, and
 # without an application there is no platform theme to ask.
 kvit_ui_test(test_density Qt6::Gui)
-set_tests_properties(test_density PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_density)
 
 # The chart ramps, checked rather than asserted. This is what makes an edit to
 # a ramp fail the build instead of the eye: every step of all three ramps, in
 # all four themes, against that theme's surfaces and its reserved hues.
 kvit_ui_test(test_palette Qt6::Gui)
-set_tests_properties(test_palette PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_palette)
 
 # The icon catalogue: that every meaning name resolves to a glyph, that an
 # unknown name resolves to nothing rather than to a placeholder, and that the
 # nine characters kvit-notes draws as literals all have somewhere to go.
 qt_add_executable(test_icons test_icons.cpp)
-target_link_libraries(test_icons PRIVATE kvit-ui-qml Qt6::Test Qt6::Gui)
+target_link_libraries(test_icons PRIVATE Qt6::Test Qt6::Gui)
+kvit_ui_link_qml_module(test_icons PRIVATE kvit-ui-qml)
 add_test(NAME test_icons COMMAND test_icons)
-set_tests_properties(test_icons PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_icons)
 
 # KvitTable's benchmark model, and the 250,000-row measurement prd.md
 # Decision 3 turns on. The model half runs everywhere; the view half needs a
 # window, so it is a Qt Quick Test and is labelled so a headless CI run can
 # see which one it skipped.
 qt_add_executable(test_tablemodel test_tablemodel.cpp)
-target_link_libraries(test_tablemodel PRIVATE kvit-ui-qml Qt6::Test Qt6::Gui)
+target_link_libraries(test_tablemodel PRIVATE Qt6::Test Qt6::Gui)
+kvit_ui_link_qml_module(test_tablemodel PRIVATE kvit-ui-qml)
 add_test(NAME test_tablemodel COMMAND test_tablemodel)
-set_tests_properties(test_tablemodel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_tablemodel)
 
 # Every component in the module loads, in all four themes, with no QML
 # warning. This is the check that a component referencing a token that does not
 # exist, or an icon name with a typo in it, fails the build rather than drawing
 # an empty box.
 qt_add_executable(test_components test_components.cpp)
-target_link_libraries(test_components PRIVATE kvit-ui-qml Qt6::Test Qt6::Quick Qt6::Gui)
+target_link_libraries(test_components PRIVATE Qt6::Test Qt6::Quick Qt6::Gui)
+kvit_ui_link_qml_module(test_components PRIVATE kvit-ui-qml)
 add_test(NAME test_components COMMAND test_components)
-set_tests_properties(test_components PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+kvit_ui_gui_test(test_components)
 
 # The gallery catalogue: that every component has a page, and that every code
 # sample in it compiles and runs. The samples are strings rather than QML
@@ -76,11 +94,11 @@ if(KVIT_UI_BUILD_GALLERY)
     # references by name — so `import Kvit.Ui` inside a specimen fails with
     # "module is not installed" unless the module is on this target's own link
     # line.
-    target_link_libraries(test_gallery
-        PRIVATE kvit-ui-gallery-qml kvit-ui-qml Qt6::Test Qt6::Quick Qt6::Gui)
+    target_link_libraries(test_gallery PRIVATE Qt6::Test Qt6::Quick Qt6::Gui)
+    kvit_ui_link_qml_module(test_gallery PRIVATE kvit-ui-gallery-qml)
+    kvit_ui_link_qml_module(test_gallery PRIVATE kvit-ui-qml)
     add_test(NAME test_gallery COMMAND test_gallery)
-    set_tests_properties(test_gallery
-        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    kvit_ui_gui_test(test_gallery)
 endif()
 
 # The QML lint gate, as a test.
@@ -91,7 +109,7 @@ endif()
 # component with a typo in a token name renders as nothing and the build says
 # nothing about it.
 find_program(KVIT_UI_BASH bash)
-if(KVIT_UI_BASH)
+if(UNIX AND KVIT_UI_BASH)
     add_test(NAME qmllint
         COMMAND ${KVIT_UI_BASH} ${CMAKE_SOURCE_DIR}/tools/run-qmllint.sh)
     set_tests_properties(qmllint PROPERTIES
@@ -101,7 +119,7 @@ endif()
 # The catalogue the vocabulary skill publishes, which is generated from the
 # same list the gallery renders. A stale one tells an agent a component exists
 # that does not, or hides one that does.
-if(KVIT_UI_BUILD_GALLERY AND KVIT_UI_BASH)
+if(UNIX AND KVIT_UI_BUILD_GALLERY AND KVIT_UI_BASH)
     add_test(NAME generator_skill_catalog
         COMMAND ${KVIT_UI_BASH} ${CMAKE_SOURCE_DIR}/tools/check-catalog.sh
                 $<TARGET_FILE:kvit-ui-gallery>

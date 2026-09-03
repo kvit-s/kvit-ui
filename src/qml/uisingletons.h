@@ -50,7 +50,7 @@
     X(SettingsStore, AppSettings, settings)
 
 #define KVIT_UI_SINGLETON_WRAPPER(Type, Name, Accessor)                       \
-    struct Name##Foreign                                                      \
+    struct KvitUi##Name##Foreign                                              \
     {                                                                         \
         Q_GADGET                                                              \
         QML_FOREIGN(Type)                                                     \
@@ -64,6 +64,11 @@
         }                                                                     \
     };
 
+// Prefix the private C++ helpers with their owning module. Kvit Notes' legacy
+// `Kvit` module intentionally exposes the same QML singleton names through its
+// own foreign wrappers; identically named C++ gadgets collide when both static
+// modules are linked by MSVC even though their QML URIs differ. The public QML
+// names remain the `Name` argument supplied to QML_NAMED_ELEMENT above.
 KVIT_UI_SINGLETONS(KVIT_UI_SINGLETON_WRAPPER)
 
 #endif // KVIT_UI_UISINGLETONS_H

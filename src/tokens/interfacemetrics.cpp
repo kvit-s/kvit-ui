@@ -4,6 +4,7 @@
 #include "interfacemetrics.h"
 
 #include <QFont>
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QVariant>
 
@@ -91,10 +92,13 @@ QString InterfaceMetrics::resolvedFontFamily() const
 
 QString InterfaceMetrics::resolvedMonoFamily() const
 {
-    // setMonoFamily already refuses to store an empty value, so this is the
-    // stored one unless something bypassed the setter — a hand-edited
-    // settings file loaded before setSettings runs, for instance.
-    return m_monoFamily.isEmpty() ? QStringLiteral("monospace") : m_monoFamily;
+    // `monospace` is a generic family on fontconfig platforms, but Windows
+    // treats it as an ordinary face name and can resolve it to proportional
+    // text. Ask Qt for the platform's fixed system font when the stored value
+    // is the generic/default choice; an explicitly named face remains exact.
+    if (m_monoFamily.isEmpty() || m_monoFamily == QLatin1String("monospace"))
+        return QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
+    return m_monoFamily;
 }
 
 int InterfaceMetrics::px(int designPx) const

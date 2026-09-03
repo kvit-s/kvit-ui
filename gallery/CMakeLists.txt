@@ -46,4 +46,5 @@ if(KVIT_UI_SHARED_LIBS)
 endif()
 
 qt_add_executable(kvit-ui-gallery main.cpp)
-target_link_libraries(kvit-ui-gallery PRIVATE kvit-ui-gallery-qml)
+kvit_ui_link_qml_module(kvit-ui-gallery PRIVATE kvit-ui-gallery-qml)
+kvit_ui_link_qml_module(kvit-ui-gallery PRIVATE kvit-ui-qml)

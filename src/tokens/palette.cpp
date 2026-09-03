@@ -4,6 +4,7 @@
 #include "palette.h"
 
 #include <QStringList>
+#include <QtMath>
 
 #include <algorithm>
 #include <cmath>
@@ -124,7 +125,7 @@ Oklch toOklch(const QColor &color)
 {
     const Oklab lab = toOklab(linearOf(color));
     const qreal chroma = std::hypot(lab.a, lab.b);
-    qreal hue = std::atan2(lab.b, lab.a) * 180.0 / M_PI;
+    qreal hue = qRadiansToDegrees(std::atan2(lab.b, lab.a));
     if (hue < 0.0)
         hue += 360.0;
     return { lab.l, chroma, hue };
@@ -132,7 +133,7 @@ Oklch toOklch(const QColor &color)
 
 QColor fromOklch(const Oklch &value)
 {
-    const qreal radians = value.h * M_PI / 180.0;
+    const qreal radians = qDegreesToRadians(value.h);
     return colorOf(fromOklab({ value.l,
                                value.c * std::cos(radians),
                                value.c * std::sin(radians) }));
@@ -140,7 +141,7 @@ QColor fromOklch(const Oklch &value)
 
 bool inGamut(const Oklch &value)
 {
-    const qreal radians = value.h * M_PI / 180.0;
+    const qreal radians = qDegreesToRadians(value.h);
     const Linear l = fromOklab({ value.l,
                                  value.c * std::cos(radians),
                                  value.c * std::sin(radians) });

@@ -9,14 +9,18 @@ rem flag that was only ever tried on Linux, and finding that out at release
 rem time is what makes it expensive.
 
 setlocal
-set PROJECT_DIR=%~dp0
-set BUILD_DIR=%PROJECT_DIR%build
+rem Resolve `%~dp0` without its trailing backslash. Passing a quoted path that
+rem ends in `\` through CMake's Windows argument parser escapes the closing
+rem quote and folds the following `-B`/`-G` arguments into the source path.
+for %%I in ("%~dp0.") do set "PROJECT_DIR=%%~fI"
+set "BUILD_DIR=%PROJECT_DIR%\build"
 
 if "%QT_ROOT_DIR%"=="" (
     echo Set QT_ROOT_DIR to your Qt installation, for example
     echo   set QT_ROOT_DIR=C:\Qt\6.10.1\msvc2022_64
     exit /b 1
 )
+set "PATH=%QT_ROOT_DIR%\bin;%PATH%"
 
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 

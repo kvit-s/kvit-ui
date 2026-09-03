@@ -128,6 +128,7 @@ set_source_files_properties(../resources/fonts/Phosphor-LICENSE.txt
     PROPERTIES QT_RESOURCE_ALIAS fonts/Phosphor-LICENSE.txt)
 
 qt_add_qml_module(kvit-ui-qml
+    ${KVIT_UI_LIB_TYPE}
     URI Kvit.Ui
     VERSION 1.0
     # Where the generated qmldir and .qmltypes go.
@@ -189,5 +190,8 @@ endif()
 # generated target in ALL means the description exists after any build.
 if(TARGET kvit-ui-qml_qmltyperegistration)
     add_custom_target(kvit-ui-qmltypes ALL)
-    add_dependencies(kvit-ui-qmltypes kvit-ui-qml_qmltyperegistration)
+    # The backing module owns both AUTOMOC metadata production and type
+    # registration. Depending on the registrar helper alone can run it before
+    # its JSON inputs exist under Visual Studio.
+    add_dependencies(kvit-ui-qmltypes kvit-ui-qml)
 endif()

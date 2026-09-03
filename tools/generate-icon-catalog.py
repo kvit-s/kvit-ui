@@ -252,7 +252,7 @@ def main():
     if "cmap" not in tables:
         raise SystemExit("the font has no cmap table")
     in_font = parse_cmap(data, tables["cmap"][0])
-    declared = parse_stylesheet(STYLESHEET.read_text())
+    declared = parse_stylesheet(STYLESHEET.read_text(encoding="utf-8"))
     if not declared:
         raise SystemExit("no icon rules found in %s" % STYLESHEET)
 
@@ -366,7 +366,7 @@ QStringList IconCatalog::glyphNames()
     text = "".join(out)
 
     if check:
-        current = OUT.read_text() if OUT.exists() else ""
+        current = OUT.read_text(encoding="utf-8") if OUT.exists() else ""
         if current != text:
             print("src/qml/iconcatalog.cpp is stale; run "
                   "tools/generate-icon-catalog.py", file=sys.stderr)
@@ -374,7 +374,11 @@ QStringList IconCatalog::glyphNames()
         print("iconcatalog.cpp matches the font")
         return 0
 
-    OUT.write_text(text)
+    # Generated C++ is repository text, not locale text. On Windows the locale
+    # codec is commonly cp1252, which rewrites the em dashes in the header and
+    # makes an unchanged UTF-8 file fail `--check`.
+    with OUT.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(text)
     print("wrote %s: %d glyphs, %d meaning names"
           % (OUT.relative_to(ROOT), len(by_name), len(MEANINGS)))
     return 0
