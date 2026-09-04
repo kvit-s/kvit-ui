@@ -3,12 +3,15 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import QtQuick
+import QtQuick.Layouts
 import Kvit.Ui
 
 // A persistent explanation reached through the established information icon.
-// Use this for more than a short tooltip: it opens on click or keyboard press,
-// keeps the words present while they are read, and KvitPopover supplies Escape
-// and outside-click dismissal.
+// Use this for more than a short tooltip: one click or keyboard press opens the
+// labelled explanation, keeps the words present while they are read, and
+// KvitPopover supplies Escape and outside-click dismissal. There is deliberately
+// no tooltip before it: the title and detail are one piece of information, reached
+// through one action.
 Item {
     id: root
 
@@ -42,6 +45,7 @@ Item {
         anchors.centerIn: parent
         symbol: "info"
         label: root.label
+        tooltipEnabled: false
         onClicked: explanation.opened ? explanation.close() : explanation.open()
     }
 
@@ -54,12 +58,28 @@ Item {
         width: root.popoverWidth
         title: root.label
 
-        contentItem: KvitLabel {
-            text: root.text
-            role: "small"
-            color: Theme.textPrimary
-            wrapMode: Text.WordWrap
-            elide: Text.ElideNone
+        contentItem: ColumnLayout {
+            spacing: Interface.spaceNear
+
+            KvitLabel {
+                objectName: "title"
+                Layout.fillWidth: true
+                text: root.label
+                role: "body"
+                font.bold: true
+                color: Theme.textPrimary
+            }
+            KvitLabel {
+                objectName: "detail"
+                Layout.fillWidth: true
+                text: root.text
+                role: "small"
+                color: Theme.textSecondary
+                wrapMode: Text.WordWrap
+                elide: Text.ElideNone
+                lineHeightMode: Text.ProportionalHeight
+                lineHeight: 1.3
+            }
         }
     }
 }

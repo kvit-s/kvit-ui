@@ -20,10 +20,11 @@ import Kvit.Ui
 // and a name, it takes tab focus, and Space or Return activates it
 // (accessibility.md Finding 1).
 //
-// `label` is the one place the words are written. It becomes both the tooltip
-// a pointer user reads and the name a screen reader says, so the two cannot
+// `label` is the one place the words are written. It becomes the accessible
+// name and, by default, the tooltip a pointer user reads, so the two cannot
 // drift apart — which is the other half of Finding 1, where a control had a
-// tooltip saying one thing and an accessible name saying another.
+// tooltip saying one thing and an accessible name saying another. A control
+// that opens the same label in a persistent surface may suppress the tooltip.
 AbstractButton {
     id: root
 
@@ -42,6 +43,10 @@ AbstractButton {
     // draws one on hover, which is what a dense toolbar wants; an ordinary one
     // carries its outline the whole time so its edges are findable.
     property string form: "quiet"
+    // A control that opens a labelled explanation already presents these words in
+    // that surface. It can suppress the duplicate hover surface while retaining this
+    // label as its accessible name.
+    property bool tooltipEnabled: true
     property bool checked_: false
     property color iconColor: root.enabled ? Theme.textSecondary
                                            : Theme.textDisabled
@@ -49,10 +54,10 @@ AbstractButton {
     implicitWidth: Interface.controlHeight
     implicitHeight: Interface.controlHeight
 
-    // Both the tooltip and the accessible name, because they answer different
-    // questions: a pointer user reads the tooltip and a screen reader reads
-    // the name, and a control that has one and not the other is unusable by
-    // half its readers. Both come from `label`, so they cannot disagree.
+    // The tooltip and accessible name normally answer different questions: a
+    // pointer user reads the tooltip and a screen reader reads the name. Both
+    // come from `label`, so they cannot disagree. tooltipEnabled only removes
+    // the duplicate visual surface; the accessible name remains below.
     //
     // An explicit KvitTooltip rather than the attached `ToolTip.text`. The
     // attached property instantiates Qt Quick Controls' own ToolTip, which
@@ -62,7 +67,8 @@ AbstractButton {
     KvitTooltip {
         objectName: "tooltip"
         text: root.label
-        visible: (root.hovered || root.visualFocus) && root.label !== ""
+        visible: root.tooltipEnabled && (root.hovered || root.visualFocus)
+                 && root.label !== ""
     }
 
     Accessible.role: Accessible.Button

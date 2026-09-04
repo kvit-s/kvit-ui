@@ -501,10 +501,31 @@ void TestComponents::testLinksHintsAndKeyboardTooltips()
     QCOMPARE(triggerAccessible->text(QAccessible::Name),
              QStringLiteral("About automatic matching"));
 
+    QObject *hintTooltip = trigger->findChild<QObject *>(QStringLiteral("tooltip"));
+    QVERIFY(hintTooltip);
     trigger->forceActiveFocus(Qt::TabFocusReason);
     QTRY_VERIFY(trigger->hasActiveFocus());
+    QVERIFY(!hintTooltip->property("visible").toBool());
     QTest::keyClick(window, Qt::Key_Space);
     QTRY_VERIFY(hint->property("opened").toBool());
+
+    auto *hintTitle = hint->findChild<QQuickItem *>(QStringLiteral("title"));
+    auto *hintDetail = hint->findChild<QQuickItem *>(QStringLiteral("detail"));
+    QVERIFY(hintTitle);
+    QVERIFY(hintDetail);
+    QTRY_VERIFY(hintTitle->isVisible());
+    QTRY_VERIFY(hintDetail->isVisible());
+    QVERIFY(hintTitle->width() > 0);
+    QVERIFY(hintTitle->height() > 0);
+    QVERIFY(hintDetail->width() > 0);
+    QVERIFY(hintDetail->height() > 0);
+    QVERIFY(hintDetail->mapToItem(hint, QPointF()).y()
+            > hintTitle->mapToItem(hint, QPointF(0, hintTitle->height())).y());
+    QCOMPARE(hintTitle->property("text").toString(),
+             QStringLiteral("About automatic matching"));
+    QCOMPARE(hintDetail->property("text").toString(),
+             QStringLiteral("Automatic matching compares the date, amount and reference."));
+
     QTest::keyClick(window, Qt::Key_Escape);
     QTRY_VERIFY(!hint->property("opened").toBool());
 }

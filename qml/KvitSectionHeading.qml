@@ -96,7 +96,7 @@ Item {
         KvitDivider {
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.top: parent.top
             color: root.strong ? Theme.borderStrong : Theme.border
         }
 
