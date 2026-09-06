@@ -8,15 +8,16 @@ description: The shared interface vocabulary for the kvit desktop applications: 
 Four Qt desktop applications share one interface layer, `kvit-ui`, which each
 of them consumes as a pinned git submodule. It has three parts: a token layer
 (colours, type sizes, spacing and density as named values), a vocabulary of
-sixty-eight components built from those tokens, and a drawing layer for
-proposing a screen before building it.
+components built from those tokens, and a drawing layer for proposing a screen
+before building it.
 
 `import Kvit.Ui` reaches all of it: every component, the token singletons
 `Theme`, `Interface` and `Typography`, and the icon font.
 
-`catalog.md` beside this file is the reference. It lists every component,
-what it is for, its properties and a working sample. It is generated from
-the repository on each build, so it describes what actually exists.
+`catalog.md` beside this file is the reference. It says how many components
+there are and lists every one of them: what it is for, its properties and a
+working sample. It is generated from the repository on each build, so it
+describes what actually exists.
 
 ## Ask for a screen in the vocabulary, not in measurements
 
@@ -75,6 +76,18 @@ is.
 chart with no data shows a `KvitEmptyState` rather than an axis drawn around
 zeros. A balance nobody has computed and a balance of zero are different
 facts, and drawing them the same way states something false.
+
+**A count is handed over as a number and a noun, never as a finished
+phrase.** The components that say how many of something there is —
+`KvitViewHead`, `KvitSectionHeading`, `KvitBadge`, `KvitSidebarItem`,
+`KvitSearchField` — take the number in `count` (or `matches`) and the word for
+one of the things in `counted`, plus `countedPlural` where English's suffixed s
+is wrong. The component then groups the digits the way the reader's locale
+groups them and picks the form, so one account reads "1 account" and twelve
+hundred read "1,200 accounts". A call site that assembles the sentence itself
+writes "1 accounts" for a workspace with one account and "1200 accounts" for
+one with twelve hundred, in a window whose ledger writes the same number as
+"1,200".
 
 **A control is a control, not a rectangle with a mouse area.** Use
 `KvitButton`, `KvitIconButton`, `KvitCheck`, `KvitSwitch` and the rest. A

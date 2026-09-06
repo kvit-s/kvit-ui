@@ -25,13 +25,36 @@ Item {
     // Sections sharing a group string behave as an accordion: opening one
     // closes the rest. Empty means this disclosure stands alone.
     property string group: ""
+    // How many things are inside, drawn beside the title. Below zero draws
+    // nothing, which is right for a section whose contents are not a
+    // countable list.
     property int count: -1
     default property alias content: bodySlot.data
 
     signal toggled(bool expanded)
 
     implicitWidth: Interface.px(400)
-    implicitHeight: trigger.height + (expanded ? bodySlot.childrenRect.height
+    // How tall the body wants to be, taken from the preferred height of
+    // whatever the caller put inside it.
+    //
+    // Read from the content rather than from the slot's own `childrenRect`.
+    // An item whose own height comes from its `childrenRect` is a cycle Qt
+    // reports as a binding loop: assigning the height marks the rectangle
+    // dirty, which asks for the height again while it is still being worked
+    // out. It settles on the right number and warns every time a section is
+    // opened. Reading each child's preferred height instead depends only on
+    // what the caller put inside, which nothing here writes back to.
+    readonly property real bodyHeight: {
+        let wanted = 0
+        for (let i = 0; i < bodySlot.children.length; ++i) {
+            const child = bodySlot.children[i]
+            if (child.visible)
+                wanted = Math.max(wanted, child.y + child.implicitHeight)
+        }
+        return wanted
+    }
+
+    implicitHeight: trigger.height + (expanded ? root.bodyHeight
                                                  + Interface.space : 0)
 
     Behavior on implicitHeight {
@@ -94,7 +117,11 @@ Item {
             KvitLabel {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.count >= 0
-                text: String(root.count)
+                // Grouped by the reader's locale. A disclosure over a bulk
+                // change is handed the record count, and the same figure is
+                // written grouped in the line under it; ungrouped here, one
+                // number appears in the window twice in two spellings.
+                text: Number(root.count).toLocaleString(Qt.locale(), 'f', 0)
                 role: "caption"
                 color: Theme.textFaint
                 tabular: true
@@ -110,7 +137,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: Interface.spaceLoose
         anchors.right: parent.right
-        height: root.expanded ? childrenRect.height : 0
+        height: root.expanded ? root.bodyHeight : 0
         visible: root.expanded
         clip: true
     }

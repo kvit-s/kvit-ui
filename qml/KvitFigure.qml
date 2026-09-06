@@ -2,6 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+// The lazy parts below are nested components, and Bound is what makes them
+// read this file's ids legally rather than by accident: without it a nested
+// component resolves an outer id at run time through the object hierarchy.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Kvit.Ui
 
@@ -57,12 +62,18 @@ Row {
         tabular: true
         elide: Text.ElideNone
     }
-    KvitLabel {
+    // Built only where there is a unit to draw, and hidden as well as
+    // inactive so the Row keeps no gap for it. Most figures in a table have
+    // their unit in a column heading rather than beside every value.
+    Loader {
         anchors.verticalCenter: parent.verticalCenter
-        visible: root.unit !== "" && root.measured
-        text: root.unit
-        role: root.role === "caption" ? "caption" : "small"
-        color: Theme.textMuted
-        elide: Text.ElideNone
+        active: root.unit !== "" && root.measured
+        visible: active
+        sourceComponent: KvitLabel {
+            text: root.unit
+            role: root.role === "caption" ? "caption" : "small"
+            color: Theme.textMuted
+            elide: Text.ElideNone
+        }
     }
 }

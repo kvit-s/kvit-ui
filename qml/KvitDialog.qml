@@ -53,16 +53,64 @@ Dialog {
         Accessible.description: root.detail
     }
 
+    // The title, with the way out at the right end of the same row — where
+    // KvitPane puts its close control, so a reader who has learnt one surface
+    // already knows where the other one's is.
+    //
+    // It is a third route out rather than a replacement for either of the
+    // other two: `closePolicy` is untouched, so Escape still dismisses the
+    // dialog, and the cancel button is still there. The reason to have all
+    // three is that they are found by different readers — the pointer finds
+    // the symbol, the keyboard finds Escape, and somebody reading the
+    // sentence finds the button that says what declining does.
+    //
+    // The header is fourteen pixels taller than it was, and the title's right
+    // margin is ten narrower. That is a deliberate change to what every
+    // dialog in the estate draws, so here is the arithmetic behind it.
+    //
+    // The header used to be `Interface.rowHeightSlim` — thirty pixels at the
+    // default interface size — with the title held sixteen below the top by
+    // `viewMargin`, which left fourteen. `Interface.controlHeight` is
+    // twenty-eight, so a close control in the old header either loses the
+    // margin above the title, moving every dialog title up twelve pixels, or
+    // is squeezed into fourteen pixels and becomes a hit target half the size
+    // of every other icon button. Keeping the margin and growing the header
+    // to `viewMargin + controlHeight` is the third option, and it is the one
+    // that leaves the title where a reader is used to finding it.
+    //
+    // The right margin is `spaceNear` rather than `viewMargin` because the
+    // icon button carries its own padding around the symbol; an equal margin
+    // would set the symbol further from the edge than the title is from the
+    // other one. These are the two margins KvitPane's head already uses, so
+    // the close control sits in the same place on both surfaces.
     header: Item {
-        implicitHeight: Interface.rowHeightSlim
-        KvitLabel {
+        implicitHeight: Interface.viewMargin + Interface.controlHeight
+
+        RowLayout {
             anchors.fill: parent
             anchors.leftMargin: Interface.viewMargin
-            anchors.rightMargin: Interface.viewMargin
+            anchors.rightMargin: Interface.spaceNear
             anchors.topMargin: Interface.viewMargin
-            text: root.title
-            role: "title"
-            font.bold: true
+            spacing: Interface.space
+
+            KvitLabel {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                text: root.title
+                role: "title"
+                font.bold: true
+            }
+            KvitIconButton {
+                Layout.alignment: Qt.AlignVCenter
+                symbol: "close"
+                // One word, and it is both the tooltip a pointer reader sees
+                // and the name a screen reader says, which is what
+                // KvitIconButton's `label` is for.
+                label: qsTr("Close")
+                // The same answer Escape and the cancel button give: a
+                // dismissal is a decline, not an unstated agreement.
+                onClicked: root.reject()
+            }
         }
     }
 

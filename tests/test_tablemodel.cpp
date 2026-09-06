@@ -4,10 +4,13 @@
 #include <QtTest/QtTest>
 #include <QAbstractItemModelTester>
 #include <QElapsedTimer>
+#include <QLocale>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+
+#include <algorithm>
 
 #include "benchmarktablemodel.h"
 #include "interfacemetrics.h"
@@ -35,12 +38,18 @@ class TestTableModel : public QObject
 private slots:
     void initTestCase();
     void testTheModelIsWellFormed();
+    void testTheColumnKindArrivesAsAWordRatherThanANumber();
+    void testAMoneyColumnIsFormattedByTheModel();
+    void testARowCanBeInSeveralStatesAtOnce();
+    void testTicksSurviveAFilterChange();
+    void testTheWholeValueIsAnsweredWhereTheColumnShortensIt();
     void testEveryCellAnswersWithoutMaterialisingTheTable();
     void testAnUnmeasuredValueIsDistinguishableFromZero();
     void testFilteringStaysUnderTheBudget();
     void testEditingSurvivesAFilterChange();
     void testTheViewScrollsSmoothly();
     void testTheEmptyStateFollowsTheRowCount();
+    void testTickingABoxDoesNotAlsoOpenTheRow();
 
 private:
     // What "sub-100 ms filtering" means: one filter change over 250,000 rows.
@@ -58,10 +67,22 @@ private:
     // 60 Hz frame, and the number of live delegate items stays bounded no
     // matter how far the reader scrolls. The second is the one that would
     // fail catastrophically rather than gradually, and it needs no timer.
+    //
+    // The budget is spent against the middle page rather than against the
+    // average of all of them. Each page is timed on its own and the median is
+    // what has to fit, because this gate runs on a build machine directly
+    // after a suite that writes a 131 MB workspace and a build that uses
+    // every core: a page that waits on the machine rather than on the table
+    // has been measured at four times the cost of its neighbours, and one
+    // such page moves an average of forty enough to fail the whole run. It
+    // does not move the middle one. A table that really costs more than a
+    // frame to relay out costs it on every page, so the regression this
+    // exists to catch still fails it. The worst page is printed beside the
+    // median rather than asserted on.
     static constexpr int ScrollBudgetMsPerPage = 16;
     static constexpr int PagesScrolled = 40;
     // A screen of 1200x700 at the default row height holds about 23 rows of
-    // 12 columns, so roughly 280 cells are on screen and a little over that
+    // 13 columns, so roughly 300 cells are on screen and a little over that
     // is in flight. Anything under a thousand is recycling; a view that built
     // a delegate per row would be at three million.
     static constexpr int LiveDelegateCeiling = 1000;
@@ -88,7 +109,169 @@ void TestTableModel::testTheModelIsWellFormed()
                                     QAbstractItemModelTester::FailureReportingMode::Warning);
     QCOMPARE(model.rowCount(), 500);
     QCOMPARE(model.columnCount(), KvitUi::BenchmarkTableModel::ColumnCount);
-    QCOMPARE(model.columnCount(), 12);
+    // Twelve columns of value, which is the width the benchmark is stated in,
+    // and one more holding the box the reader ticks.
+    QCOMPARE(KvitUi::BenchmarkTableModel::ValueColumnCount, 12);
+    QCOMPARE(model.columnCount(), 13);
+}
+
+void TestTableModel::testTheColumnKindArrivesAsAWordRatherThanANumber()
+{
+    // What KvitCell is given for `kind`, and the reason it exists.
+    //
+    // columnKind() answers with a Q_ENUM, and a Q_ENUM returned through a
+    // Q_INVOKABLE reaches JavaScript as an integer — so the view's
+    // `String(model.columnKind(column))` yielded "1" for every column, no
+    // case in KvitCell's switch matched, and every column in every table in
+    // the estate drew as plain text. The word is read out of the
+    // enumeration's own metadata, so a kind added to the enumeration cannot
+    // go missing from the name.
+    KvitUi::BenchmarkTableModel model;
+    QCOMPARE(model.columnKindName(0), QStringLiteral("Date"));
+    QCOMPARE(model.columnKindName(1), QStringLiteral("Slug"));
+    QCOMPARE(model.columnKindName(2), QStringLiteral("Text"));
+    QCOMPARE(model.columnKindName(4), QStringLiteral("Chip"));
+    QCOMPARE(model.columnKindName(6), QStringLiteral("Money"));
+    QCOMPARE(model.columnKindName(7), QStringLiteral("Figure"));
+    QCOMPARE(model.columnKindName(9), QStringLiteral("Marks"));
+    QCOMPARE(model.columnKindName(12), QStringLiteral("Check"));
+
+    // A column outside the table is text rather than nothing: an empty kind
+    // draws nothing at all, and a column of nothing is harder to notice than
+    // a column of text.
+    QCOMPARE(model.columnKindName(-1), QStringLiteral("Text"));
+    QCOMPARE(model.columnKindName(999), QStringLiteral("Text"));
+}
+
+void TestTableModel::testAMoneyColumnIsFormattedByTheModel()
+{
+    // The Money cell draws the string it is given and does no arithmetic, so
+    // the model has to hand it one. Two facts about money make that
+    // necessary. An amount is a signed 64-bit count of minor units and a
+    // JavaScript number carries 53 bits of integer, so a cell converting the
+    // value would round a large amount and never say it had; and how many
+    // minor digits an amount has belongs to its currency, which is knowledge
+    // a cell does not have.
+    KvitUi::BenchmarkTableModel model;
+    const QVariant amount = model.data(model.index(3, 6));
+    QCOMPARE(amount.metaType().id(), QMetaType::QString);
+    QCOMPARE(amount.toString(), QLocale::system().toString(-498.89, 'f', 2));
+
+    // And the sort still runs on the number, so the column orders by value
+    // rather than by the digits of its formatting.
+    const QVariant sortValue =
+        model.data(model.index(3, 6), KvitUi::TableModelBase::SortRole);
+    QCOMPARE(sortValue.metaType().id(), QMetaType::Double);
+    QCOMPARE(sortValue.toDouble(), -498.89);
+}
+
+void TestTableModel::testARowCanBeInSeveralStatesAtOnce()
+{
+    // Why the Marks kind exists: a transaction is regularly settled *and*
+    // unreviewed, and one chip has to drop one of the two. Each mark carries
+    // a tone, the shape that says the same thing without colour, and the word
+    // a reader hears.
+    KvitUi::BenchmarkTableModel model;
+    const int statusColumn = 9;
+
+    const QVariant one = model.data(model.index(1, statusColumn),
+                                    KvitUi::TableModelBase::MarksRole);
+    const QVariantList oneMark = one.toList();
+    QCOMPARE(oneMark.size(), 1);
+    const QVariantMap first = oneMark.at(0).toMap();
+    QCOMPARE(first.value(QStringLiteral("label")).toString(),
+             QStringLiteral("Pending"));
+    QVERIFY(!first.value(QStringLiteral("tone")).toString().isEmpty());
+    // The second channel beside the hue. Without it two states differ only in
+    // colour, which is no difference at all for about one man in twelve and
+    // none in a grayscale screenshot.
+    QVERIFY(!first.value(QStringLiteral("shape")).toString().isEmpty());
+
+    // Row 7 is both settled and unreviewed.
+    const QVariantList two = model.data(model.index(7, statusColumn),
+                                        KvitUi::TableModelBase::MarksRole).toList();
+    QCOMPARE(two.size(), 2);
+    QCOMPARE(two.at(1).toMap().value(QStringLiteral("label")).toString(),
+             QStringLiteral("Not reviewed"));
+
+    // Only the column whose kind is Marks answers with any, because the kind
+    // belongs to the column.
+    QVERIFY(!model.data(model.index(7, 2),
+                        KvitUi::TableModelBase::MarksRole).isValid());
+}
+
+void TestTableModel::testTicksSurviveAFilterChange()
+{
+    // The selection a Check column holds is keyed by the underlying row, not
+    // by the row on screen. A reader ticks some rows, narrows the filter, and
+    // expects the ticks to still be there when it widens again — which is the
+    // whole reason the model owns the answer rather than the view.
+    KvitUi::BenchmarkTableModel model;
+    model.setTotalRows(5000);
+    const int boxColumn = 12;
+    QCOMPARE(model.columnKindName(boxColumn), QStringLiteral("Check"));
+    // And the column of boxes does not sort: its header is the
+    // select-displayed control instead.
+    QVERIFY(!model.columnSortable(boxColumn));
+    QVERIFY(model.columnSortable(0));
+
+    model.setChecked(3, true);
+    model.setChecked(9, true);
+    QVERIFY(model.cellChecked(3, boxColumn));
+    QVERIFY(model.cellChecked(9, boxColumn));
+    QVERIFY(!model.cellChecked(4, boxColumn));
+    QVERIFY(model.someShownChecked());
+    QVERIFY(!model.allShownChecked());
+
+    model.setFilter(QStringLiteral("Harlow"));
+    const int matched = model.rowCount();
+    QVERIFY(matched > 2);
+    model.setEveryShownChecked(true);
+    QVERIFY(model.allShownChecked());
+    QVERIFY(model.cellChecked(0, boxColumn));
+
+    // Widening the filter brings back both what was ticked before it and what
+    // was ticked under it.
+    model.setFilter(QString());
+    QVERIFY(model.cellChecked(3, boxColumn));
+    QVERIFY(model.cellChecked(9, boxColumn));
+    QVERIFY(model.someShownChecked());
+    QVERIFY(!model.allShownChecked());
+}
+
+void TestTableModel::testTheWholeValueIsAnsweredWhereTheColumnShortensIt()
+{
+    // A column too narrow for its value has to have somewhere to send the
+    // reader for the rest of it, and FullTextRole is that somewhere: the view
+    // binds it into KvitCell's `fullValue`, which is both what the cell
+    // discloses under the pointer and the keyboard cursor and what a screen
+    // reader is told the cell holds.
+    //
+    // The role reaches nothing unless a model answers it, and a model that
+    // invents a role name of its own instead — `payeeFull` rather than
+    // `fullText` — leaves the two halves of the feature built and never
+    // joined, with nothing failing anywhere. So the one model this library
+    // ships answers it, and this is what holds the two names together.
+    KvitUi::BenchmarkTableModel model;
+    model.setTotalRows(200);
+    const int payeeColumn = 3;
+
+    QCOMPARE(model.data(model.index(0, payeeColumn)).toString(),
+             QStringLiteral("Ashford & Co"));
+    QCOMPARE(model.data(model.index(0, payeeColumn),
+                        KvitUi::TableModelBase::FullTextRole).toString(),
+             QStringLiteral("Ashford & Co (Holdings) Limited"));
+
+    // Only the column that shortens its value answers, in the same way only
+    // the Marks column answers with marks: what a cell holds belongs to its
+    // column.
+    QVERIFY(!model.data(model.index(0, 2),
+                        KvitUi::TableModelBase::FullTextRole).isValid());
+
+    // And the name the view binds it through is the one TableModelBase
+    // publishes, which is the half a second name would break.
+    QCOMPARE(model.roleNames().value(KvitUi::TableModelBase::FullTextRole),
+             QByteArray("fullText"));
 }
 
 void TestTableModel::testEveryCellAnswersWithoutMaterialisingTheTable()
@@ -276,31 +459,44 @@ void TestTableModel::testTheViewScrollsSmoothly()
 
     const qreal page = view->height();
     QElapsedTimer timer;
+    QList<qint64> pageCost;
+    pageCost.reserve(PagesScrolled);
     timer.start();
     for (int i = 0; i < PagesScrolled; ++i) {
+        const qint64 from = timer.nsecsElapsed();
         view->setProperty("contentY", page * i);
         // forceLayout is the delegate work: bind, position and reuse every
         // cell the new viewport needs. It is synchronous, which is what makes
         // it measurable.
         QMetaObject::invokeMethod(view, "forceLayout");
+        pageCost.append(timer.nsecsElapsed() - from);
     }
     const qint64 elapsed = timer.elapsed();
-    const qreal perPage = qreal(elapsed) / PagesScrolled;
+
+    QList<qint64> sorted = pageCost;
+    std::sort(sorted.begin(), sorted.end());
+    const qreal perPage = qreal(sorted.at(sorted.size() / 2)) / 1'000'000.0;
+    const qreal worstPage = qreal(sorted.last()) / 1'000'000.0;
 
     auto *pool = view->property("contentItem").value<QQuickItem *>();
     QVERIFY(pool);
     const int live = pool->childItems().size();
-    qInfo("scrolling 250,000 rows: %.2f ms per page (budget %d ms), "
-          "%d live delegate items after %d pages",
-          perPage, ScrollBudgetMsPerPage, live, PagesScrolled);
+    qInfo("scrolling 250,000 rows: %.2f ms for the middle page (budget %d ms), "
+          "%.2f ms for the worst, %lld ms for all %d, "
+          "%d live delegate items afterwards",
+          perPage, ScrollBudgetMsPerPage, worstPage,
+          static_cast<long long>(elapsed), PagesScrolled, live);
 
     QVERIFY2(perPage < ScrollBudgetMsPerPage,
              qPrintable(QStringLiteral("relaying out a page of a 250,000-row "
                                        "table cost %1 ms against a %2 ms "
-                                       "budget (%3 ms for %4 pages)")
+                                       "budget (the middle of %3 pages; the "
+                                       "worst cost %4 ms and all of them %5 ms)")
                             .arg(perPage, 0, 'f', 2)
                             .arg(ScrollBudgetMsPerPage)
-                            .arg(elapsed).arg(PagesScrolled)));
+                            .arg(PagesScrolled)
+                            .arg(worstPage, 0, 'f', 2)
+                            .arg(elapsed)));
 
     // And the claim that makes the timing possible: after forty pages the
     // view is still holding a few hundred items rather than a few hundred
@@ -329,6 +525,56 @@ QQuickItem *findEmptyState(QQuickItem *item)
             return found;
     }
     return nullptr;
+}
+
+// The first item of a given QML type under an item. A QML-defined type's
+// class name is its file name with a generated suffix on it, which is why
+// this matches on a prefix.
+QQuickItem *findByType(QQuickItem *item, const char *prefix)
+{
+    const auto children = item->childItems();
+    for (QQuickItem *child : children) {
+        if (QByteArray(child->metaObject()->className()).startsWith(prefix))
+            return child;
+        if (QQuickItem *found = findByType(child, prefix))
+            return found;
+    }
+    return nullptr;
+}
+
+// The cell delegate at one row and column. A TableCell publishes both as
+// required properties, which is what tells them apart: searching by type
+// would find whichever delegate the view happens to have built first.
+QQuickItem *findCell(QQuickItem *item, int row, int column)
+{
+    const auto children = item->childItems();
+    for (QQuickItem *child : children) {
+        const QVariant childRow = child->property("row");
+        const QVariant childColumn = child->property("column");
+        if (childRow.isValid() && childColumn.isValid()
+            && childRow.toInt() == row && childColumn.toInt() == column) {
+            return child;
+        }
+        if (QQuickItem *found = findCell(child, row, column))
+            return found;
+    }
+    return nullptr;
+}
+
+// A QML-declared signal, as the QMetaMethod QSignalSpy wants. Naming it
+// through SIGNAL() would mean writing the parameter list a QML signal
+// declaration does not spell the same way.
+QMetaMethod signalNamed(QObject *object, const char *name)
+{
+    const QMetaObject *meta = object->metaObject();
+    for (int i = 0; i < meta->methodCount(); ++i) {
+        const QMetaMethod method = meta->method(i);
+        if (method.methodType() == QMetaMethod::Signal
+            && method.name() == QByteArray(name)) {
+            return method;
+        }
+    }
+    return {};
 }
 
 }   // namespace
@@ -400,6 +646,92 @@ void TestTableModel::testTheEmptyStateFollowsTheRowCount()
     QVERIFY(matched > 0 && matched < 400);
     QTRY_COMPARE(table->property("rowCount").toInt(), matched);
     QVERIFY(!empty->isVisible());
+}
+
+void TestTableModel::testTickingABoxDoesNotAlsoOpenTheRow()
+{
+    // A press on the box in a Check column is a request to tick that row and
+    // nothing else.
+    //
+    // Every cell in the table carries the TapHandler that opens a record, and
+    // a checkbox is a child of one of those cells. A TapHandler at its default
+    // gesture policy takes a passive grab rather than an exclusive one, so it
+    // still fires when the control underneath it has accepted the press --
+    // which means one press on the box would tick the row and open it at the
+    // same time, and the reader who ticked forty rows would have opened forty
+    // records on the way.
+    if (!m_haveWindow)
+        QSKIP("no scene graph on this platform; the view half cannot run");
+
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    // Wide enough for all thirteen columns, so the box column is on screen
+    // without the test having to scroll to it: the widths in
+    // BenchmarkTableModel::columnWidth add up to 1,526.
+    component.setData(
+        "import QtQuick\n"
+        "import Kvit.Ui\n"
+        "Item {\n"
+        "    width: 1600; height: 400\n"
+        "    property alias table: table\n"
+        "    property alias model: model\n"
+        "    BenchmarkTableModel { id: model; totalRows: 200 }\n"
+        "    KvitTable { id: table; anchors.fill: parent; model: model }\n"
+        "}\n",
+        QUrl(QStringLiteral("qrc:/test/checkpress.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QScopedPointer<QObject> holder(component.create());
+    QVERIFY2(!holder.isNull(), qPrintable(component.errorString()));
+
+    QQuickWindow window;
+    auto *content = qobject_cast<QQuickItem *>(holder.data());
+    QVERIFY(content);
+    content->setParentItem(window.contentItem());
+    window.resize(1600, 400);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    auto *table = content->property("table").value<QQuickItem *>();
+    QVERIFY(table);
+    auto *view = table->property("view").value<QQuickItem *>();
+    QVERIFY(view);
+    // One layout, so the first page's delegates exist to be found and pressed.
+    QMetaObject::invokeMethod(view, "forceLayout");
+
+    // Searched under the view rather than under the table, so the header's
+    // own select-displayed box is not what gets pressed.
+    QQuickItem *box = findByType(view, "KvitCheck");
+    QVERIFY2(box, "no checkbox in the table's Check column");
+
+    QSignalSpy toggled(table, signalNamed(table, "cellToggled"));
+    QSignalSpy pressed(table, signalNamed(table, "rowPressed"));
+    QSignalSpy activated(table, signalNamed(table, "rowActivated"));
+    QVERIFY(toggled.isValid());
+    QVERIFY(pressed.isValid());
+    QVERIFY(activated.isValid());
+
+    const QPointF centre =
+        box->mapToScene(QPointF(box->width() / 2, box->height() / 2));
+    QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, centre.toPoint());
+
+    QTRY_COMPARE(toggled.count(), 1);
+    QCOMPARE(toggled.at(0).at(2).toBool(), true);
+    QCOMPARE(pressed.count(), 0);
+    QCOMPARE(activated.count(), 0);
+
+    // And a press on the first cell of the same row still opens it, so what
+    // is being checked above is the box rather than a table that stopped
+    // answering the pointer.
+    QQuickItem *first = findCell(view, 0, 0);
+    QVERIFY2(first, "the table has no delegate for row 0, column 0");
+    const QPointF elsewhere =
+        first->mapToScene(QPointF(first->width() / 2, first->height() / 2));
+    QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+                      elsewhere.toPoint());
+    QTRY_COMPARE(pressed.count(), 1);
+    QCOMPARE(pressed.at(0).at(0).toInt(), 0);
+    QCOMPARE(toggled.count(), 1);
 }
 
 QTEST_MAIN(TestTableModel)

@@ -212,6 +212,15 @@ MEANINGS = [
     ("play", "play"),
     ("pause", "pause"),
     ("stop", "stop"),
+
+    # A document kept with a record. kvit-cash marks a transaction row with
+    # each state it is in, and four of the five states it draws already had a
+    # name here: waiting is `clock`, a split is `split`, a transfer is
+    # `repeat`, and one nobody has looked at yet is `dot-outline`. A record
+    # with something attached to it had none, and `file`, `link` and `pin`
+    # each already mean something else — a document, a target, and something
+    # held at the top of a list.
+    ("attachment", "paperclip"),
 ]
 
 HEADER = """// This Source Code Form is subject to the terms of the Mozilla Public

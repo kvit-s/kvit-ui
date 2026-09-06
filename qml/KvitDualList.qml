@@ -87,6 +87,9 @@ Item {
                         rule: false
                         current: leftList.currentIndex === leftRow.index
                         label: String(root.labelOf(leftRow.modelData))
+                        // The list carries the cursor, so the row is not in
+                        // the tab order and declares that it acts.
+                        interactive: true
                         onActivated: {
                             leftList.currentIndex = leftRow.index
                             const moved = root.move(root.available, root.chosen,
@@ -202,6 +205,7 @@ Item {
                         rule: false
                         current: rightList.currentIndex === rightRow.index
                         label: String(root.labelOf(rightRow.modelData))
+                        interactive: true
                         onActivated: rightList.currentIndex = rightRow.index
 
                         Row {

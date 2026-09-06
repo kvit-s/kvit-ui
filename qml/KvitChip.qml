@@ -2,6 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+// The lazy parts below are nested components, and Bound is what makes them
+// read this file's ids legally rather than by accident: without it a nested
+// component resolves an outer id at run time through the object hierarchy.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Kvit.Ui
 
@@ -59,13 +64,22 @@ Rectangle {
         anchors.centerIn: parent
         spacing: Interface.spaceSnug
 
-        KvitIcon {
+        // Built only when the chip has a symbol. A KvitIcon carries a font
+        // loader and two items of its own, and a table draws several hundred
+        // chips at a time; most of them have no symbol at all.
+        //
+        // `visible` as well as `active`, because a Row lays out every visible
+        // child and would keep a gap where the absent icon would have been.
+        Loader {
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.symbol !== ""
-            name: root.symbol === "" ? "dot" : root.symbol
-            color: root.strong ? Theme.labelOn(root.toneColor) : root.toneColor
-            implicitWidth: Interface.caption
-            implicitHeight: Interface.caption
+            active: root.symbol !== ""
+            visible: active
+            sourceComponent: KvitIcon {
+                name: root.symbol
+                color: root.strong ? Theme.labelOn(root.toneColor) : root.toneColor
+                implicitWidth: Interface.caption
+                implicitHeight: Interface.caption
+            }
         }
         KvitLabel {
             anchors.verticalCenter: parent.verticalCenter

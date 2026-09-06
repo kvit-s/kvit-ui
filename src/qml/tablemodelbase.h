@@ -41,6 +41,8 @@ public:
         Slug,     // a monospace identifier
         Date,     // a date, formatted by the view's locale
         Money,    // a figure with a currency, following money-display.md
+        Marks,    // several small marks at once, drawn without words
+        Check,    // a box the reader ticks
     };
     Q_ENUM(CellKind)
 
@@ -57,6 +59,27 @@ public:
         SortRole,
         // For a Chip cell, which of the theme's marks to draw it as.
         MarkRole,
+        // For a Marks cell, the several marks a row carries at once, as a
+        // list of { tone, shape, label }. One mark cannot say that a
+        // transaction is both a split and unreviewed, and a row that is both
+        // is the ordinary case rather than the exception.
+        MarksRole,
+        // For a Check cell, whether this row is ticked. The model owns the
+        // answer because a selection outlives the rows on screen: a reader
+        // ticks forty rows, changes the filter, and expects the forty to
+        // still be ticked when the filter comes back.
+        CheckedRole,
+        // What a Figure or Money cell draws beside the amount: a currency
+        // code, or a unit of measure. It is the cell's own unit rather than
+        // part of the string, so the amount stays alignable down its decimal
+        // separator and a model never has to paste a currency code onto a
+        // formatted number.
+        UnitRole,
+        // The whole value where the cell shows a shortened one. A column
+        // narrow enough to elide its text has no other way to give the reader
+        // the rest of it, and a name that is only ever seen truncated is a
+        // name the reader cannot check.
+        FullTextRole,
     };
     Q_ENUM(Role)
 
@@ -71,6 +94,57 @@ public:
     Q_INVOKABLE virtual int columnWidth(int column) const;
     Q_INVOKABLE virtual CellKind columnKind(int column) const;
     Q_INVOKABLE virtual bool columnSortable(int column) const;
+
+    // The same answer as columnKind(), as the enumeration key: "Text",
+    // "Figure", "Chip", "Slug", "Date", "Money", "Marks", "Check".
+    //
+    // QML needs the word rather than the number. A Q_ENUM returned through a
+    // Q_INVOKABLE arrives in JavaScript as an integer, so String() on it
+    // yields "1" and every cell falls through to KvitCell's Text default —
+    // which is what every table in the estate drew until this existed. The
+    // string is read out of the Q_ENUM's own metadata rather than written as
+    // a switch here, so a kind added to the enumeration cannot go missing
+    // from the name.
+    //
+    // Not virtual: it is derived from columnKind(), so a model overrides that
+    // one and gets this for nothing.
+    Q_INVOKABLE QString columnKindName(int column) const;
+
+    // What a screen reader says about a whole row, rather than about the one
+    // cell the keyboard happens to be in. A table of a dozen columns read
+    // cell by cell tells the reader nothing about which record they are on,
+    // so every cell carries this as its description.
+    //
+    // The default joins what the row's text-bearing columns hold, in column
+    // order, which for a ledger is the date, the payee and the amount. Marks
+    // and checkboxes are left out: they name themselves, and a row's states
+    // are not how the reader identifies it. A model with a better sentence
+    // overrides this.
+    Q_INVOKABLE virtual QString rowName(int row) const;
+
+    // Whether the box in a Check cell is ticked. The view needs this to
+    // answer the space bar on the row the keyboard is on, and reading it
+    // through the role from QML would mean naming the role number there.
+    Q_INVOKABLE bool cellChecked(int row, int column) const;
+
+private:
+    // The last row rowName() was asked for, and the sentence it answered.
+    //
+    // Every cell of a row asks for the same sentence, because the description
+    // belongs to the row and a delegate exists per cell. Answering it afresh
+    // each time reads every column of the row, so a thirteen-column table
+    // walked one page cost thirteen row reads per row instead of one — about
+    // eight thousand data() calls to relayout a page, and a third of the
+    // page's whole cost. One row of memory removes twelve of those thirteen.
+    //
+    // It is dropped whenever anything could have changed what a row holds:
+    // the signals connected in the constructor are every one this class can
+    // see a subclass emit. A subclass that changes its data without emitting
+    // one of them was already breaking every view of it.
+    void forgetNamedRow();
+
+    mutable int m_namedRow = -1;
+    mutable QString m_namedRowText;
 };
 
 }   // namespace KvitUi

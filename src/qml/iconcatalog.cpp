@@ -1646,6 +1646,7 @@ const Meaning kMeanings[] = {
     { "play", "play" },
     { "pause", "pause" },
     { "stop", "stop" },
+    { "attachment", "paperclip" },
 };
 
 }   // namespace

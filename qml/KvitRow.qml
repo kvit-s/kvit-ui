@@ -22,6 +22,16 @@ import Kvit.Ui
 // Hover and keyboard focus are separate tints, because the row under the
 // pointer and the row the keyboard is on are different rows and a reader
 // arrowing down a list needs to see which is which.
+//
+// A row that does something when it is pressed says so before it is pressed,
+// and a row that does nothing says nothing. Both halves matter: a list whose
+// rows open a record and a pane whose rows are a field name beside its value
+// are built from this same component, and when every one of them tints under
+// the pointer the tint stops meaning anything. So the hover tint, the tap and
+// what a screen reader is told all follow `interactive`, which a row that acts
+// declares — either by setting it, or by taking `activeFocusOnTab`, since a
+// row the pointer can act on and the keyboard cannot is unreachable for half
+// the readers anyway.
 Rectangle {
     id: root
 
@@ -33,6 +43,13 @@ Rectangle {
     // What a screen reader says when the caret reaches this row. A row whose
     // content is several separate labels reads as a jumble without it.
     property string label: ""
+    // Whether pressing this row does something. False draws no hover tint and
+    // emits no `activated()`, which is what a row that is only a layout —
+    // a field name beside its value — should look like and do. It follows
+    // `activeFocusOnTab` by default, so a row already reachable by keyboard
+    // needs nothing extra; a row inside a list that moves its own cursor with
+    // the arrow keys sets this instead.
+    property bool interactive: root.activeFocusOnTab
 
     signal activated()
 
@@ -51,12 +68,24 @@ Rectangle {
 
     color: selected ? Theme.selectionTint
          : current ? Theme.focusTint
-         : hover.hovered ? Theme.hoverTint
+         : (root.interactive && hover.hovered) ? Theme.hoverTint
          : "transparent"
 
-    Accessible.role: Accessible.ListItem
+    // What a screen reader is told, which follows `interactive` for the same
+    // reason the tint does. A list item is something a reader moves to,
+    // selects and opens; a record pane whose twenty-three field rows all
+    // announce themselves that way offers a reader who cannot see them
+    // twenty-three things to try, none of which do anything. A row that only
+    // arranges other things is a grouping of what it holds, and one carrying
+    // a label of its own reads as that line of text.
+    //
+    // Selection is announced wherever it exists: a row that acts can be
+    // picked, and a row drawn as picked says so whatever else it is.
+    Accessible.role: root.interactive ? Accessible.ListItem
+                   : root.label !== "" ? Accessible.StaticText
+                                       : Accessible.Grouping
     Accessible.name: root.label
-    Accessible.selectable: true
+    Accessible.selectable: root.interactive || root.selected
     Accessible.selected: root.selected
 
     Item {
@@ -65,6 +94,19 @@ Rectangle {
         anchors.leftMargin: root.form === "sub" ? Interface.px(34)
                                                 : Interface.spaceTight
         anchors.rightMargin: Interface.spaceTight
+    }
+
+    // The row the keyboard is on is outlined as well as tinted. Every other
+    // control in the estate draws this ring, and a tint on its own is a two
+    // percent lightness difference in the high-contrast theme and invisible
+    // in a grayscale screenshot.
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Interface.focusRingWidth
+        visible: root.current
+        color: "transparent"
+        border.width: Interface.focusRingWidth
+        border.color: Theme.focusRing
     }
 
     // The hairline belongs to the row rather than to the list, so a group that
@@ -77,6 +119,13 @@ Rectangle {
         anchors.right: parent.right
     }
 
+    // The handler stays in place whether or not the row acts, because
+    // `hovered` is published and a caller uses it to reveal something inside
+    // the row — a disclosure on a truncated value — that is not the row being
+    // pressed.
     HoverHandler { id: hover }
-    TapHandler { onTapped: root.activated() }
+    TapHandler {
+        enabled: root.interactive
+        onTapped: root.activated()
+    }
 }

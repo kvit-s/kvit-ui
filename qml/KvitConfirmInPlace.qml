@@ -27,6 +27,9 @@ Rectangle {
     id: root
 
     property string text: ""
+    // The words on the undo. Empty draws no undo at all, which is what a
+    // caller whose action has stopped being reversible sets: the strip then
+    // states what happened without offering a control that would be refused.
     property string undoText: qsTr("Undo")
     property bool shown: false
     // What was affected, so the reader can check the count before undoing.
@@ -52,9 +55,29 @@ Rectangle {
     border.width: Interface.hairline
     border.color: Theme.success
 
+    // "1 item", "250,000 items" — built once and used by both the drawn label
+    // and the announcement, so the two cannot disagree about the same number.
+    //
+    // The digits are grouped by the reader's locale, and the plural is a word
+    // rather than a parenthesis: "250000 item(s)" is a form field rather than
+    // a sentence. The number goes in through %1 rather than through Qt's %n,
+    // which substitutes the bare integer and would lose the grouping; the
+    // count is still handed to qsTr, so the choice of plural form stays Qt's
+    // and a translator gets every form.
+    readonly property string affectedPhrase: {
+        if (root.affected < 0)
+            return ""
+        const grouped = Number(root.affected).toLocaleString(Qt.locale(), 'f', 0)
+        return root.affected === 1
+            ? qsTr("%1 item", "a count of one thing", root.affected).arg(grouped)
+            : qsTr("%1 items", "a count of several things",
+                   root.affected).arg(grouped)
+    }
+
     Accessible.role: Accessible.AlertMessage
     Accessible.name: root.affected >= 0
-        ? qsTr("%1, %n item(s) affected", "", root.affected).arg(root.text)
+        ? qsTr("%1, %2 affected", "what was done and how much it touched")
+              .arg(root.text).arg(root.affectedPhrase)
         : root.text
 
     RowLayout {
@@ -72,11 +95,13 @@ Rectangle {
         KvitLabel {
             Layout.fillWidth: true
             text: root.affected >= 0
-                  ? qsTr("%1 — %n item(s)", "", root.affected).arg(root.text)
+                  ? qsTr("%1 — %2", "what was done and how much it touched")
+                        .arg(root.text).arg(root.affectedPhrase)
                   : root.text
             role: "body"
         }
         KvitButton {
+            visible: root.undoText !== ""
             text: root.undoText
             form: "quiet"
             onClicked: root.undone()

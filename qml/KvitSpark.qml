@@ -48,7 +48,21 @@ Item {
 
     Accessible.role: Accessible.Chart
     Accessible.name: root.label
-    Accessible.description: qsTr("%n period(s)", "", root.values.length)
+    // Two source strings picked by the count rather than one with `%n` in it:
+    // with no translator installed Qt substitutes the number and chooses no
+    // plural form, so a one-period series announces "1 period(s)". The number
+    // goes in through %1 and is grouped the way the reader groups digits,
+    // because %n writes the bare integer and a series of a thousand periods
+    // is then read out digit by digit. The count still goes to qsTr, so which
+    // plural form to use stays Qt's choice and a translator gets every form.
+    Accessible.description: {
+        const many = root.values.length
+        const grouped = Number(many).toLocaleString(Qt.locale(), 'f', 0)
+        return many === 1
+            ? qsTr("%1 period", "a count of one period", many).arg(grouped)
+            : qsTr("%1 periods", "a count of several periods", many)
+                  .arg(grouped)
+    }
 
     // The gap between bars, and where each bar starts.
     //

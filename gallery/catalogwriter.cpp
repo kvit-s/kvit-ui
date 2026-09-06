@@ -41,8 +41,8 @@ struct Property
 // spaces of indentation. Without that rule the catalogue advertises every
 // `required property var modelData` inside a Repeater delegate as part of the
 // component's interface, and an agent reading it writes
-// `KvitSpark { modelData: ... }`. Fifteen of the sixty-eight components have a
-// delegate, so this is most of the ones that draw a list.
+// `KvitSpark { modelData: ... }`. Eighteen components have a delegate, which
+// is most of the ones that draw a list.
 QList<Property> propertiesOf(const QString &component)
 {
     QFile file(QStringLiteral(":/qt/qml/Kvit/Ui/%1.qml").arg(component));
@@ -125,10 +125,15 @@ bool writeCatalog(QQmlEngine *engine, const QString &path)
            "`tests/test_gallery`, so one\nthat does not work stops the "
            "build.\n\n";
 
-    // A contents list, grouped, because a catalogue of sixty-eight components
-    // is otherwise something an agent reads linearly to find one name.
+    // A contents list, grouped, because a catalogue this long is otherwise
+    // something an agent reads linearly to find one name.
+    //
+    // How many there are is written here rather than in the prose of the
+    // skill beside it: that sentence is not generated, and it sat one
+    // component out of date for as long as it took somebody to count.
     QString lastGroup;
-    out << "## What there is\n\n";
+    out << "## What there is\n\n"
+        << entries.size() << " components, grouped by what they are for.\n";
     for (const QVariant &entry : entries) {
         const QVariantMap map = entry.toMap();
         const QString group = map.value(QStringLiteral("group")).toString();

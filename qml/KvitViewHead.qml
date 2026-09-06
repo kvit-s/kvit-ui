@@ -21,7 +21,43 @@ Item {
     // with no noun beside it does not say what was counted.
     property int count: -1
     property string counted: qsTr("item")
+    // The word for several of them. English adds an s and that is what this
+    // falls back to; a noun that does not pluralise that way says so here.
+    property string countedPlural: ""
     property string subtitle: ""
+
+    // "1 transaction", "250,000 transactions".
+    //
+    // The digits are grouped by the reader's locale, because a six-figure
+    // count run together is read digit by digit, and the plural is a word
+    // rather than a parenthesis: "250000 transaction(s)" is a form field
+    // rather than a sentence, and no reader says it that way.
+    //
+    // The number goes in through %1 rather than through Qt's %n, which is
+    // what keeps the grouping — %n substitutes the bare integer. The count is
+    // still handed to qsTr, so which plural form to use stays Qt's choice and
+    // a translator into a language with three of them gets all three; and the
+    // source string is picked here as well, so that with no translator
+    // installed the English is right rather than "1 transactions".
+    readonly property string countPhrase: {
+        if (root.count < 0)
+            return ""
+        const grouped = Number(root.count).toLocaleString(Qt.locale(), 'f', 0)
+        if (root.count === 1) {
+            return qsTr("%1 %2", "a count and the singular of what it counts",
+                        root.count).arg(grouped).arg(root.counted)
+        }
+        if (root.countedPlural !== "") {
+            return qsTr("%1 %2", "a count and the plural of what it counts",
+                        root.count).arg(grouped).arg(root.countedPlural)
+        }
+        // No plural was given, so English suffixes an s. The whole phrase is
+        // the translatable unit rather than the suffix on its own: a language
+        // that pluralises some other way can rewrite this form, and there is
+        // nothing a translator can do with a lone "s".
+        return qsTr("%1 %2s", "a count and a noun pluralised by suffixing s",
+                    root.count).arg(grouped).arg(root.counted)
+    }
     default property alias controls: controlSlot.data
 
     implicitHeight: Interface.rowHeight
@@ -47,7 +83,7 @@ Item {
                 }
                 KvitLabel {
                     visible: root.count >= 0
-                    text: qsTr("%n %1(s)", "", root.count).arg(root.counted)
+                    text: root.countPhrase
                     role: "small"
                     color: Theme.textFaint
                     tabular: true

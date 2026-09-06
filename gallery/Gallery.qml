@@ -39,6 +39,12 @@ KvitWindow {
     readonly property var currentEntry:
         Catalog.components[window.current]
 
+    // How many components there are, and that number written the way the
+    // reader writes numbers.
+    readonly property int componentTally: Catalog.components.length
+    readonly property string groupedTally:
+        Number(window.componentTally).toLocaleString(Qt.locale(), 'f', 0)
+
     readonly property var shown: {
         const wanted = window.filter.trim().toLowerCase()
         if (wanted === "")
@@ -159,6 +165,7 @@ KvitWindow {
                             selected: window.currentEntry !== undefined
                                       && window.currentEntry.name
                                          === listing.modelData.name
+                            interactive: true
                             onActivated: window.showPage(listing.modelData.name)
 
                             KvitLabel {
@@ -189,7 +196,17 @@ KvitWindow {
         anchors.fill: parent
         activity: shots.running
             ? qsTr("Writing screenshots: %1").arg(shots.progress) : ""
-        facts: [qsTr("%n component(s)", "", Catalog.components.length),
+        // Two source strings picked by the count rather than one with `%n` in
+        // it, and the number substituted through %1 so it is grouped the way
+        // the reader groups digits. This is the same shape every counted
+        // string in the library now takes, and the gallery is where somebody
+        // looks to see how the library writes one: "%n component(s)" put a
+        // form field on the shop window.
+        facts: [window.componentTally === 1
+                    ? qsTr("%1 component", "a count of one component",
+                           window.componentTally).arg(window.groupedTally)
+                    : qsTr("%1 components", "a count of several components",
+                           window.componentTally).arg(window.groupedTally),
                 Theme.displayName(Theme.resolvedTheme),
                 qsTr("%1 px").arg(Interface.fontSize)]
     }

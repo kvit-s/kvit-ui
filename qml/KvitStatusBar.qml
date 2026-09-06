@@ -23,8 +23,21 @@ Rectangle {
     // Standing facts, right aligned. Each becomes one label with a separator
     // between.
     property var facts: []
+    // One or two controls, after the facts. A fact with an action attached
+    // to it — the last change and the undo that reverses it — needs a real
+    // control rather than a sentence telling the reader which key to press:
+    // a KvitButton here reaches the tab order, says its own name to a screen
+    // reader, and answers Space.
+    property alias controls: controlSlot.data
 
-    implicitHeight: Interface.statusBarHeight
+    // Text alone fits in `Interface.statusBarHeight`. A control does not:
+    // `Interface.controlHeight` is taller than the bar, and a bar that kept
+    // its text height would draw the button clipped at both ends. So the bar
+    // is as tall as what it holds, and returns to its resting height when
+    // the slot is empty or everything in it is hidden — which is why this
+    // reads the slot's implicit height rather than counting its children.
+    implicitHeight: Math.max(Interface.statusBarHeight,
+                             controlSlot.implicitHeight + Interface.spaceTight)
     color: Theme.footerBackground
 
     KvitDivider {
@@ -67,6 +80,12 @@ Rectangle {
                     tabular: true
                 }
             }
+        }
+
+        Row {
+            id: controlSlot
+            Layout.alignment: Qt.AlignVCenter
+            spacing: Interface.spaceTight
         }
     }
 }

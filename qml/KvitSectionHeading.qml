@@ -21,8 +21,15 @@ import Kvit.Ui
 // button from appearing over a group where it only applies to three.
 //
 // The count carries the word for what it counts, because a bare number at the
-// end of a heading does not say what was counted, and a group of one is not
-// counted at all: the single row under the heading is the count.
+// end of a heading does not say what was counted. It is drawn whenever the
+// caller gives one, a group of one included: a heading that reads "2 accounts"
+// at two and nothing at all at one moves the count in and out of the bar as
+// the group changes size, and a reader who has learnt to look at the end of
+// the heading finds an empty space there instead of "1 account".
+//
+// The noun arrives in two slots, singular and plural, for the reason
+// KvitViewHead and KvitBadge take two: one already-inflected word is right at
+// exactly one count and wrong at every other.
 Item {
     id: root
 
@@ -30,6 +37,9 @@ Item {
     property int count: -1
     // What the count counts, singular. "" leaves the number bare.
     property string counted: ""
+    // The word for several of them. English adds an s and that is what this
+    // falls back to; a noun that does not pluralise that way says so here.
+    property string countedPlural: ""
     // The kind of thing the group holds, said beside the name where the name
     // alone does not say it.
     property string kind: ""
@@ -41,6 +51,39 @@ Item {
 
     signal toggled()
     signal actioned()
+
+    // "1 account", "1,200 accounts", or the grouped number on its own where
+    // the caller named nothing. Empty below zero, which is a caller saying it
+    // has no count to give.
+    //
+    // The digits are grouped by the reader's locale, because a heading reading
+    // "1200 accounts" sits in the same window as a ledger reading "1,200" and
+    // a reader who notices the difference has to work out whether the two are
+    // the same number. The number goes in through %1 rather than through Qt's
+    // %n, which substitutes the bare integer and would undo the grouping,
+    // while the count is still handed to qsTr so the choice of plural form
+    // stays Qt's and a translator gets every form the language has.
+    readonly property string countPhrase: {
+        if (root.count < 0)
+            return ""
+        const grouped = Number(root.count).toLocaleString(Qt.locale(), 'f', 0)
+        if (root.counted === "")
+            return grouped
+        if (root.count === 1) {
+            return qsTr("%1 %2", "a count and the singular of what it counts",
+                        root.count).arg(grouped).arg(root.counted)
+        }
+        if (root.countedPlural !== "") {
+            return qsTr("%1 %2", "a count and the plural of what it counts",
+                        root.count).arg(grouped).arg(root.countedPlural)
+        }
+        // No plural was given, so English suffixes an s. The whole phrase is
+        // the translatable unit rather than the suffix on its own: a language
+        // that pluralises some other way can rewrite this form, and there is
+        // nothing a translator can do with a lone "s".
+        return qsTr("%1 %2s", "a count and a noun pluralised by suffixing s",
+                    root.count).arg(grouped).arg(root.counted)
+    }
 
     implicitHeight: Interface.rowHeightCompact
     implicitWidth: Interface.px(400)
@@ -105,10 +148,8 @@ Item {
         }
         Item { Layout.fillWidth: root.kind === "" }
         KvitLabel {
-            visible: root.count > 1
-            text: root.counted !== ""
-                  ? qsTr("%1 %2s").arg(root.count).arg(root.counted)
-                  : String(root.count)
+            visible: root.countPhrase !== ""
+            text: root.countPhrase
             role: "small"
             color: Theme.textFaint
             tabular: true

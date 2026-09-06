@@ -101,11 +101,15 @@ QtObject {
         {
             "name": "KvitSidebarItem",
             "group": "Structure",
-            "summary": "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour.",
+            "summary": "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `countInRail` asks for it, and `countMax` raises the badge's cap where the place the item points at states the true number.",
             "specimens": [
                 {
                     "caption": "Selected, hovered and counted",
-                    "snippet": "Column {\n    width: Interface.sidebarWidth\n    KvitSidebarItem { text: \"Inbox\"; symbol: \"note\"; selected: true; count: 12 }\n    KvitSidebarItem { text: \"Archive\"; symbol: \"archive\" }\n}"
+                    "snippet": "Column {\n    width: Interface.sidebarWidth\n    KvitSidebarItem {\n        text: \"Inbox\"; symbol: \"note\"; selected: true\n        count: 12; counted: \"message\"\n    }\n    KvitSidebarItem { text: \"Archive\"; symbol: \"archive\" }\n}"
+                },
+                {
+                    "caption": "The rail, with and without its counts",
+                    "snippet": "Row {\n    spacing: Interface.columnGap\n\n    // The default: a rail is a strip of symbols, and the count stays behind\n    // with the label.\n    KvitSidebar {\n        width: Interface.railWidth\n        collapsed: true\n        KvitSidebarItem { text: \"Review\"; symbol: \"question\"; count: 214 }\n        KvitSidebarItem { text: \"Accounts\"; symbol: \"bank\" }\n    }\n\n    // A rail that has to keep the backlog in front of the reader. The badge\n    // moves onto the symbol's upper corner, and `countMax` is raised past\n    // KvitBadge's default of 99 because the screen this points at states the\n    // true number \u2014 a badge reading \"99+\" beside it disagrees with it.\n    KvitSidebar {\n        width: Interface.railWidth\n        collapsed: true\n        KvitSidebarItem {\n            text: \"Review\"; symbol: \"question\"\n            count: 214; countInRail: true; countMax: 999\n        }\n        KvitSidebarItem { text: \"Accounts\"; symbol: \"bank\" }\n    }\n}"
                 },
             ]
         },
@@ -172,15 +176,19 @@ QtObject {
             "specimens": [
                 {
                     "caption": "Collapsible, counted, with an action",
-                    "snippet": "Column {\n    width: parent.width\n    spacing: Interface.space\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Waiting on me\"; counted: \"project\"; count: 4\n        action: \"Hand all to an agent\"; collapsible: true\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Archived\"; kind: \"closed last quarter\"\n        collapsible: true; expanded: false; strong: true\n    }\n}"
+                    "snippet": "Column {\n    width: parent.width\n    spacing: Interface.space\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Waiting on me\"; counted: \"project\"; count: 4\n        action: \"Hand all to an agent\"; collapsible: true\n    }\n    // A group of one is still counted. The count is drawn wherever the caller\n    // gives one, so it does not come and go as the group changes size.\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Waiting on Sam\"; counted: \"project\"; count: 1\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Archived\"; kind: \"closed last quarter\"\n        collapsible: true; expanded: false; strong: true\n    }\n}"
                 },
             ]
         },
         {
             "name": "KvitRow",
             "group": "Content",
-            "summary": "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate tints, because they are different rows.",
+            "summary": "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate tints, because they are different rows. A row that does something when it is pressed says so first: the hover tint and the tap both follow `interactive`, which is on for a row that takes `activeFocusOnTab` and set by hand for a row inside a list that carries its own cursor.",
             "specimens": [
+                {
+                    "caption": "Pressable and static",
+                    "snippet": "Column {\n    id: rows\n    width: parent.width\n    property int opened: 0\n\n    // A row that opens something is reachable by the keyboard, and takes the\n    // hover tint and the tap with it.\n    KvitRow {\n        width: rows.width; label: \"Groceries\"\n        activeFocusOnTab: true\n        onActivated: rows.opened++\n        KvitLabel { anchors.centerIn: parent; text: \"opens the record\" }\n    }\n\n    // A field name beside its value declares nothing, draws no hover tint\n    // and answers no tap.\n    KvitRow {\n        width: rows.width; label: \"Amount\"\n        KvitLabel { anchors.centerIn: parent; text: \"layout only\" }\n    }\n}"
+                },
                 {
                     "caption": "The four heights, and the three states",
                     "snippet": "Column {\n    width: parent.width\n    KvitRow { width: parent.width; form: \"full\"; label: \"Full\"\n        KvitLabel { anchors.centerIn: parent; text: \"full \u2014 56\" } }\n    KvitRow { width: parent.width; form: \"sub\"; label: \"Sub\"\n        KvitLabel { anchors.centerIn: parent; text: \"sub \u2014 48\" } }\n    KvitRow { width: parent.width; form: \"slim\"; selected: true; label: \"Slim\"\n        KvitLabel { anchors.centerIn: parent; text: \"slim \u2014 30, selected\" } }\n    KvitRow { width: parent.width; form: \"compact\"; current: true; label: \"Compact\"\n        KvitLabel { anchors.centerIn: parent; text: \"compact \u2014 24, keyboard focus\" } }\n}"
@@ -293,11 +301,15 @@ QtObject {
         {
             "name": "KvitBadge",
             "group": "Marks",
-            "summary": "A count attached to something else. Caps rather than growing wide, and hides at zero \u2014 a badge showing nought says look here about nothing.",
+            "summary": "A count attached to something else. Caps rather than growing wide, and hides at zero \u2014 a badge showing nought says look here about nothing. The number is drawn and announced with the reader's own digit grouping, and the noun beside it comes from the caller in two slots, a singular and a plural.",
             "specimens": [
                 {
                     "caption": "Counts, capped, and hidden at zero",
                     "snippet": "Row {\n    spacing: Interface.space\n    KvitBadge { count: 3 }\n    KvitBadge { count: 42; tone: \"neutral\" }\n    KvitBadge { count: 1204; tone: \"danger\" }\n    KvitBadge { count: 0 }\n}"
+                },
+                {
+                    "caption": "What the count counts",
+                    "snippet": "// Same three pills, three different sentences for a screen reader:\n// \"1 decision\", \"214 decisions\", \"214 entries\". One already inflected\n// word would be right at one count and wrong at every other.\nRow {\n    spacing: Interface.space\n    KvitBadge { count: 1; counted: \"decision\" }\n    KvitBadge { count: 214; counted: \"decision\"; max: 999 }\n    KvitBadge {\n        count: 214; max: 999; tone: \"neutral\"\n        counted: \"entry\"; countedPlural: \"entries\"\n    }\n}"
                 },
             ]
         },
@@ -401,7 +413,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "Empty and filtering",
-                    "snippet": "Column {\n    spacing: Interface.spaceLoose\n    KvitSearchField { width: Interface.px(220) }\n    KvitSearchField {\n        width: Interface.px(220); text: \"harlow\"\n        matches: 47; matchedNoun: \"transaction\"\n    }\n}"
+                    "snippet": "Column {\n    spacing: Interface.spaceLoose\n    KvitSearchField { width: Interface.px(220) }\n    KvitSearchField {\n        width: Interface.px(220); text: \"harlow\"\n        matches: 47; matchedNoun: \"transaction\"\n    }\n    // What a screen reader is told is a sentence: the digits grouped by the\n    // reader's locale and the plural a word, so \"250,000 entries\" rather than\n    // \"250000 entry(s)\". A noun that does not take an s says its own plural.\n    KvitSearchField {\n        width: Interface.px(220); text: \"2026\"\n        matches: 250000\n        matchedNoun: \"entry\"; matchedNounPlural: \"entries\"\n    }\n}"
                 },
             ]
         },
@@ -508,7 +520,7 @@ QtObject {
         {
             "name": "KvitDialog",
             "group": "Feedback",
-            "summary": "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default.",
+            "summary": "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape.",
             "specimens": [
                 {
                     "caption": "A destructive confirmation",
@@ -622,22 +634,34 @@ QtObject {
         {
             "name": "KvitCell",
             "group": "Data",
-            "summary": "One cell of a table, drawn according to what kind of value its column holds. The kind comes from the column so every cell in it aligns the same way and says the same thing about a missing value.",
+            "summary": "One cell of a table, drawn according to what kind of value its column holds. The kind comes from the column, so every cell in it aligns the same way and says the same thing about a missing value. A cell formats nothing: Money and Figure are given the string they draw.",
             "specimens": [
                 {
-                    "caption": "The six kinds",
-                    "snippet": "Column {\n    width: parent.width\n    KvitCell { width: parent.width; kind: \"Text\"; value: \"Payment to Harlow depot\" }\n    KvitCell { width: parent.width; kind: \"Figure\"; value: 1284.5; unit: \"GBP\" }\n    KvitCell { width: parent.width; kind: \"Money\"; value: -42.9; unit: \"GBP\" }\n    KvitCell { width: parent.width; kind: \"Chip\"; value: \"Settled\"; mark: \"success\" }\n    KvitCell { width: parent.width; kind: \"Slug\"; value: \"TX-00173404\" }\n    KvitCell { width: parent.width; kind: \"Figure\"; measured: false }\n}"
+                    "caption": "The six kinds a column of values can be",
+                    "snippet": "Column {\n    width: parent.width\n    spacing: Interface.spaceTight\n    KvitCell { width: parent.width; kind: \"Text\"; value: \"Payment to Harlow depot\" }\n    KvitCell { width: parent.width; kind: \"Date\"; value: new Date(2026, 7, 30) }\n    KvitCell { width: parent.width; kind: \"Slug\"; value: \"TX-00173404\" }\n    KvitCell { width: parent.width; kind: \"Figure\"; value: \"1284.5\"; unit: \"GBP\" }\n    // Money takes an amount that has already been formatted, exactly as\n    // KvitBeforeAfter takes its `before` and `after`. The cell does no\n    // arithmetic: an amount is a signed count of the minor unit of its own\n    // currency, and both halves of that are lost the moment a cell turns one\n    // into a JavaScript number and prints two decimal places after it.\n    KvitCell { width: parent.width; kind: \"Money\"; value: \"-42.90\"; unit: \"GBP\" }\n    KvitCell { width: parent.width; kind: \"Chip\"; value: \"Settled\"; mark: \"success\" }\n    KvitCell { width: parent.width; kind: \"Figure\"; measured: false }\n}"
+                },
+                {
+                    "caption": "Several states at once, and a row the reader picks",
+                    "snippet": "Column {\n    id: sample\n    width: parent.width\n    spacing: Interface.spaceTight\n\n    property bool picked: true\n\n    // Every state a row is in at once, one dot each. A transaction is\n    // regularly settled and unreviewed together, and one chip has to drop one\n    // of the two. Each mark carries a tone, the shape that says the same\n    // thing without colour, and the word that is both the tooltip and what a\n    // screen reader says.\n    KvitCell {\n        width: parent.width\n        kind: \"Marks\"\n        marks: [\n            { \"tone\": \"success\", \"shape\": \"circle\", \"label\": \"Settled\" },\n            { \"tone\": \"warning\", \"shape\": \"diamond\", \"label\": \"Not reviewed\" },\n            { \"tone\": \"neutral\", \"shape\": \"square\", \"label\": \"Has an attachment\" }\n        ]\n    }\n\n    // The box does not tick itself. Whatever owns the selection does, and the\n    // cell redraws from it, so a request that is refused leaves no tick\n    // behind.\n    KvitCell {\n        width: parent.width\n        kind: \"Check\"\n        checked: sample.picked\n        onToggled: wanted => sample.picked = wanted\n    }\n}"
+                },
+                {
+                    "caption": "A value the column cut short",
+                    "snippet": "Column {\n    width: parent.width\n    spacing: Interface.spaceTight\n\n    // A value wider than the column it is in. The model answers the whole of\n    // it through TableModelBase's FullTextRole, under the role name\n    // `fullText`, and the cell discloses it under the pointer and under the\n    // keyboard cursor. `current` is how the view says where that cursor is,\n    // because a cell is not a control and takes no focus of its own.\n    KvitCell {\n        width: Interface.px(150)\n        kind: \"Text\"\n        value: \"Harlow depot retainer\"\n        fullValue: \"Harlow depot \u2014 quarterly maintenance retainer\"\n    }\n}"
                 },
             ]
         },
         {
             "name": "KvitTable",
             "group": "Data",
-            "summary": "A dense, configurable, editable table over a C++ model. Holds smooth scrolling and sub-100 ms filtering at 250,000 rows with twelve columns, which is the measurement prd.md Decision 3 turns on.",
+            "summary": "A dense, configurable, editable table over a C++ model. Columns sort, resize and open a menu from their own header, by keyboard as well as pointer; a row opens its record on one press; and a Check column draws a box per row with a select-displayed control in its header. The model says what each column is through `columnKindName()` and answers the roles KvitUi.TableModelBase names: `marks` for a Marks column, `checked` for a Check column, `unit` for the currency or unit a Money or Figure cell draws beside its value, and `fullText` for the whole of a value the column cut short, which the cell then discloses on hover and under the keyboard cursor. Holds smooth scrolling and sub-100 ms filtering at 250,000 rows with twelve columns of value, which is the measurement prd.md Decision 3 turns on.",
             "specimens": [
                 {
                     "caption": "Two hundred and fifty thousand rows",
                     "snippet": "Item {\n    width: parent.width; height: Interface.px(260)\n    BenchmarkTableModel { id: rows }\n    KvitTable { anchors.fill: parent; model: rows }\n}"
+                },
+                {
+                    "caption": "Sorting, a column menu and a column of boxes",
+                    "snippet": "Item {\n    width: parent.width; height: Interface.px(260)\n    BenchmarkTableModel { id: rows; totalRows: 400 }\n    KvitTable {\n        anchors.fill: parent\n        model: rows\n        // Six of the thirteen columns, so the boxes at the right-hand end are\n        // on screen without scrolling.\n        hiddenColumns: [1, 2, 5, 8, 10, 11]\n        // The table draws the indicator and says what was asked for; putting\n        // the rows in that order is the application's, because the model is.\n        // Nothing here sorts, so the arrow stays where it was set.\n        sortColumn: 0\n        sortAscending: false\n        // The column of boxes, and the select-displayed control in its\n        // header. The selection is the model's and is keyed by the underlying\n        // row, so narrowing the filter does not lose it.\n        headerChecked: rows.allShownChecked\n        headerPartial: rows.someShownChecked\n        onHeaderToggled: wanted => rows.setEveryShownChecked(wanted)\n        onCellToggled: (row, column, wanted) => rows.setChecked(row, wanted)\n    }\n}"
                 },
                 {
                     "caption": "Nothing to show",

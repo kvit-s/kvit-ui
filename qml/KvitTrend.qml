@@ -100,13 +100,37 @@ Item {
 
     Accessible.role: Accessible.Chart
     Accessible.name: root.label
-    Accessible.description: root.hasSecond
-        ? qsTr("%n period(s), %1 to %2 %3, two series: %4 and %5", "",
-               root.periods)
-            .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
-            .arg(root.label).arg(root.secondLabel)
-        : qsTr("%n point(s), %1 to %2 %3", "", root.points.length)
-            .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
+    // Two source strings on each branch, picked here by the count rather than
+    // one with `%n` in it: with no translator installed Qt substitutes the
+    // number and chooses no plural form, so a single period is announced as
+    // "1 period(s)". The count goes in through a placeholder of its own and
+    // is grouped the way the reader groups digits, because %n writes the bare
+    // integer and five years of daily readings would be announced as "1826
+    // points" beside a window that writes every other figure as "1,826". The
+    // number still goes to qsTr as well, so which plural form to use stays
+    // Qt's choice and a translator into a language with three of them gets
+    // all three.
+    Accessible.description: {
+        if (root.hasSecond) {
+            const grouped =
+                Number(root.periods).toLocaleString(Qt.locale(), 'f', 0)
+            const form = root.periods === 1
+                ? qsTr("%1 period, %2 to %3 %4, two series: %5 and %6",
+                       "a count of one period", root.periods)
+                : qsTr("%1 periods, %2 to %3 %4, two series: %5 and %6",
+                       "a count of several periods", root.periods)
+            return form.arg(grouped)
+                       .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
+                       .arg(root.label).arg(root.secondLabel)
+        }
+        const many = root.points.length
+        const grouped = Number(many).toLocaleString(Qt.locale(), 'f', 0)
+        const form = many === 1
+            ? qsTr("%1 point, %2 to %3 %4", "a count of one point", many)
+            : qsTr("%1 points, %2 to %3 %4", "a count of several points", many)
+        return form.arg(grouped)
+                   .arg(root.minimumY).arg(root.maximumY).arg(root.unit)
+    }
 
     // The gridlines and their labels. Drawn before the series so the line sits
     // over them.

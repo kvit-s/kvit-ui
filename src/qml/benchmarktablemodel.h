@@ -5,6 +5,7 @@
 #define KVIT_UI_BENCHMARKTABLEMODEL_H
 
 #include <QList>
+#include <QSet>
 #include <QString>
 #include <QtQml/qqmlregistration.h>
 
@@ -37,10 +38,20 @@ class BenchmarkTableModel : public TableModelBase
     // which is the operation the 100 ms budget is about.
     Q_PROPERTY(QString filter READ filter WRITE setFilter NOTIFY filterChanged)
     Q_PROPERTY(int matchedRows READ matchedRows NOTIFY filterChanged)
+    // What the select-displayed box in the header of the column of boxes has
+    // to show. Two properties rather than one, because a box has three states
+    // and the third one — some of the rows shown, not all — is the one a
+    // reader has to be able to tell from the other two.
+    Q_PROPERTY(bool allShownChecked READ allShownChecked NOTIFY checkedChanged)
+    Q_PROPERTY(bool someShownChecked READ someShownChecked NOTIFY checkedChanged)
 
 public:
     static constexpr int DefaultTotalRows = 250000;
-    static constexpr int ColumnCount = 12;
+    // Twelve columns of value and one of boxes. The benchmark's claim is
+    // about the twelve; the thirteenth is here so the Check kind is exercised
+    // by the only model this library ships.
+    static constexpr int ValueColumnCount = 12;
+    static constexpr int ColumnCount = ValueColumnCount + 1;
 
     explicit BenchmarkTableModel(QObject *parent = nullptr);
 
@@ -55,6 +66,18 @@ public:
 
     int columnWidth(int column) const override;
     CellKind columnKind(int column) const override;
+    bool columnSortable(int column) const override;
+
+    // Ticking one row, and ticking every row the filter is showing.
+    //
+    // The model owns the answer rather than the view, because a selection
+    // outlives the rows on screen: a reader ticks forty rows, narrows the
+    // filter, and expects the forty to still be ticked when it widens again.
+    // The set is keyed by generated row, so a filter change moves no ticks.
+    Q_INVOKABLE void setChecked(int row, bool checked);
+    Q_INVOKABLE void setEveryShownChecked(bool checked);
+    bool allShownChecked() const;
+    bool someShownChecked() const;
 
     int totalRows() const { return m_totalRows; }
     void setTotalRows(int rows);
@@ -65,6 +88,7 @@ public:
 signals:
     void totalRowsChanged();
     void filterChanged();
+    void checkedChanged();
 
 private:
     // The generated row behind a visible row, which is the identity when no
@@ -80,6 +104,16 @@ private:
     // materialising 250,000 rows to allow it would be measuring the wrong
     // thing.
     QHash<int, QString> m_edits;
+    // Ticked rows, by generated row rather than by visible row.
+    QSet<int> m_checked;
+    // How many of the rows the current filter shows are ticked. Counted when
+    // the filter changes and adjusted by one on each tick, rather than
+    // recomputed whenever the header asks: the header asks on every repaint,
+    // and walking 250,000 rows there is the shape that makes a table feel
+    // slow for a reason nobody can find.
+    int m_checkedShown = 0;
+
+    void recountCheckedShown();
 };
 
 }   // namespace KvitUi

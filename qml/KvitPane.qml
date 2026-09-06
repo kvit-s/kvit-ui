@@ -22,6 +22,11 @@ KvitPanel {
     id: root
 
     property string title: ""
+    // What the close control is called, both on hover and to a screen
+    // reader. A pane holding one record says "Close record" rather than
+    // "Close the pane", because the reader is closing the record and the
+    // pane is the furniture it arrived in.
+    property string closeLabel: qsTr("Close the pane")
     property bool open: true
     default property alias content: bodySlot.data
 
@@ -60,7 +65,7 @@ KvitPanel {
         }
         KvitIconButton {
             symbol: "close"
-            label: qsTr("Close the pane")
+            label: root.closeLabel
             onClicked: root.closeRequested()
         }
     }

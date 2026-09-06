@@ -71,8 +71,17 @@ Item {
         Accessible.name: root.label
         // What a screen reader has no other way to learn: that a list appeared
         // under the field and how long it is.
-        Accessible.description: root.matches.length > 0
-            ? qsTr("%n suggestion(s)", "", root.matches.length) : ""
+        // Two source strings picked by the count rather than one with `%n`
+        // in it: with no translator installed Qt substitutes the number and
+        // chooses no plural form, so one match is announced as
+        // "1 suggestion(s)".
+        Accessible.description: {
+            const many = root.matches.length
+            if (many === 0)
+                return ""
+            return many === 1 ? qsTr("%n suggestion", "", many)
+                              : qsTr("%n suggestions", "", many)
+        }
 
         Keys.onDownPressed: if (suggestions.opened) list.incrementCurrentIndex()
         Keys.onUpPressed: if (suggestions.opened) list.decrementCurrentIndex()
@@ -123,6 +132,10 @@ Item {
                     rule: false
                     current: index === list.currentIndex
                     label: String(root.labelOf(modelData))
+                    // The list moves its own cursor with the arrow keys, so
+                    // the row is not in the tab order and says here that it
+                    // acts.
+                    interactive: true
                     onActivated: {
                         root.text = String(root.labelOf(modelData))
                         root.chosen(root.valueOf(modelData))
@@ -150,6 +163,7 @@ Item {
                 rule: false
                 height: visible ? implicitHeight : 0
                 label: qsTr("Create \"%1\"").arg(root.text.trim())
+                interactive: true
                 onActivated: {
                     root.chosen(root.text.trim())
                     suggestions.close()
