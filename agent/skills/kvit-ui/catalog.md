@@ -111,6 +111,7 @@ A button whose whole label is a symbol. A real AbstractButton, so it takes tab f
 | `symbol` | string | **required.** What the symbol means: an IconCatalog meaning name. |
 | `label` | string | **required.** What the button does, in words. |
 | `form` | string | "ordinary" \| "quiet". |
+| `tooltipEnabled` | bool | A control that opens a labelled explanation already presents these words in that surface. |
 | `checked_` | bool |  |
 | `iconColor` | color |  |
 
