@@ -13,6 +13,15 @@ import Kvit.Ui
 //
 // Zero hides it rather than drawing a nought. A badge showing 0 is a mark that
 // says "look here" about nothing.
+//
+// Its gallery page is shot at the maximum interface size as well as the
+// default, which is the check that the cap and the pill hold together at
+// twice the type size in the high-contrast theme. That is where a badge would
+// fail if it were going to: three digits in a pill sized from `pillHeight`,
+// with a label whose colour comes from `Theme.labelOn` rather than from a
+// fixed foreground. The run of 2026-09-08 draws 214 and 99+ whole in all four
+// themes at 24 px, so there is nothing to change here; the shotSizes entry in
+// the catalogue is what makes that check happen again rather than once.
 Rectangle {
     id: root
 

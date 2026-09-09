@@ -30,6 +30,15 @@ import Kvit.Ui
 // The noun arrives in two slots, singular and plural, for the reason
 // KvitViewHead and KvitBadge take two: one already-inflected word is right at
 // exactly one count and wrong at every other.
+//
+// A collapsible heading opens and closes from the keyboard as well as the
+// pointer: it joins the tab order, draws the ring every other control draws,
+// and answers Return, Enter, Space and the press action a screen reader
+// offers. The hoisted action beside it is a KvitLink, which is a control of
+// its own and consumes its own keys, so the key that runs the action never
+// also collapses the group behind it — and the heading answers a key only
+// while the heading itself holds the keyboard, which is the same rule KvitRow
+// states at length.
 Item {
     id: root
 
@@ -51,6 +60,11 @@ Item {
 
     signal toggled()
     signal actioned()
+
+    // A heading that can be opened is something to arrive at. One that cannot
+    // is a line of text, and putting it in the tab order would give a reader
+    // a stop that does nothing.
+    activeFocusOnTab: root.collapsible
 
     // "1 account", "1,200 accounts", or the grouped number on its own where
     // the caller named nothing. Empty below zero, which is a caller saying it
@@ -100,6 +114,19 @@ Item {
             color: root.strong ? Theme.borderStrong : Theme.border
         }
 
+        // Drawn inside the bar rather than outside it, because a heading sits
+        // flush against the rows above and below and a ring drawn outside
+        // would be painted over by whichever of them is drawn last.
+        Rectangle {
+            objectName: "focusRing"
+            anchors.fill: parent
+            anchors.margins: Interface.focusRingWidth
+            visible: root.activeFocus
+            color: "transparent"
+            border.width: Interface.focusRingWidth
+            border.color: Theme.focusRing
+        }
+
         HoverHandler {
             id: headHover
             enabled: root.collapsible
@@ -113,6 +140,34 @@ Item {
 
     Accessible.role: root.collapsible ? Accessible.Heading : Accessible.StaticText
     Accessible.name: root.text
+    // Whether the group is open, which the chevron says to everybody else.
+    // Empty on a heading that does not collapse: there is no state to report
+    // and a reader told "collapsed" about a fixed heading would go looking
+    // for the way to open it.
+    Accessible.description: !root.collapsible ? ""
+                          : root.expanded ? qsTr("Expanded") : qsTr("Collapsed")
+    Accessible.onPressAction: {
+        if (root.collapsible)
+            root.toggled()
+    }
+
+    // The same three keys KvitRow answers, under the same rule: only while
+    // the heading itself has the keyboard, so that Space on the focused
+    // action runs the action and leaves the group open.
+    Keys.onPressed: event => {
+        if (!root.collapsible || !root.activeFocus)
+            return
+        switch (event.key) {
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+        case Qt.Key_Space:
+            root.toggled()
+            event.accepted = true
+            break
+        default:
+            break
+        }
+    }
 
     // A layout rather than a row of natural widths: the name, what the group
     // holds and the count are of unknown length together, and left to
@@ -155,6 +210,7 @@ Item {
             tabular: true
         }
         KvitLink {
+            objectName: "action"
             Layout.leftMargin: Interface.stackGap
             visible: root.action !== ""
             text: root.action

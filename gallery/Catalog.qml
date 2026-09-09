@@ -149,11 +149,19 @@ QtObject {
         {
             "name": "KvitStatusBar",
             "group": "Structure",
-            "summary": "The strip along the bottom: what is happening on the left, standing facts on the right.",
+            "summary": "The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes \u2014 plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list.",
             "specimens": [
                 {
                     "caption": "Working, with two facts",
                     "snippet": "KvitStatusBar {\n    width: parent.width\n    activity: \"Reindexing 4 of 26 projects\"\n    facts: [\"1,284 notes\", \"last synced 14:02\"]\n}"
+                },
+                {
+                    "caption": "Grouped facts that open what they name",
+                    "snippet": "// Each fact is a control: it takes tab focus, says its own name to a\n// screen reader and answers Return and Space. The bar keeps none of the\n// caller's state \u2014 it is handed words and hands back which one was\n// pressed.\nKvitStatusBar {\n    id: bar\n    width: parent.width\n    property string lastPressed: \"\"\n\n    activity: \"Indexing 4 of 26 working copies\"\n    groups: [\n        {\n            \"label\": \"Waiting on you\",\n            \"facts\": [\n                { \"text\": \"3 reviews\", \"symbol\": \"question\" },\n                { \"text\": \"1 conflict\", \"symbol\": \"warning\" }\n            ]\n        },\n        {\n            \"label\": \"Running\",\n            \"facts\": [\n                { \"text\": \"2 agents\", \"symbol\": \"robot\" }\n            ]\n        }\n    ]\n    onFactActivated: (group, fact) =>\n        bar.lastPressed = group + \"/\" + fact\n}"
+                },
+                {
+                    "caption": "Narrow: what does not fit is in the menu, not gone",
+                    "snippet": "// The same two groups in a bar too narrow for them. The groups that fit\n// are drawn left to right; the rest are behind the count of what is not\n// there, which is a control \u2014 tab reaches it, Return opens the menu,\n// and the arrow keys move through it. Nothing is dropped, and nothing is\n// silent about it.\nColumn {\n    spacing: Interface.columnGap\n    width: parent.width\n\n    KvitStatusBar {\n        width: Math.min(parent.width, Interface.px(420))\n        activity: \"Indexing\"\n        groups: [\n            {\n                \"label\": \"Waiting on you\",\n                \"facts\": [\n                    { \"text\": \"3 reviews\", \"symbol\": \"question\" },\n                    { \"text\": \"1 conflict\", \"symbol\": \"warning\" }\n                ]\n            },\n            {\n                \"label\": \"Running\",\n                \"facts\": [{ \"text\": \"2 agents\", \"symbol\": \"robot\" }]\n            }\n        ]\n    }\n\n    // The resting height is unchanged: a bar holding only text is as tall as\n    // the text, and only a control in the slot at the end makes it grow.\n    KvitStatusBar {\n        width: Math.min(parent.width, Interface.px(320))\n        facts: [\"1,284 notes\", \"last synced 14:02\"]\n    }\n}"
                 },
             ]
         },
@@ -172,11 +180,15 @@ QtObject {
         {
             "name": "KvitSectionHeading",
             "group": "Content",
-            "summary": "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it.",
+            "summary": "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.",
             "specimens": [
                 {
                     "caption": "Collapsible, counted, with an action",
                     "snippet": "Column {\n    width: parent.width\n    spacing: Interface.space\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Waiting on me\"; counted: \"project\"; count: 4\n        action: \"Hand all to an agent\"; collapsible: true\n    }\n    // A group of one is still counted. The count is drawn wherever the caller\n    // gives one, so it does not come and go as the group changes size.\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Waiting on Sam\"; counted: \"project\"; count: 1\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Archived\"; kind: \"closed last quarter\"\n        collapsible: true; expanded: false; strong: true\n    }\n}"
+                },
+                {
+                    "caption": "Reached by tab, opened by Return",
+                    "snippet": "Column {\n    width: parent.width\n    spacing: Interface.space\n\n    // The ring says the heading has the keyboard; Return, Enter and Space\n    // open and close it. The action beside it is a KvitLink, which consumes\n    // its own key, so tabbing on to it and pressing Space runs the action\n    // and leaves the group where it was.\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Waiting on me\"; counted: \"project\"; count: 4\n        action: \"Hand all to an agent\"; collapsible: true\n        Component.onCompleted: if (Window.window)\n            forceActiveFocus(Qt.TabFocusReason)\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Archived\"; kind: \"closed last quarter\"\n        collapsible: true; expanded: false\n    }\n}"
                 },
             ]
         },
@@ -188,6 +200,10 @@ QtObject {
                 {
                     "caption": "Pressable and static",
                     "snippet": "Column {\n    id: rows\n    width: parent.width\n    property int opened: 0\n\n    // A row that opens something is reachable by the keyboard, and takes the\n    // hover tint and the tap with it.\n    KvitRow {\n        width: rows.width; label: \"Groceries\"\n        activeFocusOnTab: true\n        onActivated: rows.opened++\n        KvitLabel { anchors.centerIn: parent; text: \"opens the record\" }\n    }\n\n    // A field name beside its value declares nothing, draws no hover tint\n    // and answers no tap.\n    KvitRow {\n        width: rows.width; label: \"Amount\"\n        KvitLabel { anchors.centerIn: parent; text: \"layout only\" }\n    }\n}"
+                },
+                {
+                    "caption": "Opened from the keyboard, without opening it twice",
+                    "snippet": "Column {\n    id: rows\n    width: parent.width\n    property int opened: 0\n\n    // Tab reaches this row, the ring says which row the keyboard is on, and\n    // Return, Enter or Space opens it. A screen reader's press action does\n    // the same one thing.\n    KvitRow {\n        width: rows.width; form: \"sub\"; label: \"Groceries\"\n        activeFocusOnTab: true\n        onActivated: rows.opened++\n        Component.onCompleted: if (Window.window)\n            forceActiveFocus(Qt.TabFocusReason)\n        KvitLabel {\n            anchors.verticalCenter: parent.verticalCenter\n            text: \"keyboard focus \u2014 Return opens it\"\n        }\n    }\n\n    // A row is usually a container, and the key may be meant for something\n    // inside it. The row answers only while the row itself has the keyboard,\n    // so Space on this button presses the button and leaves the record shut.\n    KvitRow {\n        width: rows.width; form: \"sub\"; label: \"Rent\"\n        activeFocusOnTab: true\n        onActivated: rows.opened++\n        KvitLabel {\n            anchors.verticalCenter: parent.verticalCenter\n            text: \"the button takes its own Space\"\n        }\n        KvitButton {\n            anchors.right: parent.right\n            anchors.verticalCenter: parent.verticalCenter\n            text: \"Split\"; form: \"quiet\"\n        }\n    }\n}"
                 },
                 {
                     "caption": "The four heights, and the three states",
@@ -264,7 +280,7 @@ QtObject {
         {
             "name": "KvitEmptyState",
             "group": "Content",
-            "summary": "What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros.",
+            "summary": "What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros. The compact form is the same sentence on one line, at the height of a slim row, for a section in a stack of sections that may each be empty.",
             "specimens": [
                 {
                     "caption": "With an action",
@@ -274,12 +290,16 @@ QtObject {
                     "caption": "Dashed, as a drop target",
                     "snippet": "KvitEmptyState {\n    width: parent.width\n    dashed: true\n    symbol: \"file-arrow-down\"\n    title: \"Drop a statement here\"\n    detail: \"CSV, OFX and QIF. The file is read on this machine and nothing is sent anywhere.\"\n    action: \"Choose a file\"\n}"
                 },
+                {
+                    "caption": "Compact, one line per empty section",
+                    "snippet": "// A column of sections, each of which may have nothing in it. The full\n// block is several times taller than the rows it stands in for, so a stack\n// of them uses the one-line form; the words are the same words.\nColumn {\n    width: parent.width\n    spacing: Interface.spaceSnug\n\n    KvitSectionHeading { width: parent.width; text: \"Changes\"; count: 0\n        counted: \"change\" }\n    KvitEmptyState {\n        width: parent.width\n        form: \"compact\"\n        title: \"No changes\"\n    }\n\n    KvitSectionHeading { width: parent.width; text: \"Agents\"; count: 0\n        counted: \"agent\" }\n    KvitEmptyState {\n        width: parent.width\n        form: \"compact\"\n        symbol: \"robot\"\n        title: \"No agents\"\n        detail: \"none started here yet\"\n        action: \"Start one\"\n    }\n}"
+                },
             ]
         },
         {
             "name": "KvitChip",
             "group": "Marks",
-            "summary": "A small labelled mark saying what kind of thing this is or what state it is in. The tone names a meaning rather than a colour, and every tone carries its outline as well as its tint so the distinction is not resting on hue.",
+            "summary": "A small labelled mark saying what kind of thing this is or what state it is in. The tone names a meaning rather than a colour, and every tone carries its outline as well as its tint so the distinction is not resting on hue. It is a mark and not a control: a chip that opens something when it is pressed is KvitChipButton, drawn from this same tone table.",
             "specimens": [
                 {
                     "caption": "Every tone, tinted and filled",
@@ -302,6 +322,7 @@ QtObject {
             "name": "KvitBadge",
             "group": "Marks",
             "summary": "A count attached to something else. Caps rather than growing wide, and hides at zero \u2014 a badge showing nought says look here about nothing. The number is drawn and announced with the reader's own digit grouping, and the noun beside it comes from the caller in two slots, a singular and a plural.",
+            "shotSizes": ["default", "maximum"],
             "specimens": [
                 {
                     "caption": "Counts, capped, and hidden at zero",
@@ -381,6 +402,29 @@ QtObject {
                 {
                     "caption": "Destructive and disabled",
                     "snippet": "Row {\n    spacing: Interface.space\n    KvitButton { text: \"Delete\"; form: \"primary\"; danger: true }\n    KvitButton { text: \"Delete\"; form: \"ordinary\"; danger: true; symbol: \"trash\" }\n    KvitButton { text: \"Disabled\"; form: \"ordinary\"; enabled: false }\n}"
+                },
+            ]
+        },
+        {
+            "name": "KvitChipButton",
+            "group": "Controls",
+            "summary": "KvitChip's twin for a fact that opens something. Drawn from the same tone table, so a row mixing facts that act with facts that do not reads as one row; what separates them is what a real AbstractButton has anyway \u2014 a ground that changes under the pointer, a hand cursor, a focus ring and a button role. A chip that cannot be pressed keeps its place in the tab order and says why.",
+            "specimens": [
+                {
+                    "caption": "Every tone, tinted, filled and keyboard-focused",
+                    "snippet": "Column {\n    id: chips\n    spacing: Interface.space\n    property string lastPressed: \"\"\n\n    Row {\n        spacing: Interface.spaceNear\n        KvitChipButton { text: \"neutral\"; onActivated: chips.lastPressed = text }\n        KvitChipButton { text: \"accent\"; tone: \"accent\" }\n        KvitChipButton { text: \"success\"; tone: \"success\" }\n        KvitChipButton { text: \"warning\"; tone: \"warning\" }\n        KvitChipButton { text: \"danger\"; tone: \"danger\" }\n        KvitChipButton { text: \"info\"; tone: \"info\" }\n    }\n    Row {\n        spacing: Interface.spaceNear\n        KvitChipButton { text: \"settled\"; tone: \"success\"; strong: true }\n        KvitChipButton {\n            text: \"disputed\"; tone: \"danger\"; strong: true; symbol: \"warning\"\n        }\n        KvitChipButton {\n            text: \"keyboard focus\"\n            Component.onCompleted: if (Window.window)\n                forceActiveFocus(Qt.TabFocusReason)\n        }\n    }\n}"
+                },
+                {
+                    "caption": "What pressing it leads to, where the caller knows",
+                    "snippet": "// No chevron is drawn for a chip that acts. Whether pressing it discloses\n// a list under the row, leaves the view or opens another window belongs to\n// the destination rather than to the mark, which is why the symbol is the\n// caller's to name \u2014 the same reason KvitLink draws none.\nRow {\n    spacing: Interface.spaceNear\n    KvitChipButton { text: \"3 changes\"; symbol: \"file\" }\n    KvitChipButton { text: \"1 ahead\"; trailingSymbol: \"chevron-right\" }\n    KvitChipButton { text: \"2 behind\"; trailingSymbol: \"chevron-right\" }\n    KvitChipButton { text: \"Open on the hub\"; trailingSymbol: \"external\" }\n}"
+                },
+                {
+                    "caption": "Unavailable, with the reason attached",
+                    "snippet": "// `enabled: false` would take this out of the tab order and stop its\n// hover events, making the one chip with something to explain the one chip\n// a reader cannot reach to hear it. A chip with a reason keeps its place,\n// still shows the words in its tooltip and its accessible description, and\n// emits nothing when it is pressed. The fill going away rather than\n// changing hue is what a reader who cannot separate the tones still sees.\nRow {\n    spacing: Interface.spaceNear\n    KvitChipButton { text: \"1 ahead\" }\n    KvitChipButton {\n        text: \"2 behind\"\n        unavailableReason: \"The other branch has not been fetched yet.\"\n    }\n    KvitChipButton {\n        text: \"in sync\"; tone: \"success\"\n        unavailableReason: \"There is nothing on either side to compare.\"\n    }\n}"
+                },
+                {
+                    "caption": "Elided in a narrow column, at any interface size",
+                    "snippet": "// The label gives way and the symbols keep their size: a symbol at half\n// width is a smudge, and the trailing one is what says where pressing this\n// goes. The whole label is in the tooltip once it no longer fits.\nColumn {\n    spacing: Interface.spaceSnug\n    KvitChipButton {\n        width: Interface.px(150)\n        symbol: \"warning\"\n        text: \"A fact whose whole phrase does not fit in this column\"\n        trailingSymbol: \"chevron-right\"\n    }\n    KvitChipButton {\n        width: Interface.px(90)\n        text: \"A fact whose whole phrase does not fit in this column\"\n    }\n}"
                 },
             ]
         },

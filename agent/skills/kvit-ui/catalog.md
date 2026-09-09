@@ -14,14 +14,14 @@ that does not work stops the build.
 
 ## What there is
 
-71 components, grouped by what they are for.
+72 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
-**Controls** — `KvitButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
+**Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
 **Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`
 **Data** — `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable`
 **Flow** — `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight`
@@ -365,13 +365,17 @@ KvitViewHead {
 
 ### KvitStatusBar
 
-The strip along the bottom: what is happening on the left, standing facts on the right.
+The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list.
 
 | Property | Type | |
 |---|---|---|
 | `activity` | string | What is happening now. |
 | `facts` | var | Standing facts, right aligned. |
+| `groups` | var | Groups of facts that do something. |
 | `controls` | alias | One or two controls, after the facts. |
+| `shownGroups` | int | How many of the groups are drawn on the bar. |
+| `activityFloor` | readonly int | How much of the bar the activity keeps before the groups start taking room from it: about eight words at the default interface size. |
+| `hiddenFacts` | readonly var | The facts that did not fit, flattened into what the menu draws. |
 
 *Working, with two facts*
 
@@ -380,6 +384,78 @@ KvitStatusBar {
     width: parent.width
     activity: "Reindexing 4 of 26 projects"
     facts: ["1,284 notes", "last synced 14:02"]
+}
+```
+
+*Grouped facts that open what they name*
+
+```qml
+// Each fact is a control: it takes tab focus, says its own name to a
+// screen reader and answers Return and Space. The bar keeps none of the
+// caller's state — it is handed words and hands back which one was
+// pressed.
+KvitStatusBar {
+    id: bar
+    width: parent.width
+    property string lastPressed: ""
+
+    activity: "Indexing 4 of 26 working copies"
+    groups: [
+        {
+            "label": "Waiting on you",
+            "facts": [
+                { "text": "3 reviews", "symbol": "question" },
+                { "text": "1 conflict", "symbol": "warning" }
+            ]
+        },
+        {
+            "label": "Running",
+            "facts": [
+                { "text": "2 agents", "symbol": "robot" }
+            ]
+        }
+    ]
+    onFactActivated: (group, fact) =>
+        bar.lastPressed = group + "/" + fact
+}
+```
+
+*Narrow: what does not fit is in the menu, not gone*
+
+```qml
+// The same two groups in a bar too narrow for them. The groups that fit
+// are drawn left to right; the rest are behind the count of what is not
+// there, which is a control — tab reaches it, Return opens the menu,
+// and the arrow keys move through it. Nothing is dropped, and nothing is
+// silent about it.
+Column {
+    spacing: Interface.columnGap
+    width: parent.width
+
+    KvitStatusBar {
+        width: Math.min(parent.width, Interface.px(420))
+        activity: "Indexing"
+        groups: [
+            {
+                "label": "Waiting on you",
+                "facts": [
+                    { "text": "3 reviews", "symbol": "question" },
+                    { "text": "1 conflict", "symbol": "warning" }
+                ]
+            },
+            {
+                "label": "Running",
+                "facts": [{ "text": "2 agents", "symbol": "robot" }]
+            }
+        ]
+    }
+
+    // The resting height is unchanged: a bar holding only text is as tall as
+    // the text, and only a control in the slot at the end makes it grow.
+    KvitStatusBar {
+        width: Math.min(parent.width, Interface.px(320))
+        facts: ["1,284 notes", "last synced 14:02"]
+    }
 }
 ```
 
@@ -453,7 +529,7 @@ KvitWindow {
 
 ### KvitSectionHeading
 
-A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it.
+A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
 
 | Property | Type | |
 |---|---|---|
@@ -489,6 +565,32 @@ Column {
         width: parent.width
         text: "Archived"; kind: "closed last quarter"
         collapsible: true; expanded: false; strong: true
+    }
+}
+```
+
+*Reached by tab, opened by Return*
+
+```qml
+Column {
+    width: parent.width
+    spacing: Interface.space
+
+    // The ring says the heading has the keyboard; Return, Enter and Space
+    // open and close it. The action beside it is a KvitLink, which consumes
+    // its own key, so tabbing on to it and pressing Space runs the action
+    // and leaves the group where it was.
+    KvitSectionHeading {
+        width: parent.width
+        text: "Waiting on me"; counted: "project"; count: 4
+        action: "Hand all to an agent"; collapsible: true
+        Component.onCompleted: if (Window.window)
+            forceActiveFocus(Qt.TabFocusReason)
+    }
+    KvitSectionHeading {
+        width: parent.width
+        text: "Archived"; kind: "closed last quarter"
+        collapsible: true; expanded: false
     }
 }
 ```
@@ -529,6 +631,49 @@ Column {
     KvitRow {
         width: rows.width; label: "Amount"
         KvitLabel { anchors.centerIn: parent; text: "layout only" }
+    }
+}
+```
+
+*Opened from the keyboard, without opening it twice*
+
+```qml
+Column {
+    id: rows
+    width: parent.width
+    property int opened: 0
+
+    // Tab reaches this row, the ring says which row the keyboard is on, and
+    // Return, Enter or Space opens it. A screen reader's press action does
+    // the same one thing.
+    KvitRow {
+        width: rows.width; form: "sub"; label: "Groceries"
+        activeFocusOnTab: true
+        onActivated: rows.opened++
+        Component.onCompleted: if (Window.window)
+            forceActiveFocus(Qt.TabFocusReason)
+        KvitLabel {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "keyboard focus — Return opens it"
+        }
+    }
+
+    // A row is usually a container, and the key may be meant for something
+    // inside it. The row answers only while the row itself has the keyboard,
+    // so Space on this button presses the button and leaves the record shut.
+    KvitRow {
+        width: rows.width; form: "sub"; label: "Rent"
+        activeFocusOnTab: true
+        onActivated: rows.opened++
+        KvitLabel {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "the button takes its own Space"
+        }
+        KvitButton {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Split"; form: "quiet"
+        }
     }
 }
 ```
@@ -694,15 +839,17 @@ Column {
 
 ### KvitEmptyState
 
-What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros.
+What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros. The compact form is the same sentence on one line, at the height of a slim row, for a section in a stack of sections that may each be empty.
 
 | Property | Type | |
 |---|---|---|
+| `form` | string | "full" \| "compact". |
 | `title` | string | What would be here. |
 | `detail` | string | Why it is not, or what to do about it. |
 | `symbol` | string |  |
 | `action` | string | The action that would fill it, if there is one. |
 | `dashed` | bool | Draw a dashed outline around the whole thing: this is a region something can be put into, rather than a region that happens to be empty. |
+| `compact` | readonly bool |  |
 
 *With an action*
 
@@ -729,9 +876,40 @@ KvitEmptyState {
 }
 ```
 
+*Compact, one line per empty section*
+
+```qml
+// A column of sections, each of which may have nothing in it. The full
+// block is several times taller than the rows it stands in for, so a stack
+// of them uses the one-line form; the words are the same words.
+Column {
+    width: parent.width
+    spacing: Interface.spaceSnug
+
+    KvitSectionHeading { width: parent.width; text: "Changes"; count: 0
+        counted: "change" }
+    KvitEmptyState {
+        width: parent.width
+        form: "compact"
+        title: "No changes"
+    }
+
+    KvitSectionHeading { width: parent.width; text: "Agents"; count: 0
+        counted: "agent" }
+    KvitEmptyState {
+        width: parent.width
+        form: "compact"
+        symbol: "robot"
+        title: "No agents"
+        detail: "none started here yet"
+        action: "Start one"
+    }
+}
+```
+
 ### KvitChip
 
-A small labelled mark saying what kind of thing this is or what state it is in. The tone names a meaning rather than a colour, and every tone carries its outline as well as its tint so the distinction is not resting on hue.
+A small labelled mark saying what kind of thing this is or what state it is in. The tone names a meaning rather than a colour, and every tone carries its outline as well as its tint so the distinction is not resting on hue. It is a mark and not a control: a chip that opens something when it is pressed is KvitChipButton, drawn from this same tone table.
 
 | Property | Type | |
 |---|---|---|
@@ -994,6 +1172,113 @@ Row {
     KvitButton { text: "Delete"; form: "primary"; danger: true }
     KvitButton { text: "Delete"; form: "ordinary"; danger: true; symbol: "trash" }
     KvitButton { text: "Disabled"; form: "ordinary"; enabled: false }
+}
+```
+
+### KvitChipButton
+
+KvitChip's twin for a fact that opens something. Drawn from the same tone table, so a row mixing facts that act with facts that do not reads as one row; what separates them is what a real AbstractButton has anyway — a ground that changes under the pointer, a hand cursor, a focus ring and a button role. A chip that cannot be pressed keeps its place in the tab order and says why.
+
+| Property | Type | |
+|---|---|---|
+| `tone` | string | "neutral" \| "accent" \| "success" \| "warning" \| "danger" \| "info" |
+| `strong` | bool | A filled chip rather than a tinted one, for the one chip on a row that is the point of the row. |
+| `symbol` | string |  |
+| `trailingSymbol` | string | A symbol after the label, where the caller knows what pressing this leads to: a chevron for a list that opens beneath, an out-arrow for something that opens elsewhere. |
+| `unavailableReason` | string | Why this chip cannot be pressed, in the reader's own terms. |
+| `unavailable` | readonly bool |  |
+| `toneColor` | readonly color |  |
+| `lit` | readonly bool | Under the pointer or under the keyboard. |
+
+*Every tone, tinted, filled and keyboard-focused*
+
+```qml
+Column {
+    id: chips
+    spacing: Interface.space
+    property string lastPressed: ""
+
+    Row {
+        spacing: Interface.spaceNear
+        KvitChipButton { text: "neutral"; onActivated: chips.lastPressed = text }
+        KvitChipButton { text: "accent"; tone: "accent" }
+        KvitChipButton { text: "success"; tone: "success" }
+        KvitChipButton { text: "warning"; tone: "warning" }
+        KvitChipButton { text: "danger"; tone: "danger" }
+        KvitChipButton { text: "info"; tone: "info" }
+    }
+    Row {
+        spacing: Interface.spaceNear
+        KvitChipButton { text: "settled"; tone: "success"; strong: true }
+        KvitChipButton {
+            text: "disputed"; tone: "danger"; strong: true; symbol: "warning"
+        }
+        KvitChipButton {
+            text: "keyboard focus"
+            Component.onCompleted: if (Window.window)
+                forceActiveFocus(Qt.TabFocusReason)
+        }
+    }
+}
+```
+
+*What pressing it leads to, where the caller knows*
+
+```qml
+// No chevron is drawn for a chip that acts. Whether pressing it discloses
+// a list under the row, leaves the view or opens another window belongs to
+// the destination rather than to the mark, which is why the symbol is the
+// caller's to name — the same reason KvitLink draws none.
+Row {
+    spacing: Interface.spaceNear
+    KvitChipButton { text: "3 changes"; symbol: "file" }
+    KvitChipButton { text: "1 ahead"; trailingSymbol: "chevron-right" }
+    KvitChipButton { text: "2 behind"; trailingSymbol: "chevron-right" }
+    KvitChipButton { text: "Open on the hub"; trailingSymbol: "external" }
+}
+```
+
+*Unavailable, with the reason attached*
+
+```qml
+// `enabled: false` would take this out of the tab order and stop its
+// hover events, making the one chip with something to explain the one chip
+// a reader cannot reach to hear it. A chip with a reason keeps its place,
+// still shows the words in its tooltip and its accessible description, and
+// emits nothing when it is pressed. The fill going away rather than
+// changing hue is what a reader who cannot separate the tones still sees.
+Row {
+    spacing: Interface.spaceNear
+    KvitChipButton { text: "1 ahead" }
+    KvitChipButton {
+        text: "2 behind"
+        unavailableReason: "The other branch has not been fetched yet."
+    }
+    KvitChipButton {
+        text: "in sync"; tone: "success"
+        unavailableReason: "There is nothing on either side to compare."
+    }
+}
+```
+
+*Elided in a narrow column, at any interface size*
+
+```qml
+// The label gives way and the symbols keep their size: a symbol at half
+// width is a smudge, and the trailing one is what says where pressing this
+// goes. The whole label is in the tooltip once it no longer fits.
+Column {
+    spacing: Interface.spaceSnug
+    KvitChipButton {
+        width: Interface.px(150)
+        symbol: "warning"
+        text: "A fact whose whole phrase does not fit in this column"
+        trailingSymbol: "chevron-right"
+    }
+    KvitChipButton {
+        width: Interface.px(90)
+        text: "A fact whose whole phrase does not fit in this column"
+    }
 }
 ```
 

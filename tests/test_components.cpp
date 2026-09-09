@@ -59,6 +59,14 @@ private slots:
     void testARowSaysWhetherItIsPressableBeforeItIsPressed();
     void testARowAnnouncesItselfAsWhatItActuallyIs();
     void testAShortenedValueIsDisclosedToTheKeyboardAsWellAsThePointer();
+    void testARowOpensFromTheKeyboardAndOnlyOnce();
+    void testASectionHeadingOpensFromTheKeyboardWithoutSwallowingItsAction();
+    void testAChipThatActsIsAControlAndSaysWhyItCannot();
+    void testAChipsLabelGivesWayRatherThanClipping_data();
+    void testAChipsLabelGivesWayRatherThanClipping();
+    void testAnEmptySectionSaysSoOnOneLine_data();
+    void testAnEmptySectionSaysSoOnOneLine();
+    void testTheStatusBarKeepsWhatDoesNotFitReachable();
 
 private:
     static QStringList componentUrls();
@@ -1331,6 +1339,770 @@ void TestComponents::testAShortenedValueIsDisclosedToTheKeyboardAsWellAsThePoint
     // different payee.
     QCOMPARE(holder->property("spokenName").toString(),
              QStringLiteral("Harlow & Co (Holdings) Limited"));
+}
+
+namespace {
+
+// The accessibility press action, which is what a screen reader offers on
+// whatever it is reading. It is a different route in from a key press: the
+// caller has named the thing it means rather than arrived at it by tabbing.
+bool pressThroughAccessibility(QQuickItem *item)
+{
+    QAccessibleInterface *accessible = QAccessible::queryAccessibleInterface(item);
+    if (!accessible)
+        return false;
+    QAccessibleActionInterface *actions = accessible->actionInterface();
+    if (!actions)
+        return false;
+    if (!actions->actionNames().contains(QAccessibleActionInterface::pressAction()))
+        return false;
+    actions->doAction(QAccessibleActionInterface::pressAction());
+    return true;
+}
+
+// Every item under `root` with this object name, in the order they are drawn.
+//
+// The visual tree rather than the object tree: a Repeater's delegates are
+// parented into the item they appear in but are owned by the delegate model,
+// so findChildren() does not reach them.
+void collectNamed(QQuickItem *item, const QString &name,
+                  QList<QQuickItem *> &found)
+{
+    const QList<QQuickItem *> children = item->childItems();
+    for (QQuickItem *child : children) {
+        if (child->objectName() == name)
+            found.append(child);
+        collectNamed(child, name, found);
+    }
+}
+
+QList<QQuickItem *> itemsNamed(QQuickItem *root, const QString &name)
+{
+    QList<QQuickItem *> found;
+    collectNamed(root, name, found);
+    return found;
+}
+
+}   // namespace
+
+void TestComponents::testARowOpensFromTheKeyboardAndOnlyOnce()
+{
+    // A row that takes the keyboard and does nothing with it.
+    //
+    // KvitRow drew a focus ring, announced itself as a list item and answered
+    // a tap, and had no key handler at all: Tab reached it, the ring said it
+    // was there, and Return did nothing. kvit-notes-pro hand-wrote its own
+    // key handling on a private copy of this control for exactly that reason,
+    // and that copy is what its migration onto this library deletes.
+    //
+    // The part worth a test is not the key handler. It is that a row is
+    // usually a container: a Space pressed while a button inside it has the
+    // keyboard has to press the button and leave the record shut, or one
+    // keystroke does two things and only one of them is visible.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 320
+            height: 240
+            property int opened: 0
+            property int split: 0
+            Column {
+                anchors.fill: parent
+                KvitRow {
+                    objectName: "acting"
+                    width: 320; height: 40; label: "Groceries"
+                    activeFocusOnTab: true
+                    onActivated: window.opened += 1
+                }
+                KvitRow {
+                    objectName: "holding"
+                    width: 320; height: 40; label: "Rent"
+                    activeFocusOnTab: true
+                    onActivated: window.opened += 1
+                    KvitButton {
+                        objectName: "inside"
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Split"
+                        onClicked: window.split += 1
+                    }
+                }
+                KvitRow {
+                    objectName: "layout"
+                    width: 320; height: 40; label: "Amount"
+                    onActivated: window.opened += 1
+                }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/row-keyboard.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *acting = window->findChild<QQuickItem *>(QStringLiteral("acting"));
+    auto *holding = window->findChild<QQuickItem *>(QStringLiteral("holding"));
+    auto *layout = window->findChild<QQuickItem *>(QStringLiteral("layout"));
+    auto *inside = window->findChild<QQuickItem *>(QStringLiteral("inside"));
+    QVERIFY(acting);
+    QVERIFY(holding);
+    QVERIFY(layout);
+    QVERIFY(inside);
+
+    // The ring follows the keyboard as well as the caller's own cursor. A row
+    // that answers Return without saying it has the keyboard is a row nobody
+    // can tell is about to open.
+    auto *ring = acting->findChild<QQuickItem *>(QStringLiteral("focusRing"));
+    QVERIFY(ring);
+    QVERIFY(!ring->isVisible());
+
+    acting->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(acting->hasActiveFocus());
+    QTRY_VERIFY(ring->isVisible());
+
+    QSignalSpy opened(acting, SIGNAL(activated()));
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_COMPARE(opened.count(), 1);
+    QTest::keyClick(window, Qt::Key_Enter);
+    QTRY_COMPARE(opened.count(), 2);
+    QTest::keyClick(window, Qt::Key_Space);
+    QTRY_COMPARE(opened.count(), 3);
+
+    QVERIFY2(pressThroughAccessibility(acting),
+             "a row announced as a list item offered no press action");
+    QTRY_COMPARE(opened.count(), 4);
+    QCOMPARE(window->property("opened").toInt(), 4);
+
+    // The pointer is the fourth route and produces one activation like the
+    // rest. It needs a real pointer, so it runs wherever the suite has one —
+    // the gate runs offscreen, which does.
+    if (QGuiApplication::platformName() != QLatin1String("minimal")) {
+        const QPoint overActing =
+            window->contentItem()->mapFromItem(acting, QPointF(160, 20)).toPoint();
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, overActing);
+        QTRY_COMPARE(opened.count(), 5);
+    }
+
+    // The container case. The button takes the Space it was sent and the row
+    // behind it stays shut.
+    QSignalSpy holdingOpened(holding, SIGNAL(activated()));
+    inside->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(inside->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Space);
+    QTRY_COMPARE(window->property("split").toInt(), 1);
+    QCoreApplication::processEvents();
+    QCOMPARE(holdingOpened.count(), 0);
+
+    // Return is the key nothing in Qt Quick Controls consumes for a button,
+    // so it is the one that would reach the row by propagation. It does not,
+    // because the row answers only while the row itself has the keyboard.
+    QTest::keyClick(window, Qt::Key_Return);
+    QCoreApplication::processEvents();
+    QCOMPARE(holdingOpened.count(), 0);
+    QCOMPARE(window->property("split").toInt(), 1);
+
+    // And a row that is only a layout ignores all four routes, for the same
+    // reason it draws no hover tint: a record pane's field rows are not
+    // things to open.
+    QSignalSpy ignored(layout, SIGNAL(activated()));
+    layout->forceActiveFocus(Qt::OtherFocusReason);
+    QTRY_VERIFY(layout->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Return);
+    QTest::keyClick(window, Qt::Key_Space);
+    QCoreApplication::processEvents();
+    QCOMPARE(ignored.count(), 0);
+    // The press action included. Qt offers one wherever a component declares
+    // a handler and gives no way to withdraw it, so what a layout row
+    // promises is unavoidable and what it does when asked is not.
+    pressThroughAccessibility(layout);
+    QCoreApplication::processEvents();
+    QCOMPARE(ignored.count(), 0);
+}
+
+void TestComponents::testASectionHeadingOpensFromTheKeyboardWithoutSwallowingItsAction()
+{
+    // The same gap as the row's, in the component every section of a stacked
+    // overview is built from: the chevron said the group could be opened and
+    // only the pointer could open it.
+    //
+    // The half that was already right is the action. It is a separate control
+    // rather than a second meaning for pressing the bar, so the test that
+    // matters is that running it does not also collapse the group behind it.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 420
+            height: 200
+            Column {
+                anchors.fill: parent
+                KvitSectionHeading {
+                    objectName: "group"
+                    width: 420
+                    text: "Waiting on me"
+                    counted: "project"; count: 4
+                    action: "Hand all to an agent"
+                    collapsible: true
+                }
+                KvitSectionHeading {
+                    objectName: "fixed"
+                    width: 420
+                    text: "Everything else"
+                }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/heading-keyboard.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *heading = window->findChild<QQuickItem *>(QStringLiteral("group"));
+    auto *fixed = window->findChild<QQuickItem *>(QStringLiteral("fixed"));
+    QVERIFY(heading);
+    QVERIFY(fixed);
+
+    // A heading that can be opened is a stop worth having; one that cannot is
+    // a line of text, and a stop there does nothing.
+    QCOMPARE(heading->property("activeFocusOnTab").toBool(), true);
+    QCOMPARE(fixed->property("activeFocusOnTab").toBool(), false);
+
+    auto *ring = heading->findChild<QQuickItem *>(QStringLiteral("focusRing"));
+    QVERIFY(ring);
+    QVERIFY(!ring->isVisible());
+
+    QSignalSpy toggled(heading, SIGNAL(toggled()));
+    QSignalSpy actioned(heading, SIGNAL(actioned()));
+
+    heading->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(heading->hasActiveFocus());
+    QTRY_VERIFY(ring->isVisible());
+
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_COMPARE(toggled.count(), 1);
+    QTest::keyClick(window, Qt::Key_Enter);
+    QTRY_COMPARE(toggled.count(), 2);
+    QTest::keyClick(window, Qt::Key_Space);
+    QTRY_COMPARE(toggled.count(), 3);
+    QVERIFY2(pressThroughAccessibility(heading),
+             "a heading announced as a heading offered no press action");
+    QTRY_COMPARE(toggled.count(), 4);
+
+    // The action is its own stop and its own key. Space on it runs the action
+    // and leaves the group at four.
+    auto *action = heading->findChild<QQuickItem *>(QStringLiteral("action"));
+    QVERIFY(action);
+    action->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(action->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Space);
+    QTRY_COMPARE(actioned.count(), 1);
+    QCoreApplication::processEvents();
+    QCOMPARE(toggled.count(), 4);
+
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_COMPARE(actioned.count(), 2);
+    QCoreApplication::processEvents();
+    QCOMPARE(toggled.count(), 4);
+
+    // A heading that does not collapse has nothing to open, whichever way it
+    // is asked.
+    QSignalSpy fixedToggled(fixed, SIGNAL(toggled()));
+    fixed->forceActiveFocus(Qt::OtherFocusReason);
+    QTRY_VERIFY(fixed->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Space);
+    QCoreApplication::processEvents();
+    QCOMPARE(fixedToggled.count(), 0);
+    pressThroughAccessibility(fixed);
+    QCoreApplication::processEvents();
+    QCOMPARE(fixedToggled.count(), 0);
+}
+
+void TestComponents::testAChipThatActsIsAControlAndSaysWhyItCannot()
+{
+    // The chip a person can press, and the chip that says why they cannot.
+    //
+    // A consuming application drew the first as a Button with a bordered
+    // background of its own and got the alignment wrong; the second is the
+    // state it needs and the one `enabled: false` cannot express, because Qt
+    // takes a disabled item out of the tab order and stops sending it hover
+    // events — which makes the one chip on the row with something to explain
+    // the one chip a reader cannot reach to hear it.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 420
+            height: 160
+            property int opened: 0
+            property int refused: 0
+            Row {
+                anchors.centerIn: parent
+                spacing: 12
+                KvitChipButton {
+                    objectName: "open"
+                    text: "1 ahead"
+                    trailingSymbol: "chevron-right"
+                    onActivated: window.opened += 1
+                }
+                KvitChipButton {
+                    objectName: "blocked"
+                    text: "2 behind"
+                    unavailableReason: "The other branch has not been fetched yet."
+                    onActivated: window.refused += 1
+                }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/chip-button.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *open = window->findChild<QQuickItem *>(QStringLiteral("open"));
+    auto *blocked = window->findChild<QQuickItem *>(QStringLiteral("blocked"));
+    QVERIFY(open);
+    QVERIFY(blocked);
+
+    // It is a button, not a rectangle with a handler on it, which is what
+    // reaches assistive technology at all.
+    QAccessibleInterface *openAccessible =
+        QAccessible::queryAccessibleInterface(open);
+    QVERIFY2(openAccessible, "KvitChipButton has no accessible interface");
+    QCOMPARE(openAccessible->role(), QAccessible::Button);
+    QCOMPARE(openAccessible->text(QAccessible::Name), QStringLiteral("1 ahead"));
+
+    // Both keys, then the pointer.
+    open->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(open->hasActiveFocus());
+    QTRY_VERIFY2(open->property("visualFocus").toBool(),
+                 "a chip with the keyboard drew no focus state");
+    QTest::keyClick(window, Qt::Key_Space);
+    QTRY_COMPARE(window->property("opened").toInt(), 1);
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_COMPARE(window->property("opened").toInt(), 2);
+    QVERIFY(pressThroughAccessibility(open));
+    QTRY_COMPARE(window->property("opened").toInt(), 3);
+
+    if (QGuiApplication::platformName() != QLatin1String("minimal")) {
+        const QPoint overOpen = window->contentItem()
+            ->mapFromItem(open, QPointF(open->width() / 2, open->height() / 2))
+            .toPoint();
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, overOpen);
+        QTRY_COMPARE(window->property("opened").toInt(), 4);
+    }
+
+    // An available chip whose label fits has nothing to add, so nothing is
+    // shown over it.
+    QObject *openTooltip = open->findChild<QObject *>(QStringLiteral("tooltip"));
+    QVERIFY(openTooltip);
+    QVERIFY(!openTooltip->property("visible").toBool());
+
+    // The chip that cannot be pressed is still a place the keyboard stops,
+    // still says why in both the surface a pointer reads and the one a screen
+    // reader reads, and still emits nothing.
+    QCOMPARE(blocked->property("unavailable").toBool(), true);
+    QCOMPARE(blocked->property("enabled").toBool(), true);
+    QCOMPARE(blocked->property("activeFocusOnTab").toBool(), true);
+
+    QAccessibleInterface *blockedAccessible =
+        QAccessible::queryAccessibleInterface(blocked);
+    QVERIFY(blockedAccessible);
+    QCOMPARE(blockedAccessible->text(QAccessible::Description),
+             QStringLiteral("The other branch has not been fetched yet."));
+
+    QObject *blockedTooltip =
+        blocked->findChild<QObject *>(QStringLiteral("tooltip"));
+    QVERIFY(blockedTooltip);
+    blocked->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(blocked->hasActiveFocus());
+    QTRY_VERIFY2(blockedTooltip->property("visible").toBool(),
+                 "a chip that cannot be pressed did not say why");
+    QCOMPARE(blockedTooltip->property("text").toString(),
+             QStringLiteral("The other branch has not been fetched yet."));
+
+    QTest::keyClick(window, Qt::Key_Space);
+    QTest::keyClick(window, Qt::Key_Return);
+    QVERIFY(pressThroughAccessibility(blocked));
+    QCoreApplication::processEvents();
+    QCOMPARE(window->property("refused").toInt(), 0);
+}
+
+void TestComponents::testAChipsLabelGivesWayRatherThanClipping_data()
+{
+    QTest::addColumn<int>("interfaceSize");
+    QTest::addColumn<int>("chipWidth");
+
+    for (int size : { InterfaceMetrics::DefaultFontSize,
+                      // 200% of the default, which is where a phrase that fit
+                      // at rest stops fitting.
+                      2 * InterfaceMetrics::DefaultFontSize }) {
+        for (int width : { 200, 120, 70 }) {
+            QTest::newRow(qPrintable(QStringLiteral("%1px-%2wide")
+                                         .arg(size).arg(width)))
+                << size << width;
+        }
+    }
+}
+
+void TestComponents::testAChipsLabelGivesWayRatherThanClipping()
+{
+    // What has to survive a column too narrow for the phrase.
+    //
+    // The label is the piece that gives way; the symbols keep their size,
+    // because a symbol at half width is a smudge and the trailing one is what
+    // says where pressing the chip goes. A label wider than the box it is in
+    // is the failure this catches: it draws over the border and over the
+    // chevron rather than ending in an ellipsis.
+    QFETCH(int, interfaceSize);
+    QFETCH(int, chipWidth);
+
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(interfaceSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\nimport Kvit.Ui\n"
+        "KvitChipButton {\n"
+        "    symbol: \"warning\"\n"
+        "    trailingSymbol: \"chevron-right\"\n"
+        "    text: \"A fact whose whole phrase does not fit in this column\"\n"
+        "}\n",
+        QUrl(QStringLiteral("qrc:/test/chip-elision.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *chip = qobject_cast<QQuickItem *>(instance.data());
+    QVERIFY(chip);
+    chip->setWidth(chipWidth);
+    QCoreApplication::processEvents();
+
+    auto *row = chip->findChild<QQuickItem *>(QStringLiteral("contentRow"));
+    auto *label = chip->findChild<QQuickItem *>(QStringLiteral("label"));
+    QVERIFY(row);
+    QVERIFY(label);
+
+    // Everything the chip draws stays inside the chip.
+    const qreal available =
+        chip->width() - chip->property("leftPadding").toReal()
+        - chip->property("rightPadding").toReal();
+    QVERIFY2(row->width() <= available + 0.5,
+             qPrintable(QStringLiteral("the content is %1 wide inside %2")
+                            .arg(row->width()).arg(available)));
+    QVERIFY2(label->width() <= row->width() + 0.5,
+             qPrintable(QStringLiteral("the label is %1 wide inside %2")
+                            .arg(label->width()).arg(row->width())));
+
+    // And it is the label that gave way, by eliding rather than by being cut
+    // off at the edge.
+    if (label->width() + 0.5 < label->implicitWidth()) {
+        QVERIFY2(label->property("truncated").toBool(),
+                 "a label narrower than its text did not elide");
+    }
+}
+
+void TestComponents::testAnEmptySectionSaysSoOnOneLine_data()
+{
+    QTest::addColumn<int>("interfaceSize");
+    QTest::addColumn<int>("width");
+
+    for (int size : { InterfaceMetrics::DefaultFontSize,
+                      2 * InterfaceMetrics::DefaultFontSize }) {
+        for (int width : { 360, 180 }) {
+            QTest::newRow(qPrintable(QStringLiteral("%1px-%2wide")
+                                         .arg(size).arg(width)))
+                << size << width;
+        }
+    }
+}
+
+void TestComponents::testAnEmptySectionSaysSoOnOneLine()
+{
+    // The compact empty state, which exists because the full one is several
+    // times too tall for a column of seven or eight sections that may each be
+    // empty. A consuming application drew a bare Text there instead, which is
+    // one more hand-drawn control and one more sentence written in a
+    // different voice from the block in the middle of an empty pane.
+    QFETCH(int, interfaceSize);
+    QFETCH(int, width);
+
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(interfaceSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\nimport Kvit.Ui\n"
+        "Item {\n"
+        "    property alias compact: compact\n"
+        "    property alias full: full\n"
+        "    readonly property string compactName: compact.Accessible.name\n"
+        "    KvitEmptyState {\n"
+        "        id: compact\n"
+        "        form: \"compact\"\n"
+        "        symbol: \"robot\"\n"
+        "        title: \"No agents\"\n"
+        "        detail: \"none started here yet\"\n"
+        "        action: \"Start one\"\n"
+        "    }\n"
+        "    KvitEmptyState {\n"
+        "        id: full\n"
+        "        symbol: \"robot\"\n"
+        "        title: \"No agents\"\n"
+        "        detail: \"none started here yet\"\n"
+        "        action: \"Start one\"\n"
+        "    }\n"
+        "}\n",
+        QUrl(QStringLiteral("qrc:/test/empty-compact.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> holder(component.create());
+    QVERIFY2(!holder.isNull(), qPrintable(component.errorString()));
+    auto *compact = holder->property("compact").value<QQuickItem *>();
+    auto *full = holder->property("full").value<QQuickItem *>();
+    QVERIFY(compact);
+    QVERIFY(full);
+    compact->setWidth(width);
+    full->setWidth(width);
+    QCoreApplication::processEvents();
+
+    // One line, at the height a slim row would have had. The full form is
+    // still the block it was, which is the half that must not have moved for
+    // the callers already using it.
+    const qreal slim =
+        KvitUi::DefaultServices::interfaceMetrics()->rowHeightSlim();
+    QCOMPARE(compact->implicitHeight(), slim);
+    QVERIFY2(full->implicitHeight() > 2 * compact->implicitHeight(),
+             qPrintable(QStringLiteral("the full form is %1 tall against the "
+                                       "compact form's %2")
+                            .arg(full->implicitHeight())
+                            .arg(compact->implicitHeight())));
+
+    // Nothing on the line is drawn outside the line.
+    auto *title = compact->findChild<QQuickItem *>(QStringLiteral("compactTitle"));
+    auto *detail = compact->findChild<QQuickItem *>(QStringLiteral("compactDetail"));
+    QVERIFY(title);
+    QVERIFY(detail);
+    for (QQuickItem *piece : { title, detail }) {
+        const QPointF origin = piece->mapToItem(compact, QPointF(0, 0));
+        QVERIFY2(origin.x() >= -0.5 && origin.x() + piece->width()
+                     <= compact->width() + 0.5,
+                 qPrintable(QStringLiteral("a piece runs from %1 to %2 inside "
+                                           "a line %3 wide")
+                                .arg(origin.x())
+                                .arg(origin.x() + piece->width())
+                                .arg(compact->width())));
+        QVERIFY2(origin.y() >= -0.5 && origin.y() + piece->height()
+                     <= compact->implicitHeight() + 0.5,
+                 "a piece of the compact line is taller than the line");
+    }
+
+    // What a screen reader hears is the sentence and its reason, the same in
+    // both forms: the compact line is a shorter drawing of the same thing,
+    // not a shorter thing.
+    QCOMPARE(holder->property("compactName").toString(),
+             QStringLiteral("No agents. none started here yet"));
+}
+
+void TestComponents::testTheStatusBarKeepsWhatDoesNotFitReachable()
+{
+    // What a bar does when it runs out of room.
+    //
+    // The consuming application's own bar sliced each of its two groups to
+    // the first two items, so a third thing waiting for somebody was not on
+    // the screen and nothing said it existed. This bar keeps the tail in a
+    // menu behind a control that says how many there are.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 900
+            height: 120
+            property int lastGroup: -1
+            property int lastFact: -1
+            property int presses: 0
+            KvitStatusBar {
+                objectName: "bar"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                activity: "Indexing 4 of 26 working copies"
+                groups: [
+                    {
+                        "label": "Waiting on you",
+                        "facts": [
+                            { "text": "3 reviews", "symbol": "question" },
+                            { "text": "1 conflict", "symbol": "warning" }
+                        ]
+                    },
+                    {
+                        "label": "Running",
+                        "facts": [{ "text": "2 agents", "symbol": "robot" }]
+                    }
+                ]
+                onFactActivated: (group, fact) => {
+                    window.lastGroup = group
+                    window.lastFact = fact
+                    window.presses += 1
+                }
+            }
+            KvitStatusBar {
+                objectName: "resting"
+                width: 400
+                facts: ["1,284 notes", "last synced 14:02"]
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/status-groups.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *bar = window->findChild<QQuickItem *>(QStringLiteral("bar"));
+    auto *resting = window->findChild<QQuickItem *>(QStringLiteral("resting"));
+    QVERIFY(bar);
+    QVERIFY(resting);
+
+    // A bar holding only text is as tall as the text. Only a control in the
+    // slot at the end makes it grow, which is what the height has always
+    // said and what the groups must not change.
+    QCOMPARE(resting->implicitHeight(),
+             qreal(KvitUi::DefaultServices::interfaceMetrics()->statusBarHeight()));
+
+    // Wide enough for both groups: nothing is in the menu.
+    QTRY_COMPARE(bar->property("shownGroups").toInt(), 2);
+    QCOMPARE(bar->property("hiddenFacts").toList().size(), 0);
+
+    // The facts are controls, and they run left to right in the order they
+    // were given, which is the order the keyboard walks them in.
+    const QList<QQuickItem *> facts = itemsNamed(bar, QStringLiteral("fact"));
+    QCOMPARE(facts.size(), 3);
+    QStringList spoken;
+    qreal previous = -1;
+    for (QQuickItem *fact : facts) {
+        QAccessibleInterface *accessible =
+            QAccessible::queryAccessibleInterface(fact);
+        QVERIFY2(accessible, "a status-bar fact has no accessible interface");
+        QCOMPARE(accessible->role(), QAccessible::Link);
+        spoken.append(accessible->text(QAccessible::Name));
+        const qreal x = fact->mapToItem(bar, QPointF(0, 0)).x();
+        QVERIFY2(x > previous, "the facts are not laid out left to right");
+        previous = x;
+    }
+    QCOMPARE(spoken, (QStringList{ QStringLiteral("3 reviews"),
+                                   QStringLiteral("1 conflict"),
+                                   QStringLiteral("2 agents") }));
+
+    // Pressed by the keyboard, and by the pointer, with the two indices the
+    // caller needs to know which one it was.
+    facts.at(1)->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(facts.at(1)->hasActiveFocus());
+    QTest::keyClick(window, Qt::Key_Return);
+    QTRY_COMPARE(window->property("presses").toInt(), 1);
+    QCOMPARE(window->property("lastGroup").toInt(), 0);
+    QCOMPARE(window->property("lastFact").toInt(), 1);
+
+    if (QGuiApplication::platformName() != QLatin1String("minimal")) {
+        const QPoint overFact = window->contentItem()
+            ->mapFromItem(facts.at(2), QPointF(facts.at(2)->width() / 2,
+                                               facts.at(2)->height() / 2))
+            .toPoint();
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, overFact);
+        QTRY_COMPARE(window->property("presses").toInt(), 2);
+        QCOMPARE(window->property("lastGroup").toInt(), 1);
+        QCOMPARE(window->property("lastFact").toInt(), 0);
+    }
+
+    // Now take the room away. What no longer fits is not dropped: the bar
+    // says how many there are and keeps them behind a control.
+    window->setWidth(300);
+    QTRY_VERIFY(bar->property("shownGroups").toInt() < 2);
+    const QVariantList hidden = bar->property("hiddenFacts").toList();
+    QVERIFY2(!hidden.isEmpty(), "a bar too narrow for its groups hid nothing");
+
+    auto *overflow = bar->findChild<QQuickItem *>(QStringLiteral("overflow"));
+    QVERIFY(overflow);
+    QTRY_VERIFY2(overflow->isVisible() && overflow->width() > 0,
+                 "nothing on the bar said that anything was hidden");
+    QCOMPARE(overflow->property("text").toString(),
+             QStringLiteral("%1 more").arg(hidden.size()));
+
+    QAccessibleInterface *overflowAccessible =
+        QAccessible::queryAccessibleInterface(overflow);
+    QVERIFY(overflowAccessible);
+    QVERIFY2(!overflowAccessible->text(QAccessible::Description).isEmpty(),
+             "the overflow control did not say which groups it holds");
+
+    // A group that is not on the bar is out of the tab order rather than an
+    // invisible stop on the way along it.
+    const QList<QQuickItem *> wrappers =
+        itemsNamed(bar, QStringLiteral("group"));
+    QCOMPARE(wrappers.size(), 2);
+    for (int i = 0; i < wrappers.size(); ++i) {
+        const bool shown = i < bar->property("shownGroups").toInt();
+        QCOMPARE(wrappers.at(i)->isEnabled(), shown);
+        QCOMPARE(wrappers.at(i)->width() > 0, shown);
+    }
+
+    // And what is in the menu activates exactly as it would have on the bar.
+    QObject *menu = bar->findChild<QObject *>(QStringLiteral("overflowMenu"));
+    QVERIFY(menu);
+    QTRY_COMPARE(menu->property("count").toInt(), hidden.size());
+    QQuickItem *first = nullptr;
+    QVERIFY(QMetaObject::invokeMethod(menu, "itemAt",
+                                      Q_RETURN_ARG(QQuickItem *, first),
+                                      Q_ARG(int, 0)));
+    QVERIFY(first);
+    const QVariantMap firstHidden = hidden.at(0).toMap();
+    QCOMPARE(first->property("text").toString(),
+             firstHidden.value(QStringLiteral("label")).toString());
+
+    const int before = window->property("presses").toInt();
+    QVERIFY(QMetaObject::invokeMethod(first, "clicked"));
+    QTRY_COMPARE(window->property("presses").toInt(), before + 1);
+    QCOMPARE(window->property("lastGroup").toInt(),
+             firstHidden.value(QStringLiteral("group")).toInt());
+    QCOMPARE(window->property("lastFact").toInt(),
+             firstHidden.value(QStringLiteral("fact")).toInt());
 }
 
 QTEST_MAIN(TestComponents)

@@ -53,6 +53,7 @@ set(KVIT_UI_QML_QUANTITIES
 
 set(KVIT_UI_QML_CONTROLS
     KvitButton.qml
+    KvitChipButton.qml
     KvitStepper.qml
     KvitField.qml
     KvitSearchField.qml

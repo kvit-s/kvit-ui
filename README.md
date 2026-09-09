@@ -3,7 +3,7 @@
 **A QML component library and design-token system for information-dense Qt 6
 desktop applications.**
 
-Sixty-eight components behind one import, four complete themes, and a token
+Seventy-two components behind one import, four complete themes, and a token
 layer written in C++ that moves every type size and every geometry value
 together when the reader changes one setting. The rules that keep it coherent
 — no colour literal in a call site, no numeric font size, no distinction that
@@ -14,7 +14,7 @@ of them fails the build rather than a review.
 ![Qt 6.5+](https://img.shields.io/badge/Qt-6.5%2B-41cd52?style=flat-square)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599c?style=flat-square)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows-lightgrey?style=flat-square)
-![Components](https://img.shields.io/badge/components-68-blue?style=flat-square)
+![Components](https://img.shields.io/badge/components-72-blue?style=flat-square)
 
 ## Gallery preview
 
@@ -50,7 +50,7 @@ applications that have documents. One interface-size setting, from 10 to 24
 pixels, moves every type role and every density value at once, which is what
 stops a row becoming too tight for the text inside it at any size.
 
-**Components.** Sixty-eight QML types under the `Kvit` prefix, built from the
+**Components.** Seventy-two QML types under the `Kvit` prefix, built from the
 tokens: the window and its structure, rows and cards, marks and figures,
 controls, feedback, a data-display vocabulary (bars, sparklines, trends,
 distributions, gauges, stat tiles) and a table that holds 250,000 rows.
@@ -68,7 +68,7 @@ import Kvit.Ui
 
 ## Features
 
-- **Sixty-eight components in nine groups**, all in one QML module, all drawn
+- **Seventy-two components in nine groups**, all in one QML module, all drawn
   from tokens.
 - **Four themes**, light, dark, sepia and high contrast, switched at
   runtime, plus a `system` setting that follows the desktop's light/dark
@@ -244,8 +244,8 @@ KvitWindow {
 | **Structure** | `KvitWindow`, `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar` |
 | **Content** | `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState` |
 | **Marks** | `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitPip` |
-| **Quantities** | `KvitFigure` |
-| **Controls** | `KvitButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab` |
+| **Quantities** | `KvitFigure`, `KvitBeforeAfter` |
+| **Controls** | `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab` |
 | **Feedback** | `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog` |
 | **Data** | `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable` |
 | **Flow** | `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight` |

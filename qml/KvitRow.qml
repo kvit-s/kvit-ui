@@ -23,6 +23,15 @@ import Kvit.Ui
 // pointer and the row the keyboard is on are different rows and a reader
 // arrowing down a list needs to see which is which.
 //
+// A row that acts is opened by the pointer, by Return, by Space and by the
+// press action a screen reader offers, and all four do the same one thing.
+// Only the keyboard half needs explaining. A row is usually a container, and
+// the key a person presses on it may be meant for something inside it — a
+// KvitButton at the right-hand end, a KvitLink in the middle — so the row
+// answers a key only while the row itself is the focused item. A child with
+// focus is left to answer for itself, which is what stops one Space from both
+// pressing the button and opening the record behind it.
+//
 // A row that does something when it is pressed says so before it is pressed,
 // and a row that does nothing says nothing. Both halves matter: a list whose
 // rows open a record and a pane whose rows are a field name beside its value
@@ -100,10 +109,17 @@ Rectangle {
     // control in the estate draws this ring, and a tint on its own is a two
     // percent lightness difference in the high-contrast theme and invisible
     // in a grayscale screenshot.
+    //
+    // Two ways to be that row, because there are two kinds of list. A list
+    // that carries its own cursor sets `current` on the row the cursor is on;
+    // a row that joined the tab order is that row when Tab reaches it, and a
+    // row that answers Return without saying it has the keyboard is a row
+    // nobody can tell is about to open.
     Rectangle {
+        objectName: "focusRing"
         anchors.fill: parent
         anchors.margins: Interface.focusRingWidth
-        visible: root.current
+        visible: root.current || root.activeFocus
         color: "transparent"
         border.width: Interface.focusRingWidth
         border.color: Theme.focusRing
@@ -127,5 +143,41 @@ Rectangle {
     TapHandler {
         enabled: root.interactive
         onTapped: root.activated()
+    }
+
+    // Return, Enter and Space, answered only while the row itself holds the
+    // keyboard.
+    //
+    // Qt sends a key to the focused item and then up its parents, so without
+    // the `activeFocus` test a row holding a KvitButton would open the record
+    // on the same Space that pressed the button — twice for one keystroke,
+    // once visibly and once not. AbstractButton accepts Space, so that
+    // particular pair would be caught by the event being consumed, but
+    // nothing consumes Return, and a row is a container often enough that the
+    // rule is worth stating rather than inheriting from which keys Qt Quick
+    // Controls happens to handle.
+    Keys.onPressed: event => {
+        if (!root.interactive || !root.activeFocus)
+            return
+        switch (event.key) {
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+        case Qt.Key_Space:
+            root.activated()
+            event.accepted = true
+            break
+        default:
+            break
+        }
+    }
+
+    // The same thing again for assistive technology, which does not press
+    // keys: a screen reader offers the press action of whatever it is on, and
+    // a row announced as a list item with no press action is a row it can
+    // read out and cannot open. This is not behind `activeFocus` — the caller
+    // has named the row it means rather than arrived at it by tabbing.
+    Accessible.onPressAction: {
+        if (root.interactive)
+            root.activated()
     }
 }
