@@ -10,6 +10,8 @@
 #include <QRegularExpression>
 #include <QQmlEngine>
 #include <QQuickWindow>
+
+#include <functional>
 #include <QScreen>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -52,6 +54,7 @@ private slots:
     void testAnUnknownIconNameIsLoud();
     void testTheIconFontIsInTheModule();
     void testACountReadsAsASentenceRatherThanAFormField();
+    void testASuggestionDrawsItsOwnLabel();
     void testTheRailShowsACountOnlyWhenAskedTo();
     void testACountedNameInflectsTheCallersNoun();
     void testAGroupHeadingCountsItsGroupTheWayEverythingElseDoes();
@@ -575,6 +578,97 @@ void TestComponents::testTheIconFontIsInTheModule()
     // a consumer is shipping.
     QVERIFY(QFile::exists(
         QStringLiteral(":/qt/qml/Kvit/Ui/fonts/Phosphor-LICENSE.txt")));
+}
+
+// What a suggestion in a type-ahead draws.
+//
+// The list's delegate is a KvitRow, and KvitRow's default property reparents
+// whatever a caller puts inside it into its own inner layout. The label inside
+// the delegate read `parent.modelData`, which is that layout rather than the
+// delegate, so every suggestion in an open list drew the word `undefined`.
+// The delegate's `label`, which is what a screen reader is given, was right the
+// whole time, so nothing that read the accessible name could see it.
+void TestComponents::testASuggestionDrawsItsOwnLabel()
+{
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\n"
+        "import Kvit.Ui\n"
+        "Item {\n"
+        "    width: 400; height: 300\n"
+        "    property alias picker: picker\n"
+        "    KvitTypeAhead { id: picker; allowNew: false; width: 200\n"
+        "                    label: \"Category\"\n"
+        "                    source: [{ value: \"1\", label: \"Groceries\" },\n"
+        "                             { value: \"2\", label: \"Green fees\" },\n"
+        "                             { value: \"3\", label: \"Rent\" }] }\n"
+        "}\n",
+        QUrl(QStringLiteral("qrc:/test/suggestion.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> holder(component.create());
+    QVERIFY2(!holder.isNull(), qPrintable(component.errorString()));
+
+    QObject *picker = holder->property("picker").value<QObject *>();
+    QVERIFY(picker);
+
+    // The list's rows exist only once the popup is drawn, so this needs a
+    // window. The gate runs offscreen, which has one.
+    if (QGuiApplication::platformName() == QLatin1String("minimal"))
+        return;
+    QQuickWindow window;
+    qobject_cast<QQuickItem *>(holder.data())->setParentItem(window.contentItem());
+    window.resize(400, 300);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    QVERIFY(picker->setProperty("text", QStringLiteral("gr")));
+    const QVariantList matched = picker->property("matches").toList();
+    QCOMPARE(matched.size(), 2);
+
+    // The popup builds its rows when it opens, so the list exists only after
+    // the event loop has run.
+    QObject *popup = nullptr;
+    const QList<QObject *> children = picker->findChildren<QObject *>();
+    for (QObject *child : children) {
+        if (QString::fromLatin1(child->metaObject()->className())
+                .startsWith(QStringLiteral("KvitPopover")))
+            popup = child;
+    }
+    QVERIFY2(popup, "the type-ahead holds no suggestion popup");
+    QTRY_VERIFY2(popup->property("visible").toBool(),
+                 "the suggestion popup did not open with two matches");
+    QTest::qWait(50);
+
+    // Every piece of text the open list draws. Two of them are the matched
+    // labels; none of them is the word an undefined value prints as. Read
+    // through the property rather than through QQuickText, which is private
+    // Qt: what is being checked is what a component put on the screen, and
+    // every drawn label answers to `text`.
+    // Walked down the drawing tree rather than through QObject parentage: a
+    // popup's content is reparented into the window's overlay, and a view's
+    // delegates are not QObject children of the view that made them.
+    QStringList drawn;
+    std::function<void(QQuickItem *)> walk = [&](QQuickItem *item) {
+        if (!item || !item->isVisible())
+            return;
+        const QVariant text = item->property("text");
+        if (text.isValid() && !text.toString().isEmpty())
+            drawn.append(text.toString());
+        const QList<QQuickItem *> below = item->childItems();
+        for (QQuickItem *child : below)
+            walk(child);
+    };
+    walk(window.contentItem());
+    QVERIFY2(!drawn.contains(QStringLiteral("undefined")),
+             qPrintable(QStringLiteral("the suggestion list drew: %1")
+                            .arg(drawn.join(QStringLiteral(" | ")))));
+    QVERIFY2(drawn.contains(QStringLiteral("Groceries")),
+             qPrintable(QStringLiteral("the suggestion list drew: %1")
+                            .arg(drawn.join(QStringLiteral(" | ")))));
+    QVERIFY2(drawn.contains(QStringLiteral("Green fees")),
+             qPrintable(QStringLiteral("the suggestion list drew: %1")
+                            .arg(drawn.join(QStringLiteral(" | ")))));
 }
 
 void TestComponents::testACountReadsAsASentenceRatherThanAFormField()

@@ -125,6 +125,7 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
 
                 delegate: KvitRow {
+                    id: option
                     required property var modelData
                     required property int index
                     width: list.width
@@ -145,7 +146,12 @@ Item {
                     KvitLabel {
                         anchors.fill: parent
                         anchors.leftMargin: Interface.spaceNear
-                        text: String(root.labelOf(parent.modelData))
+                        // The delegate by its own id. `parent` here is
+                        // KvitRow's inner layout, which its default property
+                        // reparents children into, so `parent.modelData` was
+                        // undefined and every suggestion in the list drew the
+                        // word `undefined`.
+                        text: String(root.labelOf(option.modelData))
                         role: "body"
                     }
                 }
