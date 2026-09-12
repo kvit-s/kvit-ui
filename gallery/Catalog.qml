@@ -373,6 +373,21 @@ QtObject {
             ]
         },
         {
+            "name": "KvitSignal",
+            "group": "Marks",
+            "summary": "A mark saying what state something is in and how many things are in it, for a list where one row may have several of each. The number is drawn only past one, because a column of marks all reading `1` says nothing the mark did not already say. The colour is the caller\u2019s, since which states exist is an application\u2019s own question; the shape and the hollow form are the second channel, so states told apart by hue alone are not.",
+            "specimens": [
+                {
+                    "caption": "One of each, and several of one",
+                    "snippet": "// At one the mark is the whole statement. Past one the count goes\n// inside it, and the mark grows sideways to hold the digits rather\n// than growing taller and pushing the row apart.\nColumn {\n    spacing: Interface.space\n    Row {\n        spacing: Interface.space\n        KvitSignal { color: Theme.accent; label: \"1 needs you\" }\n        KvitSignal { color: Theme.success; shape: \"circle\"\n            label: \"1 running\" }\n        KvitSignal { color: Theme.danger; hollow: true; label: \"1 failed\" }\n    }\n    Row {\n        spacing: Interface.space\n        KvitSignal { count: 4; color: Theme.accent; label: \"4 need you\" }\n        KvitSignal { count: 12; color: Theme.success; shape: \"circle\"\n            label: \"12 running\" }\n        KvitSignal { count: 240; color: Theme.danger; hollow: true\n            label: \"240 failed\" }\n    }\n}"
+                },
+                {
+                    "caption": "Beside the words it marks",
+                    "snippet": "// Where these are actually drawn: at the head of a row, in front of\n// what the row is about. The mark is the height of a caption plus a\n// margin, which is what lets it sit in a line of text without\n// setting the line height.\nColumn {\n    width: parent.width\n    KvitRow {\n        width: parent.width\n        label: \"Dialog Scout, 2 need you\"\n        Row {\n            anchors.left: parent.left\n            anchors.verticalCenter: parent.verticalCenter\n            spacing: Interface.space\n            KvitSignal { count: 2; color: Theme.accent\n                label: \"2 need you\" }\n            KvitLabel { text: \"Dialog Scout\"; role: \"small\" }\n        }\n    }\n    KvitRow {\n        width: parent.width\n        label: \"Nightly check, running\"\n        Row {\n            anchors.left: parent.left\n            anchors.verticalCenter: parent.verticalCenter\n            spacing: Interface.space\n            KvitSignal { color: Theme.success; shape: \"circle\"\n                label: \"1 running\" }\n            KvitLabel { text: \"Nightly check\"; role: \"small\" }\n        }\n    }\n}"
+                },
+            ]
+        },
+        {
             "name": "KvitPip",
             "group": "Marks",
             "summary": "A row of dots standing for a small count \u2014 three of five days recorded. For counts a reader takes in without counting; past about seven, the figure is faster.",

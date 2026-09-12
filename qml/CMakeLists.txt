@@ -44,6 +44,7 @@ set(KVIT_UI_QML_MARKS
     KvitSlug.qml
     KvitPip.qml
     KvitDot.qml
+    KvitSignal.qml
 )
 
 set(KVIT_UI_QML_QUANTITIES

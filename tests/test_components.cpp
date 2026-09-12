@@ -118,6 +118,10 @@ QVariantMap TestComponents::requiredFor(const QString &name)
         return { { QStringLiteral("allowNew"), false } };
     if (name == QLatin1String("KvitSidebarItem.qml"))
         return { { QStringLiteral("symbol"), QStringLiteral("folder") } };
+    // A mark whose whole statement is a colour and a shape has nothing else
+    // to tell a screen reader, which is why the words are required.
+    if (name == QLatin1String("KvitSignal.qml"))
+        return { { QStringLiteral("label"), QStringLiteral("2 running") } };
     if (name == QLatin1String("KvitTable.qml")) {
         // A table with nothing behind it is a table with nothing to draw, and
         // `model` is required so that a view cannot forget to attach one.

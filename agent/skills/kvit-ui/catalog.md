@@ -14,12 +14,12 @@ that does not work stops the build.
 
 ## What there is
 
-72 components, grouped by what they are for.
+73 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
-**Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitPip`
+**Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitSignal`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
 **Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
 **Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`
@@ -1171,6 +1171,81 @@ Row {
     KvitDot { color: Theme.warning; shape: "square"; label: "slipping" }
     KvitDot { color: Theme.danger; shape: "diamond"; label: "stalled" }
     KvitDot { color: Theme.textMuted; hollow: true; label: "not measured" }
+}
+```
+
+### KvitSignal
+
+A mark saying what state something is in and how many things are in it, for a list where one row may have several of each. The number is drawn only past one, because a column of marks all reading `1` says nothing the mark did not already say. The colour is the caller’s, since which states exist is an application’s own question; the shape and the hollow form are the second channel, so states told apart by hue alone are not.
+
+| Property | Type | |
+|---|---|---|
+| `count` | int |  |
+| `max` | int |  |
+| `color` | color |  |
+| `shape` | string | "square" \| "circle" |
+| `hollow` | bool | A mark drawn as an outline rather than filled, which is the third distinction a caller has without reaching for another hue. |
+| `label` | string | **required.** What the mark means, in words, for a screen reader. |
+
+*One of each, and several of one*
+
+```qml
+// At one the mark is the whole statement. Past one the count goes
+// inside it, and the mark grows sideways to hold the digits rather
+// than growing taller and pushing the row apart.
+Column {
+    spacing: Interface.space
+    Row {
+        spacing: Interface.space
+        KvitSignal { color: Theme.accent; label: "1 needs you" }
+        KvitSignal { color: Theme.success; shape: "circle"
+            label: "1 running" }
+        KvitSignal { color: Theme.danger; hollow: true; label: "1 failed" }
+    }
+    Row {
+        spacing: Interface.space
+        KvitSignal { count: 4; color: Theme.accent; label: "4 need you" }
+        KvitSignal { count: 12; color: Theme.success; shape: "circle"
+            label: "12 running" }
+        KvitSignal { count: 240; color: Theme.danger; hollow: true
+            label: "240 failed" }
+    }
+}
+```
+
+*Beside the words it marks*
+
+```qml
+// Where these are actually drawn: at the head of a row, in front of
+// what the row is about. The mark is the height of a caption plus a
+// margin, which is what lets it sit in a line of text without
+// setting the line height.
+Column {
+    width: parent.width
+    KvitRow {
+        width: parent.width
+        label: "Dialog Scout, 2 need you"
+        Row {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Interface.space
+            KvitSignal { count: 2; color: Theme.accent
+                label: "2 need you" }
+            KvitLabel { text: "Dialog Scout"; role: "small" }
+        }
+    }
+    KvitRow {
+        width: parent.width
+        label: "Nightly check, running"
+        Row {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Interface.space
+            KvitSignal { color: Theme.success; shape: "circle"
+                label: "1 running" }
+            KvitLabel { text: "Nightly check"; role: "small" }
+        }
+    }
 }
 ```
 
