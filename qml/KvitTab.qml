@@ -18,6 +18,12 @@ AbstractButton {
     property bool selected: false
     // A count beside the label — how many things this tab holds.
     property int count: -1
+    // One sentence saying what this view shows, which two or three words on a
+    // tab cannot. It is announced as the accessible description and shown in
+    // the tooltip, so a pointer reader and a screen reader are told the same
+    // thing, and it is never where the label belongs: a tab whose subject is
+    // only in its explanation is a tab nobody can choose without hovering it.
+    property string explanation: ""
 
     implicitHeight: Math.max(Interface.tabHeight, contentRow.implicitHeight)
     implicitWidth: contentRow.implicitWidth + Interface.spaceLoose * 2
@@ -44,7 +50,14 @@ AbstractButton {
                    root.count).arg(root.text).arg(root.groupedCount)
     }
     Accessible.selected: root.selected
+    Accessible.description: root.explanation
     Accessible.onPressAction: root.clicked()
+
+    KvitTooltip {
+        objectName: "tooltip"
+        text: root.explanation
+        visible: root.explanation !== "" && (root.hovered || root.visualFocus)
+    }
 
     background: Rectangle {
         color: root.hovered && !root.selected ? Theme.hoverTint : "transparent"

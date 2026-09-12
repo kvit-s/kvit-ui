@@ -60,6 +60,16 @@ AbstractButton {
 
     readonly property color fill: root.danger ? Theme.danger : Theme.accent
 
+    // `checked` is AbstractButton's own, and this is where it is drawn: a
+    // button that turns a mode on stays filled and outlined in the accent
+    // until it is pressed again. Two channels rather than one, because a
+    // tint on its own is a few percent of lightness in the high-contrast
+    // theme and nothing at all in a grayscale capture.
+    //
+    // A caller that drives the state from somewhere else leaves `checkable`
+    // alone and binds `checked`; a caller that wants the button to keep its
+    // own state sets `checkable: true`.
+
     implicitHeight: Math.max(Interface.controlHeight, contentRow.implicitHeight)
     // Measure the words and symbol, not the content item's assigned width.
     // Control stretches its content item across the available rectangle; a
@@ -72,6 +82,10 @@ AbstractButton {
     Accessible.role: Accessible.Button
     Accessible.name: root.busy ? root.busyText : root.text
     Accessible.description: root.explanation
+    // A button drawn as on has to say so. Without these a screen reader
+    // announces a mode that is running exactly like one that is not.
+    Accessible.checkable: root.checkable || root.checked
+    Accessible.checked: root.checked
     Accessible.onPressAction: root.clicked()
 
     // A HoverHandler rather than the control's own `hovered`, for the one
@@ -99,14 +113,19 @@ AbstractButton {
                 return root.pressed ? Qt.darker(root.fill, 1.15) : root.fill
             if (root.pressed)
                 return Theme.selectionTint
+            if (root.checked)
+                return Theme.selectionTint
             if (root.hovered)
                 return Theme.hoverTint
             return "transparent"
         }
-        border.width: root.form === "ordinary" ? Interface.hairline : 0
-        border.color: root.enabled
-            ? (root.danger ? Theme.danger : Theme.borderStrong)
-            : Theme.border
+        border.width: root.checked && root.form !== "primary"
+                        ? Interface.hairline
+                    : root.form === "ordinary" ? Interface.hairline : 0
+        border.color: !root.enabled ? Theme.border
+            : root.checked && root.form !== "primary" ? Theme.accent
+            : root.danger ? Theme.danger
+            : Theme.borderStrong
 
         Rectangle {
             anchors.fill: parent

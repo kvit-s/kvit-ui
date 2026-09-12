@@ -57,7 +57,7 @@ QtObject {
             "specimens": [
                 {
                     "caption": "Quiet, ordinary and checked",
-                    "snippet": "Row {\n    spacing: Interface.space\n    KvitIconButton { symbol: \"pencil\"; label: \"Edit\" }\n    KvitIconButton { symbol: \"trash\"; label: \"Delete\"; form: \"ordinary\" }\n    KvitIconButton { symbol: \"pin\"; label: \"Pin\"; checked_: true }\n    KvitIconButton { symbol: \"copy\"; label: \"Copy\"; enabled: false }\n    KvitIconButton {\n        symbol: \"settings\"; label: \"Settings\"\n        Component.onCompleted: if (Window.window)\n            forceActiveFocus(Qt.TabFocusReason)\n    }\n}"
+                    "snippet": "Row {\n    spacing: Interface.space\n    KvitIconButton { symbol: \"pencil\"; label: \"Edit\" }\n    KvitIconButton { symbol: \"trash\"; label: \"Delete\"; form: \"ordinary\" }\n    KvitIconButton { symbol: \"pin\"; label: \"Pin\"; checked: true }\n    KvitIconButton { symbol: \"copy\"; label: \"Copy\"; enabled: false }\n    KvitIconButton {\n        symbol: \"settings\"; label: \"Settings\"\n        Component.onCompleted: if (Window.window)\n            forceActiveFocus(Qt.TabFocusReason)\n    }\n}"
                 },
                 {
                     "caption": "Two symbol sizes",
@@ -435,6 +435,10 @@ QtObject {
                     "snippet": "Row {\n    spacing: Interface.space\n    KvitButton { text: \"Delete\"; form: \"primary\"; danger: true }\n    KvitButton { text: \"Delete\"; form: \"ordinary\"; danger: true; symbol: \"trash\" }\n    KvitButton { text: \"Disabled\"; form: \"ordinary\"; enabled: false }\n}"
                 },
                 {
+                    "caption": "A button that stays on, beside the same button off",
+                    "snippet": "Row {\n    spacing: Interface.space\n    KvitButton { text: \"Select region\"; checkable: true; checked: true }\n    KvitButton { text: \"Select region\"; checkable: true }\n}"
+                },
+                {
                     "caption": "Why a button cannot be pressed",
                     "snippet": "// The reason a control is in the state it is in often lives somewhere\n// the reader cannot see. A disabled button with nothing to say about\n// itself is a grey rectangle and no account of it; `explanation` is\n// where that sentence goes, shown on hover and announced as the\n// accessible description. It is read on a disabled button too, which\n// is the case it exists for.\nRow {\n    spacing: Interface.space\n    KvitButton {\n        text: \"Pull\"\n        explanation: \"Brings the 2 commits on the remote into this branch.\"\n    }\n    KvitButton {\n        text: \"Push\"; enabled: false\n        explanation: \"Nothing here has been committed yet.\"\n    }\n    KvitButton {\n        text: \"Archive\"; enabled: false; danger: true\n        explanation: \"The branch has work that has not been pushed.\"\n    }\n}"
                 },
@@ -494,6 +498,25 @@ QtObject {
             ]
         },
         {
+            "name": "KvitTextArea",
+            "group": "Controls",
+            "summary": "Several lines of text, typed or read. KvitField's outline and error rule in the `field` form, no ground at all in the `plain` one, which is for a document filling a pane. `underlay` takes items positioned in the text's own coordinates, so a wash over a marked passage does not mean replacing the background.",
+            "specimens": [
+                {
+                    "caption": "Resting, filled, monospace and in error",
+                    "snippet": "Column {\n    spacing: Interface.spaceLoose\n    KvitTextArea { width: Interface.px(280); label: \"Message\"; placeholderText: \"What happened\" }\n    KvitTextArea {\n        width: Interface.px(280)\n        label: \"Source\"\n        mono: true\n        readOnly: true\n        text: \"# Notes\\n\\nThe file as it stands.\"\n    }\n    KvitTextArea { width: Interface.px(280); label: \"Summary\"; text: \"...\"; error: \"Say what changed\" }\n}"
+                },
+                {
+                    "caption": "Plain: a document filling a pane, with no ground of its own",
+                    "snippet": "KvitTextArea {\n    width: Interface.px(280)\n    form: \"plain\"\n    mono: true\n    readOnly: true\n    label: \"Source\"\n    text: \"# Notes\\n\\nA document has no edges to find:\\nthe pane is its edge.\"\n}"
+                },
+                {
+                    "caption": "A wash behind a marked passage, drawn through `underlay`",
+                    "snippet": "KvitTextArea {\n    id: marked\n    width: Interface.px(280)\n    label: \"Reviewed source\"\n    mono: true\n    readOnly: true\n    text: \"one\\ntwo\\nthree\"\n    underlay: Rectangle {\n        // `length` is the document\u2019s own character count, so this\n        // is measured again whenever the text changes and never\n        // asked before the characters are there. A rect taken from\n        // the method call alone is measured once and never again.\n        readonly property rect box: marked.length > 7\n            ? marked.positionToRectangle(4) : Qt.rect(0, 0, 0, 0)\n        x: box.x\n        y: box.y\n        width: Interface.px(40)\n        height: box.height\n        color: Theme.selectionTint\n    }\n}"
+                },
+            ]
+        },
+        {
             "name": "KvitSearchField",
             "group": "Controls",
             "summary": "A field that filters something. Escape clears rather than reverting, and it announces its result count \u2014 filtering is the one interaction whose whole outcome happens somewhere else on the screen.",
@@ -529,12 +552,16 @@ QtObject {
         {
             "name": "KvitTab",
             "group": "Controls",
-            "summary": "One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight \u2014 selection shown by colour alone is the most common place the rule gets broken.",
+            "summary": "One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight \u2014 selection shown by colour alone is the most common place the rule gets broken. `explanation` is one sentence saying what the view behind the tab shows, which two or three words cannot.",
             "shotSizes": ["minimum", "default", "maximum"],
             "specimens": [
                 {
                     "caption": "Selected, counted and plain",
                     "snippet": "Row {\n    KvitTab { text: \"All\"; selected: true; count: 1284 }\n    KvitTab { text: \"Uncategorised\"; count: 47 }\n    KvitTab { text: \"Disputed\" }\n}"
+                },
+                {
+                    "caption": "Each tab saying what its view shows",
+                    "snippet": "Row {\n    KvitTab {\n        text: \"Changes\"; selected: true\n        explanation: \"What this version changed.\"\n    }\n    KvitTab {\n        text: \"Source\"\n        explanation: \"The file\u2019s own text.\"\n    }\n    KvitTab {\n        text: \"History\"\n        explanation: \"Every version and who wrote it.\"\n    }\n}"
                 },
             ]
         },

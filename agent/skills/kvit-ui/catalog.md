@@ -14,14 +14,14 @@ that does not work stops the build.
 
 ## What there is
 
-73 components, grouped by what they are for.
+74 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitSignal`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
-**Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
+**Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitTextArea`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
 **Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`
 **Data** — `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable`
 **Flow** — `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight`
@@ -114,7 +114,6 @@ A button whose whole label is a symbol. A real AbstractButton, so it takes tab f
 | `dense` | bool | Draw the symbol at 13 rather than at 18. |
 | `tooltipEnabled` | bool | A control that opens a labelled explanation already presents these words in that surface. |
 | `explanation` | string | One sentence saying more than the label can: why the button is disabled, or what pressing it opens. |
-| `checked_` | bool |  |
 | `iconColor` | color |  |
 
 *Quiet, ordinary and checked*
@@ -124,7 +123,7 @@ Row {
     spacing: Interface.space
     KvitIconButton { symbol: "pencil"; label: "Edit" }
     KvitIconButton { symbol: "trash"; label: "Delete"; form: "ordinary" }
-    KvitIconButton { symbol: "pin"; label: "Pin"; checked_: true }
+    KvitIconButton { symbol: "pin"; label: "Pin"; checked: true }
     KvitIconButton { symbol: "copy"; label: "Copy"; enabled: false }
     KvitIconButton {
         symbol: "settings"; label: "Settings"
@@ -1375,6 +1374,16 @@ Row {
 }
 ```
 
+*A button that stays on, beside the same button off*
+
+```qml
+Row {
+    spacing: Interface.space
+    KvitButton { text: "Select region"; checkable: true; checked: true }
+    KvitButton { text: "Select region"; checkable: true }
+}
+```
+
 *Why a button cannot be pressed*
 
 ```qml
@@ -1607,6 +1616,74 @@ Column {
 }
 ```
 
+### KvitTextArea
+
+Several lines of text, typed or read. KvitField's outline and error rule in the `field` form, no ground at all in the `plain` one, which is for a document filling a pane. `underlay` takes items positioned in the text's own coordinates, so a wash over a marked passage does not mean replacing the background.
+
+| Property | Type | |
+|---|---|---|
+| `form` | string | "field" \| "plain". |
+| `error` | string | A message under the box. |
+| `label` | string |  |
+| `mono` | bool |  |
+| `underlay` | alias | Items drawn behind the text, in the text's own coordinates. |
+
+*Resting, filled, monospace and in error*
+
+```qml
+Column {
+    spacing: Interface.spaceLoose
+    KvitTextArea { width: Interface.px(280); label: "Message"; placeholderText: "What happened" }
+    KvitTextArea {
+        width: Interface.px(280)
+        label: "Source"
+        mono: true
+        readOnly: true
+        text: "# Notes\n\nThe file as it stands."
+    }
+    KvitTextArea { width: Interface.px(280); label: "Summary"; text: "..."; error: "Say what changed" }
+}
+```
+
+*Plain: a document filling a pane, with no ground of its own*
+
+```qml
+KvitTextArea {
+    width: Interface.px(280)
+    form: "plain"
+    mono: true
+    readOnly: true
+    label: "Source"
+    text: "# Notes\n\nA document has no edges to find:\nthe pane is its edge."
+}
+```
+
+*A wash behind a marked passage, drawn through `underlay`*
+
+```qml
+KvitTextArea {
+    id: marked
+    width: Interface.px(280)
+    label: "Reviewed source"
+    mono: true
+    readOnly: true
+    text: "one\ntwo\nthree"
+    underlay: Rectangle {
+        // `length` is the document’s own character count, so this
+        // is measured again whenever the text changes and never
+        // asked before the characters are there. A rect taken from
+        // the method call alone is measured once and never again.
+        readonly property rect box: marked.length > 7
+            ? marked.positionToRectangle(4) : Qt.rect(0, 0, 0, 0)
+        x: box.x
+        y: box.y
+        width: Interface.px(40)
+        height: box.height
+        color: Theme.selectionTint
+    }
+}
+```
+
 ### KvitSearchField
 
 A field that filters something. Escape clears rather than reverting, and it announces its result count — filtering is the one interaction whose whole outcome happens somewhere else on the screen.
@@ -1678,12 +1755,13 @@ KvitSelect {
 
 ### KvitTab
 
-One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight — selection shown by colour alone is the most common place the rule gets broken.
+One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight — selection shown by colour alone is the most common place the rule gets broken. `explanation` is one sentence saying what the view behind the tab shows, which two or three words cannot.
 
 | Property | Type | |
 |---|---|---|
 | `selected` | bool |  |
 | `count` | int | A count beside the label — how many things this tab holds. |
+| `explanation` | string | One sentence saying what this view shows, which two or three words on a tab cannot. |
 | `groupedCount` | readonly string | The count with the reader's own digit grouping, said and drawn the same way. |
 
 *Selected, counted and plain*
@@ -1693,6 +1771,25 @@ Row {
     KvitTab { text: "All"; selected: true; count: 1284 }
     KvitTab { text: "Uncategorised"; count: 47 }
     KvitTab { text: "Disputed" }
+}
+```
+
+*Each tab saying what its view shows*
+
+```qml
+Row {
+    KvitTab {
+        text: "Changes"; selected: true
+        explanation: "What this version changed."
+    }
+    KvitTab {
+        text: "Source"
+        explanation: "The file’s own text."
+    }
+    KvitTab {
+        text: "History"
+        explanation: "Every version and who wrote it."
+    }
 }
 ```
 

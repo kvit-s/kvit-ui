@@ -73,7 +73,6 @@ AbstractButton {
     // the tooltip shows the same two strings in the same order so a pointer
     // reader and a screen reader are told the same thing.
     property string explanation: ""
-    property bool checked_: false
     property color iconColor: root.enabled ? Theme.textSecondary
                                            : Theme.textDisabled
 
@@ -101,6 +100,10 @@ AbstractButton {
     Accessible.role: Accessible.Button
     Accessible.name: label
     Accessible.description: root.explanation
+    // A button drawn as on has to say so. Without these a screen reader
+    // announces a mode that is running exactly like one that is not.
+    Accessible.checkable: root.checkable || root.checked
+    Accessible.checked: root.checked
     Accessible.onPressAction: root.clicked()
 
     background: Rectangle {
@@ -108,7 +111,7 @@ AbstractButton {
         color: {
             if (!root.enabled)
                 return "transparent"
-            if (root.checked_)
+            if (root.checked)
                 return Theme.selectionTint
             if (root.pressed)
                 return Theme.selectionTint
@@ -116,8 +119,12 @@ AbstractButton {
                 return Theme.hoverTint
             return "transparent"
         }
-        border.width: root.form === "ordinary" ? Interface.hairline : 0
-        border.color: Theme.borderStrong
+        // A button drawn as on carries the accent edge as well as the tint,
+        // because a tint on its own is a few percent of lightness in the
+        // high-contrast theme and nothing at all in a grayscale capture.
+        border.width: root.checked || root.form === "ordinary"
+                        ? Interface.hairline : 0
+        border.color: root.checked ? Theme.accent : Theme.borderStrong
 
         // The focus ring is a separate rectangle outside the fill rather than
         // a border colour change, because a ring drawn as a border disappears
@@ -149,7 +156,7 @@ AbstractButton {
             objectName: "symbol"
             anchors.centerIn: parent
             name: root.symbol
-            color: root.checked_ ? Theme.accent : root.iconColor
+            color: root.checked ? Theme.accent : root.iconColor
             width: root.dense ? Interface.iconSizeSmall : Interface.iconSize
             height: root.dense ? Interface.iconSizeSmall : Interface.iconSize
         }
