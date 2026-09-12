@@ -64,7 +64,11 @@ private slots:
     void testAShortenedValueIsDisclosedToTheKeyboardAsWellAsThePointer();
     void testARowOpensFromTheKeyboardAndOnlyOnce();
     void testASectionHeadingOpensFromTheKeyboardWithoutSwallowingItsAction();
+    void testAnIconButtonDrawsTheSymbolSizeItWasAskedFor();
+    void testAControlCarriesOneSentenceOfExplanation();
     void testAChipThatActsIsAControlAndSaysWhyItCannot();
+    void testAChipCanSayItIsTheOneAlreadyOpen();
+    void testAHeadingTakesAWrittenCountAndASymbolicAction();
     void testAChipsLabelGivesWayRatherThanClipping_data();
     void testAChipsLabelGivesWayRatherThanClipping();
     void testAnEmptySectionSaysSoOnOneLine_data();
@@ -1733,6 +1737,227 @@ void TestComponents::testASectionHeadingOpensFromTheKeyboardWithoutSwallowingIts
     QCOMPARE(fixedToggled.count(), 0);
 }
 
+void TestComponents::testAnIconButtonDrawsTheSymbolSizeItWasAskedFor()
+{
+    // A strip of icon buttons across a header, or one hoisted onto a heading
+    // bar, is drawn beside symbols the rest of the library draws at 13 —
+    // KvitLink's, KvitSelect's, KvitSectionHeading's own chevron. At 18 they
+    // read as larger than everything around them, and there was no way to ask
+    // for the other size: the content item is anchored rather than laid out,
+    // so neither the control's padding nor its width and height reach the
+    // symbol, and a caller setting the button to 20 pixels got an 18-pixel
+    // symbol filling it edge to edge.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import Kvit.Ui
+        Item {
+            property alias ordinary: ordinary
+            property alias dense: dense
+            KvitIconButton { id: ordinary; symbol: "search"; label: "Search" }
+            KvitIconButton {
+                id: dense
+                symbol: "search"; label: "Search"; dense: true
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/icon-button-size.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> holder(component.create());
+    QVERIFY2(!holder.isNull(), qPrintable(component.errorString()));
+
+    auto *metrics = KvitUi::DefaultServices::interfaceMetrics();
+    for (const char *name : { "ordinary", "dense" }) {
+        auto *button = holder->property(name).value<QQuickItem *>();
+        QVERIFY(button);
+        auto *symbol = button->findChild<QQuickItem *>(
+            QStringLiteral("symbol"));
+        QVERIFY2(symbol, "the icon button has no symbol");
+        const qreal expected = button->property("dense").toBool()
+            ? metrics->iconSizeSmall() : metrics->iconSize();
+        QCOMPARE(symbol->width(), expected);
+        QCOMPARE(symbol->height(), expected);
+    }
+
+    // The box is the caller's, and it is still the box whichever size the
+    // symbol is: a heading bar sets it to the row it sits in.
+    auto *dense = holder->property("dense").value<QQuickItem *>();
+    QCOMPARE(dense->implicitHeight(), qreal(metrics->controlHeight()));
+}
+
+void TestComponents::testAControlCarriesOneSentenceOfExplanation()
+{
+    // A button's own words are its name and are usually all it needs. The
+    // case this is for is the one where the reason a control is in the state
+    // it is in lives somewhere the reader cannot see: a Pull button disabled
+    // because the remote has not been fetched, an Archive button disabled
+    // because the branch still has unpushed work. Without somewhere to put
+    // that sentence, the screen offers a grey control and no account of it,
+    // and a screen reader is told even less.
+    //
+    // The same string goes to both surfaces on all three controls, which is
+    // what stops the words a pointer reader sees drifting from the words a
+    // screen reader hears — the defect accessibility.md Finding 1 records.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            visible: true
+            width: 520
+            height: 260
+            KvitButton {
+                objectName: "pull"
+                x: 20; y: 20
+                text: "Pull"
+                explanation: "Brings the 2 commits on the remote into this branch."
+            }
+            KvitButton {
+                objectName: "archive"
+                x: 20; y: 80
+                text: "Archive"
+                enabled: false
+                explanation: "The branch has work that has not been pushed."
+            }
+            KvitIconButton {
+                objectName: "rename"
+                x: 240; y: 20
+                symbol: "rename"
+                label: "Rename"
+                explanation: "Renames the track and its branch. Its history and folder stay unchanged."
+            }
+            KvitChipButton {
+                objectName: "ahead"
+                x: 240; y: 80
+                text: "1 ahead"
+                explanation: "Opens the one commit this branch has and the remote does not."
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/explanation.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    struct Case
+    {
+        const char *objectName;
+        const char *name;
+        const char *explanation;
+    };
+    const Case cases[] = {
+        { "pull", "Pull",
+          "Brings the 2 commits on the remote into this branch." },
+        { "archive", "Archive",
+          "The branch has work that has not been pushed." },
+        { "rename", "Rename",
+          "Renames the track and its branch. Its history and folder stay "
+          "unchanged." },
+        { "ahead", "1 ahead",
+          "Opens the one commit this branch has and the remote does not." },
+    };
+
+    for (const Case &one : cases) {
+        auto *control = window->findChild<QQuickItem *>(
+            QLatin1String(one.objectName));
+        QVERIFY2(control, one.objectName);
+
+        // The name stays the control's own words. An explanation is a second
+        // string beside it, never a replacement for it: a control whose
+        // purpose is only in its explanation cannot be used without hovering
+        // it, which rules out everybody on a touch screen or a keyboard.
+        QAccessibleInterface *accessible =
+            QAccessible::queryAccessibleInterface(control);
+        QVERIFY2(accessible, one.objectName);
+        QCOMPARE(accessible->text(QAccessible::Name),
+                 QString::fromLatin1(one.name));
+        QCOMPARE(accessible->text(QAccessible::Description),
+                 QString::fromLatin1(one.explanation));
+
+        QObject *tooltip = control->findChild<QObject *>(
+            QStringLiteral("tooltip"));
+        QVERIFY2(tooltip, one.objectName);
+        QVERIFY2(!tooltip->property("visible").toBool(),
+                 "an explanation was showing before anybody asked for it");
+    }
+
+    // What a pointer reader sees, on the control where it matters most: the
+    // disabled one. Qt stops sending hover events to a disabled item and
+    // takes it out of the tab order, so neither `hovered` nor the focus ring
+    // can be what opens this.
+    if (QGuiApplication::platformName() != QLatin1String("minimal")) {
+        auto *archive = window->findChild<QQuickItem *>(
+            QStringLiteral("archive"));
+        QVERIFY(archive);
+        QObject *tooltip = archive->findChild<QObject *>(
+            QStringLiteral("tooltip"));
+        QVERIFY(tooltip);
+        const QPoint over = window->contentItem()
+            ->mapFromItem(archive,
+                          QPointF(archive->width() / 2, archive->height() / 2))
+            .toPoint();
+        QTest::mouseMove(window, over);
+        QTRY_VERIFY2(tooltip->property("visible").toBool(),
+                     "a disabled button never said why it was disabled");
+        QCOMPARE(tooltip->property("text").toString(),
+                 QStringLiteral("The branch has work that has not been "
+                                "pushed."));
+        QTest::mouseMove(window, QPoint(2, 2));
+        QTRY_VERIFY(!tooltip->property("visible").toBool());
+    }
+
+    // And what a keyboard reader sees on the ones it can reach. The icon
+    // button shows its label and its explanation together, because its label
+    // is a picture everywhere else.
+    auto *rename = window->findChild<QQuickItem *>(QStringLiteral("rename"));
+    QVERIFY(rename);
+    QObject *renameTooltip = rename->findChild<QObject *>(
+        QStringLiteral("tooltip"));
+    QVERIFY(renameTooltip);
+    rename->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(rename->hasActiveFocus());
+    QTRY_VERIFY(renameTooltip->property("visible").toBool());
+    QCOMPARE(renameTooltip->property("text").toString(),
+             QStringLiteral("Rename\nRenames the track and its branch. Its "
+                            "history and folder stay unchanged."));
+
+    auto *ahead = window->findChild<QQuickItem *>(QStringLiteral("ahead"));
+    QVERIFY(ahead);
+    QObject *aheadTooltip = ahead->findChild<QObject *>(
+        QStringLiteral("tooltip"));
+    QVERIFY(aheadTooltip);
+    ahead->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(ahead->hasActiveFocus());
+    QTRY_VERIFY(aheadTooltip->property("visible").toBool());
+    QCOMPARE(aheadTooltip->property("text").toString(),
+             QStringLiteral("Opens the one commit this branch has and the "
+                            "remote does not."));
+
+    // A chip that cannot be pressed says that instead. The two are different
+    // sentences about different states and neither has to be swapped into the
+    // other's property for the right one to be shown.
+    ahead->setProperty("unavailableReason",
+                       QStringLiteral("The remote has not been fetched yet."));
+    QCoreApplication::processEvents();
+    QTRY_COMPARE(aheadTooltip->property("text").toString(),
+                 QStringLiteral("The remote has not been fetched yet."));
+    QAccessibleInterface *aheadAccessible =
+        QAccessible::queryAccessibleInterface(ahead);
+    QVERIFY(aheadAccessible);
+    QCOMPARE(aheadAccessible->text(QAccessible::Description),
+             QStringLiteral("The remote has not been fetched yet."));
+}
+
 void TestComponents::testAChipThatActsIsAControlAndSaysWhyItCannot()
 {
     // The chip a person can press, and the chip that says why they cannot.
@@ -1852,6 +2077,211 @@ void TestComponents::testAChipThatActsIsAControlAndSaysWhyItCannot()
     QVERIFY(pressThroughAccessibility(blocked));
     QCoreApplication::processEvents();
     QCOMPARE(window->property("refused").toInt(), 0);
+}
+
+void TestComponents::testAChipCanSayItIsTheOneAlreadyOpen()
+{
+    // A row of chips that open things — "3 changes", "1 ahead", "2 behind" —
+    // and the reader is already looking at one of them. Without a way to draw
+    // that chip as the current one, pressing it appears to do nothing,
+    // because what it opens is already open.
+    //
+    // `tone: "accent"` is what a caller reaches for instead, and it says
+    // something else: that this is a different kind of fact from the ones
+    // beside it. It is the same fact, in the state of being the current one.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            visible: true
+            width: 420
+            height: 140
+            readonly property color currentGround: ahead.background.color
+            readonly property color currentEdge: ahead.background.border.color
+            readonly property real currentEdgeWidth: ahead.background.border.width
+            readonly property color plainGround: changes.background.color
+            Row {
+                anchors.centerIn: parent
+                spacing: 12
+                KvitChipButton {
+                    id: changes
+                    objectName: "changes"; text: "3 changes"
+                }
+                KvitChipButton {
+                    id: ahead
+                    objectName: "ahead"; text: "1 ahead"; current: true
+                }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/chip-current.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *plain = window->findChild<QQuickItem *>(QStringLiteral("changes"));
+    auto *current = window->findChild<QQuickItem *>(QStringLiteral("ahead"));
+    QVERIFY(plain);
+    QVERIFY(current);
+
+    // It is still a chip that acts: the same tab stop, the same keys, the
+    // same button role. Being the current one is a state, not a different
+    // control.
+    QCOMPARE(current->property("activeFocusOnTab").toBool(), true);
+    QAccessibleInterface *accessible =
+        QAccessible::queryAccessibleInterface(current);
+    QVERIFY(accessible);
+    QCOMPARE(accessible->role(), QAccessible::Button);
+    QVERIFY2(accessible->state().selected,
+             "the current chip did not announce itself as the current one");
+
+    // Three channels, because the tints are two percent of lightness in the
+    // high-contrast theme and nothing at all in a grayscale screenshot: the
+    // ground, the accent on the edge, and the weight of the label.
+    QCOMPARE(window->property("currentGround").value<QColor>(),
+             KvitUi::DefaultServices::theme()->selectionTint());
+    QCOMPARE(window->property("currentEdge").value<QColor>(),
+             KvitUi::DefaultServices::theme()->accent());
+    QVERIFY(window->property("currentEdgeWidth").toReal() > 0);
+    QVERIFY(window->property("currentGround").value<QColor>()
+            != window->property("plainGround").value<QColor>());
+
+    auto *label = current->findChild<QQuickItem *>(QStringLiteral("label"));
+    auto *plainLabel = plain->findChild<QQuickItem *>(QStringLiteral("label"));
+    QVERIFY(label);
+    QVERIFY(plainLabel);
+    QCOMPARE(label->property("font").value<QFont>().bold(), true);
+    QCOMPARE(plainLabel->property("font").value<QFont>().bold(), false);
+}
+
+void TestComponents::testAHeadingTakesAWrittenCountAndASymbolicAction()
+{
+    // Two things a heading is asked for that it could not say.
+    //
+    // A count that is not a number: kvit-notes-pro's Changes heading reads
+    // "1 · +0 −0" — one changed file, and the lines added and removed across
+    // it — which arrives from the service already written and which no
+    // integer expresses. And an action drawn as a symbol: a column of eight
+    // headings each ending in a different sentence is a column a reader has
+    // to read rather than scan, and the words are still there as the button's
+    // name and its tooltip.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 420
+            height: 180
+            property int opened: 0
+            KvitSectionHeading {
+                objectName: "changes"
+                width: parent.width
+                y: 20
+                text: "Changes"
+                countText: "1 · +0 −0"
+                action: "Open the diff"
+                actionSymbol: "diff"
+                onActioned: window.opened += 1
+            }
+            KvitSectionHeading {
+                objectName: "counted"
+                width: parent.width
+                y: 80
+                text: "Waiting on me"
+                count: 4
+                counted: "project"
+                action: "Hand all to an agent"
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/heading-written-count.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *changes = window->findChild<QQuickItem *>(QStringLiteral("changes"));
+    auto *counted = window->findChild<QQuickItem *>(QStringLiteral("counted"));
+    QVERIFY(changes);
+    QVERIFY(counted);
+
+    // The phrase is drawn as written: no grouping, no plural, no locale. The
+    // caller decided all three before handing it over.
+    auto *written = changes->findChild<QQuickItem *>(
+        QStringLiteral("countText"));
+    QVERIFY(written);
+    QVERIFY(written->isVisible());
+    QCOMPARE(written->property("text").toString(),
+             QString::fromUtf8("1 · +0 −0"));
+
+    // And it leaves the right end empty, so a heading never shows two counts.
+    QCOMPARE(changes->property("countPhrase").toString(), QString());
+    QCOMPARE(counted->property("countPhrase").toString(),
+             QStringLiteral("4 projects"));
+
+    // Beside the name rather than at the right end, which is where the number
+    // goes. The two are different things to a reader: a tally to glance at in
+    // every heading down a column, against a phrase that is part of what the
+    // group is.
+    QVERIFY2(written->mapToItem(changes, QPointF()).x()
+                 < changes->width() / 2,
+             "the written count was drawn at the right end of the bar");
+
+    // The action keeps its words where a reader who cannot see the symbol
+    // finds them: the button's accessible name, and its tooltip.
+    auto *button = changes->findChild<QQuickItem *>(
+        QStringLiteral("actionButton"));
+    QVERIFY(button);
+    QVERIFY(button->isVisible());
+    QAccessibleInterface *accessible =
+        QAccessible::queryAccessibleInterface(button);
+    QVERIFY(accessible);
+    QCOMPARE(accessible->role(), QAccessible::Button);
+    QCOMPARE(accessible->text(QAccessible::Name),
+             QStringLiteral("Open the diff"));
+    QCOMPARE(button->property("symbol").toString(), QStringLiteral("diff"));
+
+    // It fits inside the bar, ring and all. The ring is drawn outside the
+    // button's own ground, so a button as tall as the row has its ring cut
+    // off by the rows above and below.
+    auto *metrics = KvitUi::DefaultServices::interfaceMetrics();
+    QVERIFY2(button->height() + 2 * metrics->focusRingWidth()
+                 <= changes->height() + 0.5,
+             qPrintable(QStringLiteral("a %1-tall action and its ring in a "
+                                       "%2-tall bar")
+                            .arg(button->height()).arg(changes->height())));
+
+    // A heading given no symbol keeps the link it always had, and a heading
+    // given one does not draw both.
+    auto *link = changes->findChild<QQuickItem *>(QStringLiteral("action"));
+    QVERIFY(link);
+    QVERIFY2(!link->isVisible(), "a heading drew its action twice");
+    auto *countedLink = counted->findChild<QQuickItem *>(
+        QStringLiteral("action"));
+    QVERIFY(countedLink);
+    QVERIFY(countedLink->isVisible());
+
+    // And the symbol runs the action.
+    QVERIFY(pressThroughAccessibility(button));
+    QTRY_COMPARE(window->property("opened").toInt(), 1);
 }
 
 void TestComponents::testAChipsLabelGivesWayRatherThanClipping_data()
@@ -2018,6 +2448,19 @@ void TestComponents::testAnEmptySectionSaysSoOnOneLine()
                      <= compact->implicitHeight() + 0.5,
                  "a piece of the compact line is taller than the line");
     }
+
+    // It starts where the rows it stands in for start. A line centred among
+    // left-aligned rows reads as a notice about the section rather than as
+    // the section's contents, which is what a caller who reached for a bare
+    // Text instead was avoiding. The full form still centres: it is the whole
+    // of an empty pane and there is nothing beside it to line up with.
+    const qreal inset = KvitUi::DefaultServices::interfaceMetrics()->space();
+    auto *lineRow = compact->findChild<QQuickItem *>(
+        QStringLiteral("compactLine"));
+    QVERIFY(lineRow);
+    QCOMPARE(lineRow->mapToItem(compact, QPointF()).x(), inset);
+    QVERIFY2(title->mapToItem(compact, QPointF()).x() < compact->width() / 2,
+             "the sentence was drawn past the middle of the line");
 
     // What a screen reader hears is the sentence and its reason, the same in
     // both forms: the compact line is a shorter drawing of the same thing,

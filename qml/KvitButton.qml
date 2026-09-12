@@ -36,6 +36,27 @@ AbstractButton {
     // spinner appearing, because a spinner says "wait" without saying for what.
     property bool busy: false
     property string busyText: qsTr("Working…")
+    // One sentence saying what the words on the button cannot: why it is
+    // disabled, or what pressing it opens.
+    //
+    // A button names itself from its own text, which is the right default and
+    // is all most buttons need. The case this is for is the one where the
+    // reason a control is in the state it is in lives somewhere the reader
+    // cannot see — a Pull button that is disabled because the remote has not
+    // been fetched, an Archive button that is disabled because the branch has
+    // unpushed work. Without somewhere to put that sentence, a screen offers
+    // a grey control and no account of it.
+    //
+    // It is shown as the tooltip and announced as the accessible description,
+    // so a pointer reader and a screen reader are told the same thing. It is
+    // never where the label belongs: a button whose purpose is only in its
+    // explanation cannot be used without hovering it, which rules out
+    // everybody on a touch screen or a keyboard.
+    //
+    // A disabled button still shows it. Qt stops sending hover events to a
+    // disabled item, so the words reach a pointer reader through the button's
+    // own HoverHandler below rather than through `hovered`.
+    property string explanation: ""
 
     readonly property color fill: root.danger ? Theme.danger : Theme.accent
 
@@ -50,7 +71,24 @@ AbstractButton {
 
     Accessible.role: Accessible.Button
     Accessible.name: root.busy ? root.busyText : root.text
+    Accessible.description: root.explanation
     Accessible.onPressAction: root.clicked()
+
+    // A HoverHandler rather than the control's own `hovered`, for the one
+    // case that matters: `hovered` is false on a disabled button, and a
+    // disabled button is exactly where the explanation is worth reading. A
+    // handler keeps receiving the pointer either way.
+    HoverHandler {
+        id: explanationHover
+        enabled: root.explanation !== ""
+    }
+
+    KvitTooltip {
+        objectName: "tooltip"
+        text: root.explanation
+        visible: root.explanation !== ""
+                 && (explanationHover.hovered || root.visualFocus)
+    }
 
     background: Rectangle {
         radius: Interface.radiusControl

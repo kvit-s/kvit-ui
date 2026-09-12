@@ -25,6 +25,7 @@ private slots:
     void testPhosphorNamesResolveDirectly();
     void testAnUnknownNameResolvesToNothing();
     void testTheEditorsLiteralsAllHaveSomewhereToGo();
+    void testTheOverviewsNamesDrawWhatItMeans();
     void testTheCatalogueIsBigEnoughToBeTheWholeFont();
 };
 
@@ -43,18 +44,46 @@ void TestIcons::testEveryMeaningNameResolves()
                                 .arg(name)));
     }
 
-    // And no two meanings quietly point at the same glyph by accident. A
-    // duplicate is allowed — `check` and `success` could reasonably share one
-    // — but two names for the same drawing where the estate thinks it has two
-    // drawings is a bug the gallery would not catch, because both pages look
-    // right on their own.
+    // And no two meanings quietly point at the same glyph by accident. Two
+    // names for one drawing where the estate thinks it has two drawings is a
+    // bug the gallery would not catch, because both pages look right on their
+    // own.
+    //
+    // Sharing a drawing on purpose is a different thing and is written down
+    // here. A meaning name says what a call site means, and two call sites
+    // can mean different things that are drawn the same way: an agent is
+    // drawn as a robot and renaming is drawn as a pencil, and a screen about
+    // agents that asks for `robot` has written down the drawing instead of
+    // what it meant. Each pair below is one of those, with what separates the
+    // two meanings; anything not on this list still fails.
+    const QList<QPair<QString, QString>> sameDrawingOnPurpose = {
+        // What is doing the work, against what the work is being done by.
+        { QStringLiteral("agent"), QStringLiteral("robot") },
+        // Giving a thing a new name, against editing what is inside it.
+        { QStringLiteral("rename"), QStringLiteral("pencil") },
+    };
+
+    QSet<QString> allowed;
+    for (const auto &pair : sameDrawingOnPurpose) {
+        QVERIFY2(names.contains(pair.first) && names.contains(pair.second),
+                 qPrintable(QStringLiteral("'%1' and '%2' are written down as "
+                                           "sharing a drawing, but one of them "
+                                           "is no longer a meaning name")
+                                .arg(pair.first, pair.second)));
+        QCOMPARE(catalog.glyph(pair.first), catalog.glyph(pair.second));
+        allowed.insert(QStringLiteral("%1 and %2").arg(pair.first, pair.second));
+        allowed.insert(QStringLiteral("%1 and %2").arg(pair.second, pair.first));
+    }
+
     QHash<QString, QString> byGlyph;
     QStringList shared;
     for (const QString &name : names) {
         const QString glyph = catalog.glyph(name);
         if (byGlyph.contains(glyph)) {
-            shared.append(QStringLiteral("%1 and %2")
-                              .arg(byGlyph.value(glyph), name));
+            const QString pair = QStringLiteral("%1 and %2")
+                                     .arg(byGlyph.value(glyph), name);
+            if (!allowed.contains(pair))
+                shared.append(pair);
         }
         byGlyph.insert(glyph, name);
     }
@@ -152,6 +181,49 @@ void TestIcons::testTheEditorsLiteralsAllHaveSomewhereToGo()
     };
     for (const QString &name : worksIcon)
         QVERIFY2(!catalog.glyph(name).isEmpty(), qPrintable(name));
+}
+
+void TestIcons::testTheOverviewsNamesDrawWhatItMeans()
+{
+    // kvit-notes-pro's overview names its symbols in C++ — `actionIcon` on a
+    // section heading, `icon` on a row record — so the name a call site gets
+    // is not something the call site can rewrite. Six of these resolved to
+    // nothing when the overview was first drawn with KvitIcon, which is a
+    // hatched red box on the screen and a console warning that takes the
+    // shell's diagnostics gate red.
+    //
+    // The codepoint rather than only "it resolves to something", because what
+    // the overview needs is a particular drawing: it and the web design it was
+    // drawn from both show a branching line for `git` and a robot for `agent`,
+    // and a name that resolved to some other symbol would pass a test that
+    // only asked whether it resolved.
+    KvitUi::IconCatalog catalog;
+    const QList<QPair<QString, char32_t>> asked = {
+        { QStringLiteral("diff"), 0xE27C },      // git-diff
+        { QStringLiteral("git"), 0xE278 },       // git-branch
+        { QStringLiteral("agent"), 0xE762 },     // robot
+        { QStringLiteral("ask"), 0xE176 },       // chat-teardrop-dots
+        { QStringLiteral("ask-in"), 0xE026 },    // arrow-bend-up-right
+        { QStringLiteral("rename"), 0xE3B4 },    // pencil-simple
+        // These two resolved before this, through the escape hatch that takes
+        // a Phosphor name directly, and each landed on a glyph nobody chose:
+        // `terminal` on the bare prompt at U+E47E rather than the window,
+        // `chat` on the square bubble at U+E15C rather than the round one.
+        { QStringLiteral("terminal"), 0xEAE8 },  // terminal-window
+        { QStringLiteral("chat"), 0xE168 },      // chat-circle
+    };
+    for (const auto &pair : asked) {
+        const QString glyph = catalog.glyph(pair.first);
+        QVERIFY2(!glyph.isEmpty(), qPrintable(pair.first));
+        QCOMPARE(glyph, QString::fromUcs4(&pair.second, 1));
+    }
+
+    // Naming `chat` as a meaning shadows Phosphor's own `chat`, the way
+    // `link` and `pencil` already shadow theirs. The square bubble is still
+    // reachable, under the name it always had here.
+    const char32_t squareBubble = 0xE15C;
+    QCOMPARE(catalog.glyph(QStringLiteral("message-square")),
+             QString::fromUcs4(&squareBubble, 1));
 }
 
 void TestIcons::testTheCatalogueIsBigEnoughToBeTheWholeFont()

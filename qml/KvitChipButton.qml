@@ -54,6 +54,35 @@ AbstractButton {
     property string unavailableReason: ""
     readonly property bool unavailable: root.unavailableReason !== ""
 
+    // One sentence saying what pressing this opens, where the label alone
+    // does not say it. "1 ahead" is a count; what it opens is the list of the
+    // one commit, and a reader who has not pressed one of these before has no
+    // way to know that.
+    //
+    // Separate from `unavailableReason` because the two are different
+    // sentences about different states, and a chip moving between them should
+    // not have to swap one string in and out of the other's property. A chip
+    // that cannot be pressed says why; a chip that can says where it goes.
+    property string explanation: ""
+
+    // The chip whose destination is already open.
+    //
+    // A row of these is a row of places to go — "3 changes", "1 ahead", "2
+    // behind" — and when the reader is already looking at one of them, the
+    // chip for it stops being somewhere to go and becomes where they are.
+    // Without that, a reader who presses it gets no answer, because pressing
+    // it opens what is already open.
+    //
+    // This is not `tone: "accent"`, which says the chip is a different kind of
+    // fact from the ones beside it. It is the same fact, in the state of being
+    // the current one, and it is drawn the way the estate draws that
+    // everywhere else: the selection tint under it, the accent on its edge,
+    // the reader's own text colour, and the label in bold. The weight is what
+    // carries the state where the tints do not — a two percent lightness step
+    // in the high-contrast theme, and nothing at all in a grayscale
+    // screenshot.
+    property bool current: false
+
     readonly property color toneColor: {
         switch (tone) {
         case "accent":  return Theme.accent
@@ -89,7 +118,12 @@ AbstractButton {
 
     Accessible.role: Accessible.Button
     Accessible.name: root.text
-    Accessible.description: root.unavailableReason
+    // Why it cannot be pressed, or where pressing it goes — whichever applies,
+    // which is the same choice the tooltip below makes, so the two surfaces
+    // say the same thing.
+    Accessible.description: root.unavailable ? root.unavailableReason
+                                             : root.explanation
+    Accessible.selected: root.current
     Accessible.onPressAction: root.clicked()
 
     onClicked: {
@@ -110,15 +144,28 @@ AbstractButton {
         event.accepted = true
     }
 
-    // Two things need saying and neither is always true, so one surface says
-    // whichever applies: why the chip cannot be pressed, or the whole label
-    // when the column was too narrow to draw it. An available chip whose
-    // label fits has nothing to add and shows nothing.
+    // Three things may need saying and none of them is always true, so one
+    // surface says whichever applies, in this order: why the chip cannot be
+    // pressed, the whole label where the column was too narrow to draw it,
+    // and where pressing it goes. The middle one is the only one that can be
+    // joined to another — a truncated label and an explanation are two
+    // different pieces of information and a reader hovering a half-drawn chip
+    // needs both. An available chip whose label fits and whose destination is
+    // obvious has nothing to add and shows nothing.
     KvitTooltip {
         objectName: "tooltip"
-        text: root.unavailable ? root.unavailableReason : root.text
+        text: {
+            if (root.unavailable)
+                return root.unavailableReason
+            if (label.truncated && root.explanation !== "")
+                return root.text + "\n" + root.explanation
+            if (label.truncated)
+                return root.text
+            return root.explanation
+        }
         visible: (root.hovered || root.visualFocus)
-                 && (root.unavailable || label.truncated)
+                 && (root.unavailable || label.truncated
+                     || root.explanation !== "")
     }
 
     HoverHandler {
@@ -135,6 +182,11 @@ AbstractButton {
         color: {
             if (root.unavailable)
                 return "transparent"
+            // Ahead of the tone, because being the current chip is a stronger
+            // thing to say about it than which kind of fact it is, and the
+            // two grounds cannot both be drawn.
+            if (root.current)
+                return Theme.selectionTint
             if (root.strong)
                 return root.pressed ? Qt.darker(root.toneColor, 1.15)
                                     : root.toneColor
@@ -144,8 +196,12 @@ AbstractButton {
             return Qt.alpha(root.toneColor,
                             (root.pressed || root.lit) ? 0.28 : 0.16)
         }
-        border.width: (root.strong && !root.unavailable) ? 0 : Interface.hairline
+        // A filled chip has no outline, and a current one always has: the
+        // accent edge is half of what says it is the current one.
+        border.width: (root.strong && !root.unavailable && !root.current)
+                      ? 0 : Interface.hairline
         border.color: root.unavailable ? Theme.border
+                    : root.current ? Theme.accent
                     : root.tone === "neutral"
                         ? (root.lit ? Theme.borderStrong : Theme.border)
                         : root.toneColor
@@ -201,9 +257,12 @@ AbstractButton {
                 // accent, and a filled danger chip needs the label that
                 // contrasts with *its* fill (accessibility.md Finding 3).
                 color: root.unavailable ? Theme.textDisabled
+                     : root.current ? Theme.textPrimary
                      : root.strong ? Theme.labelOn(root.toneColor)
                      : root.tone === "neutral" ? Theme.textSecondary
                                                : root.toneColor
+                // The second channel, for the reader the tints do not reach.
+                font.bold: root.current
                 elide: Text.ElideRight
             }
             KvitIcon {

@@ -1647,6 +1647,14 @@ const Meaning kMeanings[] = {
     { "pause", "pause" },
     { "stop", "stop" },
     { "attachment", "paperclip" },
+    { "diff", "git-diff" },
+    { "git", "git-branch" },
+    { "agent", "robot" },
+    { "ask", "chat-teardrop-dots" },
+    { "ask-in", "arrow-bend-up-right" },
+    { "rename", "pencil-simple" },
+    { "terminal", "terminal-window" },
+    { "chat", "chat-circle" },
 };
 
 }   // namespace

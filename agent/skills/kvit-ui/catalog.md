@@ -33,7 +33,7 @@ They say what a symbol means rather than what it looks like, so the drawing
 can change without touching a call site. A name outside this list draws a
 marked placeholder and fails `tests/test_components`.
 
-`plus`, `messages-square`, `message-square`, `send`, `chevron-right`, `chevron-down`, `zoom-in`, `zoom-out`, `pencil`, `check`, `archive`, `rotate-ccw`, `chevron-left`, `chevron-up`, `close`, `sidebar`, `list`, `search`, `note`, `tag`, `caret-sort`, `sort-ascending`, `sort-descending`, `dot`, `dot-outline`, `circle`, `square`, `minus`, `info`, `warning`, `error`, `success`, `question`, `settings`, `filter`, `columns`, `calendar`, `clock`, `user`, `robot`, `folder`, `file`, `link`, `external`, `copy`, `trash`, `undo`, `redo`, `refresh`, `more`, `more-vertical`, `drag`, `pin`, `star`, `eye`, `eye-off`, `lock`, `arrow-up`, `arrow-down`, `arrow-left`, `arrow-right`, `trend-up`, `trend-down`, `chart`, `wallet`, `coins`, `bank`, `receipt`, `repeat`, `split`, `merge`, `play`, `pause`, `stop`, `attachment`
+`plus`, `messages-square`, `message-square`, `send`, `chevron-right`, `chevron-down`, `zoom-in`, `zoom-out`, `pencil`, `check`, `archive`, `rotate-ccw`, `chevron-left`, `chevron-up`, `close`, `sidebar`, `list`, `search`, `note`, `tag`, `caret-sort`, `sort-ascending`, `sort-descending`, `dot`, `dot-outline`, `circle`, `square`, `minus`, `info`, `warning`, `error`, `success`, `question`, `settings`, `filter`, `columns`, `calendar`, `clock`, `user`, `robot`, `folder`, `file`, `link`, `external`, `copy`, `trash`, `undo`, `redo`, `refresh`, `more`, `more-vertical`, `drag`, `pin`, `star`, `eye`, `eye-off`, `lock`, `arrow-up`, `arrow-down`, `arrow-left`, `arrow-right`, `trend-up`, `trend-down`, `chart`, `wallet`, `coins`, `bank`, `receipt`, `repeat`, `split`, `merge`, `play`, `pause`, `stop`, `attachment`, `diff`, `git`, `agent`, `ask`, `ask-in`, `rename`, `terminal`, `chat`
 
 ## The components
 
@@ -104,14 +104,16 @@ KvitIcon { name: "not-a-symbol" }
 
 ### KvitIconButton
 
-A button whose whole label is a symbol. A real AbstractButton, so it takes tab focus and a screen reader is told it is there; `label` fills both the accessible name and the tooltip shown on pointer hover or keyboard focus.
+A button whose whole label is a symbol. A real AbstractButton, so it takes tab focus and a screen reader is told it is there; `label` fills both the accessible name and the tooltip shown on pointer hover or keyboard focus, and `explanation` is the second sentence beside it. `dense` draws the symbol at the 13 every symbol beside words in this library is drawn at, rather than at 18.
 
 | Property | Type | |
 |---|---|---|
 | `symbol` | string | **required.** What the symbol means: an IconCatalog meaning name. |
 | `label` | string | **required.** What the button does, in words. |
 | `form` | string | "ordinary" \| "quiet". |
+| `dense` | bool | Draw the symbol at 13 rather than at 18. |
 | `tooltipEnabled` | bool | A control that opens a labelled explanation already presents these words in that surface. |
+| `explanation` | string | One sentence saying more than the label can: why the button is disabled, or what pressing it opens. |
 | `checked_` | bool |  |
 | `iconColor` | color |  |
 
@@ -128,6 +130,56 @@ Row {
         symbol: "settings"; label: "Settings"
         Component.onCompleted: if (Window.window)
             forceActiveFocus(Qt.TabFocusReason)
+    }
+}
+```
+
+*Two symbol sizes*
+
+```qml
+// A symbol standing on its own is drawn at 18. `dense` draws it at 13,
+// which is the size every symbol beside words in this library is drawn
+// at — a link's, a select's indicator, a section heading's chevron.
+// A strip of buttons across a header or hoisted onto a heading bar is
+// that second case, and at 18 they read as larger than the row they
+// sit in.
+Column {
+    spacing: Interface.space
+    Row {
+        spacing: Interface.space
+        KvitIconButton { symbol: "search"; label: "Search" }
+        KvitIconButton { symbol: "plus"; label: "New track" }
+        KvitIconButton { symbol: "git"; label: "Branch" }
+    }
+    Row {
+        spacing: Interface.space
+        KvitIconButton { symbol: "search"; label: "Search"; dense: true }
+        KvitIconButton { symbol: "plus"; label: "New track"; dense: true }
+        KvitIconButton { symbol: "git"; label: "Branch"; dense: true }
+    }
+}
+```
+
+*A second sentence, where the name is not enough*
+
+```qml
+// `label` names the button and is what a screen reader is told.
+// `explanation` is the sentence beside it, for what the name cannot
+// hold: what pressing this changes, or why it cannot be pressed. Both
+// go to the tooltip and to the accessible description, in that order,
+// so a pointer reader and a screen reader are told the same thing.
+Row {
+    spacing: Interface.space
+    KvitIconButton {
+        symbol: "rename"; label: "Rename"
+        explanation: "Renames the track and its branch. Its history "
+                     + "and folder stay unchanged."
+        Component.onCompleted: if (Window.window)
+            forceActiveFocus(Qt.TabFocusReason)
+    }
+    KvitIconButton {
+        symbol: "archive"; label: "Archive"; enabled: false
+        explanation: "The branch has work that has not been pushed."
     }
 }
 ```
@@ -529,7 +581,7 @@ KvitWindow {
 
 ### KvitSectionHeading
 
-A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
+A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `countText` and is drawn beside the name as written; `actionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
 
 | Property | Type | |
 |---|---|---|
@@ -537,8 +589,10 @@ A group heading: a filled bar with a disclosure chevron, the name, what the grou
 | `count` | int |  |
 | `counted` | string | What the count counts, singular. |
 | `countedPlural` | string | The word for several of them. |
+| `countText` | string | A count the caller has already written out, for a heading whose count is not a number. |
 | `kind` | string | The kind of thing the group holds, said beside the name where the name alone does not say it. |
 | `action` | string | The hoisted action, true for every row in the group. |
+| `actionSymbol` | string | Draw that action as a symbol instead of as its words. |
 | `strong` | bool |  |
 | `expanded` | bool |  |
 | `collapsible` | bool |  |
@@ -591,6 +645,42 @@ Column {
         width: parent.width
         text: "Archived"; kind: "closed last quarter"
         collapsible: true; expanded: false
+    }
+}
+```
+
+*A written count, and an action drawn as a symbol*
+
+```qml
+// Some counts are not numbers. A Changes heading reads "1 · +0 −0" —
+// one changed file, and the lines added and removed across it — which
+// the service composes and hands over already written, and which no
+// integer expresses. `countText` is drawn exactly as given, beside the
+// name rather than at the right end where a number goes.
+//
+// `actionSymbol` draws the hoisted action as a symbol. The words stay
+// in `action` and become the button's accessible name and its tooltip,
+// so nothing is lost by a reader who cannot see the symbol; what is
+// gained is a column of headings a reader can scan rather than read.
+Column {
+    width: parent.width
+    spacing: Interface.space
+    KvitSectionHeading {
+        width: parent.width
+        text: "Changes"; countText: "1 · +0 −0"
+        action: "Open the diff"; actionSymbol: "diff"
+        collapsible: true
+    }
+    KvitSectionHeading {
+        width: parent.width
+        text: "Agents"; countText: "2 running"
+        action: "Start an agent"; actionSymbol: "plus"
+        collapsible: true
+    }
+    KvitSectionHeading {
+        width: parent.width
+        text: "Terminal"
+        action: "Open a terminal"; actionSymbol: "terminal"
     }
 }
 ```
@@ -839,7 +929,7 @@ Column {
 
 ### KvitEmptyState
 
-What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros. The compact form is the same sentence on one line, at the height of a slim row, for a section in a stack of sections that may each be empty.
+What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros. The compact form is the same sentence on one line, at the height of a slim row and starting where the rows start, for a section in a stack of sections that may each be empty.
 
 | Property | Type | |
 |---|---|---|
@@ -1127,7 +1217,7 @@ Column {
 
 ### KvitButton
 
-A button with words on it, in three forms. One primary per screen region: it is the action the screen is for. `danger` is separate from the form, because a destructive action can be any of the three.
+A button with words on it, in three forms. One primary per screen region: it is the action the screen is for. `danger` is separate from the form, because a destructive action can be any of the three. `explanation` is one sentence saying what the words cannot — why it is disabled, or what pressing it opens — and it is read on a disabled button too.
 
 | Property | Type | |
 |---|---|---|
@@ -1136,6 +1226,7 @@ A button with words on it, in three forms. One primary per screen region: it is 
 | `symbol` | string |  |
 | `busy` | bool | A button that is doing something. |
 | `busyText` | string |  |
+| `explanation` | string | One sentence saying what the words on the button cannot: why it is disabled, or what pressing it opens. |
 | `fill` | readonly color |  |
 
 *Text, icon plus text, and busy text in every form*
@@ -1175,9 +1266,35 @@ Row {
 }
 ```
 
+*Why a button cannot be pressed*
+
+```qml
+// The reason a control is in the state it is in often lives somewhere
+// the reader cannot see. A disabled button with nothing to say about
+// itself is a grey rectangle and no account of it; `explanation` is
+// where that sentence goes, shown on hover and announced as the
+// accessible description. It is read on a disabled button too, which
+// is the case it exists for.
+Row {
+    spacing: Interface.space
+    KvitButton {
+        text: "Pull"
+        explanation: "Brings the 2 commits on the remote into this branch."
+    }
+    KvitButton {
+        text: "Push"; enabled: false
+        explanation: "Nothing here has been committed yet."
+    }
+    KvitButton {
+        text: "Archive"; enabled: false; danger: true
+        explanation: "The branch has work that has not been pushed."
+    }
+}
+```
+
 ### KvitChipButton
 
-KvitChip's twin for a fact that opens something. Drawn from the same tone table, so a row mixing facts that act with facts that do not reads as one row; what separates them is what a real AbstractButton has anyway — a ground that changes under the pointer, a hand cursor, a focus ring and a button role. A chip that cannot be pressed keeps its place in the tab order and says why.
+KvitChip's twin for a fact that opens something. Drawn from the same tone table, so a row mixing facts that act with facts that do not reads as one row; what separates them is what a real AbstractButton has anyway — a ground that changes under the pointer, a hand cursor, a focus ring and a button role. A chip that cannot be pressed keeps its place in the tab order and says why, a chip that can may say where it goes, and the chip whose destination is already open is drawn as the current one.
 
 | Property | Type | |
 |---|---|---|
@@ -1187,6 +1304,8 @@ KvitChip's twin for a fact that opens something. Drawn from the same tone table,
 | `trailingSymbol` | string | A symbol after the label, where the caller knows what pressing this leads to: a chevron for a list that opens beneath, an out-arrow for something that opens elsewhere. |
 | `unavailableReason` | string | Why this chip cannot be pressed, in the reader's own terms. |
 | `unavailable` | readonly bool |  |
+| `explanation` | string | One sentence saying what pressing this opens, where the label alone does not say it. |
+| `current` | bool | The chip whose destination is already open. |
 | `toneColor` | readonly color |  |
 | `lit` | readonly bool | Under the pointer or under the keyboard. |
 
@@ -1278,6 +1397,56 @@ Column {
     KvitChipButton {
         width: Interface.px(90)
         text: "A fact whose whole phrase does not fit in this column"
+    }
+}
+```
+
+*The one that is already open*
+
+```qml
+// A row of chips is a row of places to go, and one of them is where the
+// reader already is. Drawn as the current one, it stops reading as
+// somewhere to go: the selection tint under it, the accent on its edge,
+// and the label in the reader's own colour and weight — the weight
+// because the tints are two percent of lightness in the high-contrast
+// theme and nothing at all in a grayscale screenshot.
+//
+// This is not `tone: "accent"`, which says the chip is a different kind
+// of fact from the ones beside it rather than the same fact in a
+// different state.
+Row {
+    spacing: Interface.spaceNear
+    KvitChipButton { text: "3 changes"; symbol: "diff" }
+    KvitChipButton {
+        text: "1 ahead"; current: true
+        trailingSymbol: "chevron-right"
+    }
+    KvitChipButton { text: "2 behind"; trailingSymbol: "chevron-right" }
+}
+```
+
+*Where pressing one goes*
+
+```qml
+// "1 ahead" is a count. What it opens is the one commit, and a reader
+// who has not pressed one of these before has no way to know that.
+// `explanation` is that sentence; `unavailableReason` is the other one,
+// about a chip that cannot be pressed at all, and a chip moving between
+// the two states does not have to swap one string into the other's
+// property.
+Row {
+    spacing: Interface.spaceNear
+    KvitChipButton {
+        text: "1 ahead"
+        trailingSymbol: "chevron-right"
+        explanation: "Opens the one commit this branch has and the "
+                     + "remote does not."
+        Component.onCompleted: if (Window.window)
+            forceActiveFocus(Qt.TabFocusReason)
+    }
+    KvitChipButton {
+        text: "2 behind"
+        unavailableReason: "The remote has not been fetched yet."
     }
 }
 ```

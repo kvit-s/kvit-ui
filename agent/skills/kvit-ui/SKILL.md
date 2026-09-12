@@ -97,6 +97,15 @@ Space does nothing. Anything whose whole label is a symbol also needs a
 `label` in words, and that one string becomes both the tooltip and the
 accessible name.
 
+**Why a control is in the state it is in belongs on the control.** A button
+that cannot be pressed, or one whose destination the words do not give away,
+takes one sentence in `explanation` — on `KvitButton`, `KvitIconButton` and
+`KvitChipButton` — which is shown as the tooltip and announced as the
+accessible description, so a pointer reader and a screen reader are told the
+same thing. A disabled button still shows it. It is never where the label
+belongs: a control whose purpose is only in its explanation cannot be used
+without hovering it.
+
 **A symbol is asked for by meaning.** `KvitIcon { name: "chevron-right" }`,
 never a literal `›`. The catalogue lists the names. An unknown name draws a
 marked placeholder and fails the build rather than drawing nothing.

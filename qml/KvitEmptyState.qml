@@ -112,6 +112,15 @@ Item {
     // The words are the same words: a reader who has learnt what "No matched
     // transactions yet" means in the middle of a pane reads the same sentence
     // at the top of an empty section rather than a different one.
+    //
+    // It starts where the rows start, which is the one place it can start.
+    // The full form centres itself because it is the whole of an empty pane
+    // and there is nothing beside it to line up with; this form stands in for
+    // a row in a column of sections that each may be empty, and a line
+    // centred among left-aligned rows reads as a different kind of thing from
+    // the rows it replaces — a notice about the section rather than the
+    // section's contents. The inset is `Interface.space`, which is where a
+    // heading's own label starts.
     Item {
         id: line
         visible: root.compact
@@ -127,8 +136,13 @@ Item {
         // half-drawn action is a control nobody can read.
         RowLayout {
             id: lineRow
-            anchors.horizontalCenter: parent.horizontalCenter
+            objectName: "compactLine"
+            anchors.left: parent.left
+            anchors.leftMargin: Interface.space
             anchors.verticalCenter: parent.verticalCenter
+            // The right inset is kept even though nothing is anchored to it:
+            // it is what the sentence elides into, so the words stop short of
+            // the edge rather than running up against it.
             width: Math.min(implicitWidth,
                             Math.max(0, parent.width - Interface.space * 2))
             spacing: Interface.spaceNear

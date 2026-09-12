@@ -25,6 +25,10 @@ import Kvit.Ui
 // drift apart — which is the other half of Finding 1, where a control had a
 // tooltip saying one thing and an accessible name saying another. A control
 // that opens the same label in a persistent surface may suppress the tooltip.
+//
+// `explanation` is the second string, for a button that has more to say than
+// a name: why it cannot be pressed, or what pressing it opens. It goes into
+// the same two surfaces, after the label in both.
 AbstractButton {
     id: root
 
@@ -43,10 +47,32 @@ AbstractButton {
     // draws one on hover, which is what a dense toolbar wants; an ordinary one
     // carries its outline the whole time so its edges are findable.
     property string form: "quiet"
+    // Draw the symbol at 13 rather than at 18.
+    //
+    // Both sizes are the library's: `Interface.iconSize` is what a symbol
+    // standing on its own is drawn at, and `Interface.iconSizeSmall` is what a
+    // symbol sitting beside words is drawn at, which is what KvitLink,
+    // KvitNotice, KvitSelect, KvitTree, KvitMenuItem and KvitSectionHeading
+    // all already use. A strip of icon buttons across the top of a pane, or
+    // one hoisted onto a heading bar, is the second case: at 18 they read as
+    // larger than everything around them, which is what kvit-notes-pro's
+    // overview found when half its header had moved to this component and
+    // half had not.
+    property bool dense: false
     // A control that opens a labelled explanation already presents these words in
     // that surface. It can suppress the duplicate hover surface while retaining this
     // label as its accessible name.
     property bool tooltipEnabled: true
+    // One sentence saying more than the label can: why the button is disabled,
+    // or what pressing it opens. Optional, and never where the label itself
+    // should be — a button whose purpose is only in its explanation is a
+    // button nobody can use without hovering it.
+    //
+    // `label` stays the accessible name and this becomes the accessible
+    // description, which is the pair a screen reader reads in that order, and
+    // the tooltip shows the same two strings in the same order so a pointer
+    // reader and a screen reader are told the same thing.
+    property string explanation: ""
     property bool checked_: false
     property color iconColor: root.enabled ? Theme.textSecondary
                                            : Theme.textDisabled
@@ -66,13 +92,15 @@ AbstractButton {
     // tooltip in the library was one of those until this was written.
     KvitTooltip {
         objectName: "tooltip"
-        text: root.label
+        text: root.explanation === "" ? root.label
+                                      : root.label + "\n" + root.explanation
         visible: root.tooltipEnabled && (root.hovered || root.visualFocus)
                  && root.label !== ""
     }
 
     Accessible.role: Accessible.Button
     Accessible.name: label
+    Accessible.description: root.explanation
     Accessible.onPressAction: root.clicked()
 
     background: Rectangle {
@@ -106,9 +134,24 @@ AbstractButton {
         }
     }
 
-    contentItem: KvitIcon {
-        name: root.symbol
-        color: root.checked_ ? Theme.accent : root.iconColor
-        anchors.centerIn: parent
+    // The symbol inside a rectangle, rather than being the rectangle.
+    //
+    // A Control stretches its content item across its available rectangle and
+    // overwrites whatever size that item asked for, anchors and all, which is
+    // the same rule CLAUDE.md states for a content item's position. A KvitIcon
+    // used directly as the content item is therefore drawn at the button's own
+    // width — 28 by default — and its glyph at whatever that clamps down to,
+    // so there is no size a caller can ask for and no size this component
+    // could set. One Item in between is what gives the symbol a size of its
+    // own: the Item takes the stretching and the symbol is centred inside it.
+    contentItem: Item {
+        KvitIcon {
+            objectName: "symbol"
+            anchors.centerIn: parent
+            name: root.symbol
+            color: root.checked_ ? Theme.accent : root.iconColor
+            width: root.dense ? Interface.iconSizeSmall : Interface.iconSize
+            height: root.dense ? Interface.iconSizeSmall : Interface.iconSize
+        }
     }
 }

@@ -221,6 +221,37 @@ MEANINGS = [
     # each already mean something else — a document, a target, and something
     # held at the top of a list.
     ("attachment", "paperclip"),
+
+    # The eight kvit-notes-pro's overview asks for. Its section headings and
+    # its rows get their icon names from C++ — `actionIcon` on a section and
+    # `icon` on a row record — so a call site cannot rewrite them, and six of
+    # them resolved to nothing at all: the overview drew a hatched red box
+    # where the Changes heading's action should have been.
+    #
+    # `agent` and `rename` draw glyphs that already have a meaning name here,
+    # and that is the two-layer table working rather than a duplicate to
+    # remove. A robot is what an agent is drawn as and a pencil is what
+    # renaming is drawn as, and a screen about agents that asks for `robot`
+    # has written down the drawing instead of what it meant. The deliberate
+    # pairs are listed in tests/test_icons.cpp, which still fails on any
+    # other two meanings landing on one glyph.
+    #
+    # `terminal` and `chat` are a decision rather than an addition. Neither
+    # had a meaning, so both fell through to the escape hatch that resolves a
+    # Phosphor name directly, and both landed on a glyph nobody chose:
+    # `terminal` on the bare prompt rather than the window, `chat` on the
+    # square bubble rather than the round one. Naming them here is what the
+    # meaning layer is for, and it shadows the two Phosphor names the same way
+    # `link` already shadows Phosphor's `link` and `pencil` its `pencil`. The
+    # square bubble is still reachable, as `message-square`.
+    ("diff", "git-diff"),
+    ("git", "git-branch"),
+    ("agent", "robot"),
+    ("ask", "chat-teardrop-dots"),
+    ("ask-in", "arrow-bend-up-right"),
+    ("rename", "pencil-simple"),
+    ("terminal", "terminal-window"),
+    ("chat", "chat-circle"),
 ]
 
 HEADER = """// This Source Code Form is subject to the terms of the Mozilla Public

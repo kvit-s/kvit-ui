@@ -34,11 +34,12 @@ import Kvit.Ui
 // A collapsible heading opens and closes from the keyboard as well as the
 // pointer: it joins the tab order, draws the ring every other control draws,
 // and answers Return, Enter, Space and the press action a screen reader
-// offers. The hoisted action beside it is a KvitLink, which is a control of
-// its own and consumes its own keys, so the key that runs the action never
-// also collapses the group behind it — and the heading answers a key only
-// while the heading itself holds the keyboard, which is the same rule KvitRow
-// states at length.
+// offers. The hoisted action beside it is a control of its own — a KvitLink
+// showing its words, or a KvitIconButton showing its symbol where the caller
+// named one — and either consumes its own keys, so the key that runs the
+// action never also collapses the group behind it. The heading answers a key
+// only while the heading itself holds the keyboard, which is the same rule
+// KvitRow states at length.
 Item {
     id: root
 
@@ -49,11 +50,44 @@ Item {
     // The word for several of them. English adds an s and that is what this
     // falls back to; a noun that does not pluralise that way says so here.
     property string countedPlural: ""
+    // A count the caller has already written out, for a heading whose count is
+    // not a number.
+    //
+    // kvit-notes-pro's Changes heading reads "1 · +0 −0": one changed file,
+    // and the lines added and removed across it. There is no integer that
+    // says that, and the service the screen reads it from has already
+    // composed the phrase, so `count` and `counted` have nothing to work
+    // with. Anything given here is drawn as written — no grouping, no
+    // pluralising, no locale — because the caller has already decided all
+    // three.
+    //
+    // It sits beside the name rather than at the right end, which is where an
+    // integer count goes. The two are in different places because they are
+    // different things to a reader: a tally of how many rows are under the
+    // heading is something to glance at, and it is the same glance in every
+    // heading down the column, whereas a phrase the caller composed is part
+    // of what the group is and reads as an extension of its name. Setting
+    // this leaves the right end empty, so a heading cannot show two counts.
+    property string countText: ""
     // The kind of thing the group holds, said beside the name where the name
     // alone does not say it.
     property string kind: ""
     // The hoisted action, true for every row in the group. Empty for none.
     property string action: ""
+    // Draw that action as a symbol instead of as its words.
+    //
+    // A heading whose action is "Open the diff for all of them" spends more of
+    // the bar on the action than on the name of the group, and a column of
+    // eight headings each ending in a different sentence is a column a reader
+    // has to read rather than scan. A symbol is the same action in the width
+    // of one glyph. The words do not go anywhere: they stay in `action`, which
+    // becomes the button's accessible name and its tooltip, so the action is
+    // still reachable and still says what it does.
+    //
+    // Only for an action a symbol can actually carry — a diff, a plus, a
+    // terminal. An action with no obvious symbol keeps its words, which is
+    // what leaving this empty does.
+    property string actionSymbol: ""
     property bool strong: false
     property bool expanded: true
     property bool collapsible: false
@@ -78,6 +112,10 @@ Item {
     // while the count is still handed to qsTr so the choice of plural form
     // stays Qt's and a translator gets every form the language has.
     readonly property string countPhrase: {
+        // A phrase the caller wrote is the count, and it is drawn beside the
+        // name. Nothing goes at the right end as well.
+        if (root.countText !== "")
+            return ""
         if (root.count < 0)
             return ""
         const grouped = Number(root.count).toLocaleString(Qt.locale(), 'f', 0)
@@ -195,6 +233,15 @@ Item {
             font.bold: root.strong
         }
         KvitLabel {
+            objectName: "countText"
+            visible: root.countText !== ""
+            text: root.countText
+            role: "small"
+            color: Theme.textFaint
+            tabular: true
+            elide: Text.ElideNone
+        }
+        KvitLabel {
             Layout.fillWidth: true
             visible: root.kind !== ""
             text: root.kind
@@ -212,10 +259,31 @@ Item {
         KvitLink {
             objectName: "action"
             Layout.leftMargin: Interface.stackGap
-            visible: root.action !== ""
+            visible: root.action !== "" && root.actionSymbol === ""
             text: root.action
             role: "small"
             onActivated: root.actioned()
+        }
+        KvitIconButton {
+            objectName: "actionButton"
+            Layout.leftMargin: Interface.stackGap
+            // The bar is one compact row tall and the button draws its focus
+            // ring outside its own ground, so anything taller than the row
+            // less a ring on each side has its ring cut off by the rows above
+            // and below.
+            Layout.preferredWidth: Interface.rowHeightCompact
+                                   - Interface.focusRingWidth * 2
+            Layout.preferredHeight: Interface.rowHeightCompact
+                                    - Interface.focusRingWidth * 2
+            visible: root.action !== "" && root.actionSymbol !== ""
+            // `dot` while there is no symbol to draw: this button is hidden
+            // then, and a KvitIcon given a name it does not know draws its
+            // marked placeholder and writes a warning whether or not anybody
+            // can see it.
+            symbol: root.actionSymbol === "" ? "dot" : root.actionSymbol
+            label: root.action
+            dense: true
+            onClicked: root.actioned()
         }
     }
 }
