@@ -34,6 +34,23 @@ Rectangle {
     // is the point of the row.
     property bool strong: false
     property string symbol: ""
+    // One sentence saying what the word on the chip means and what the reader
+    // is expected to do about it.
+    //
+    // A chip is one word, and one word is enough for a chip that names a kind
+    // of thing. It is not enough for a chip that names a state somebody has to
+    // act on: "stale" is a word, and what it stands for is that the note
+    // changed under a staged edit and redoing it against the note as it stands
+    // is the way out of that. Without somewhere to put that sentence a call
+    // site hangs a tooltip beside the chip and assembles an accessible name by
+    // hand, which is how the same state ends up described in two places and
+    // two ways.
+    //
+    // Shown as the tooltip and announced as the accessible description, the
+    // terms KvitButton, KvitIconButton, KvitLink, KvitChipButton and KvitTab
+    // all carry it on. It is never where the word belongs: a chip whose
+    // meaning is only in its explanation cannot be read on a touch screen.
+    property string explanation: ""
 
     readonly property color toneColor: {
         switch (tone) {
@@ -58,6 +75,21 @@ Rectangle {
 
     Accessible.role: Accessible.StaticText
     Accessible.name: root.text
+    Accessible.description: root.explanation
+
+    // A chip is a rectangle rather than a control, so there is no `hovered`
+    // and no `visualFocus` to read: the handler is how the words reach a
+    // pointer.
+    HoverHandler {
+        id: explanationHover
+        enabled: root.explanation !== ""
+    }
+
+    KvitTooltip {
+        objectName: "tooltip"
+        text: root.explanation
+        visible: root.explanation !== "" && explanationHover.hovered
+    }
 
     Row {
         id: content

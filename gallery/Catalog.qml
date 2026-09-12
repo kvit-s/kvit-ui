@@ -321,6 +321,10 @@ QtObject {
                     "caption": "Every tone, tinted and filled",
                     "snippet": "Column {\n    spacing: Interface.space\n    Row {\n        spacing: Interface.spaceNear\n        KvitChip { text: \"neutral\" }\n        KvitChip { text: \"accent\"; tone: \"accent\" }\n        KvitChip { text: \"success\"; tone: \"success\" }\n        KvitChip { text: \"warning\"; tone: \"warning\" }\n        KvitChip { text: \"danger\"; tone: \"danger\" }\n        KvitChip { text: \"info\"; tone: \"info\" }\n    }\n    Row {\n        spacing: Interface.spaceNear\n        KvitChip { text: \"settled\"; tone: \"success\"; strong: true }\n        KvitChip { text: \"disputed\"; tone: \"danger\"; strong: true; symbol: \"warning\" }\n    }\n}"
                 },
+                {
+                    "caption": "A state whose word is not enough to act on",
+                    "snippet": "// A chip that names a kind of thing is finished at its word. A chip that\n// names a state somebody has to act on is not, and `explanation` is where\n// the rest of it goes: shown in the tooltip and announced as the\n// accessible description, so both readers are told the same thing.\nRow {\n    spacing: Interface.spaceNear\n    KvitChip {\n        text: \"stale\"\n        tone: \"warning\"\n        explanation: \"The note changed since this was staged. Update redoes \"\n                     + \"it against the note as it stands now.\"\n    }\n    KvitChip {\n        text: \"read only\"\n        explanation: \"Another session holds the write lease on this copy, \"\n                     + \"so this turn only reads.\"\n    }\n}"
+                },
             ]
         },
         {
@@ -813,6 +817,10 @@ QtObject {
                 {
                     "caption": "Ordinary, disabled and destructive",
                     "snippet": "Item {\n    id: stage\n    width: parent.width; height: Interface.px(110)\n    KvitMenu {\n        id: menu\n        // Only once the item is in a window: popping a menu on an item\n        // with no window is a crash rather than a no-op.\n        Component.onCompleted: if (stage.Window.window) menu.popup(stage, 0, 0)\n        KvitMenuItem { text: \"Reconcile\"; symbol: \"check\"; shortcut: \"Ctrl+R\" }\n        KvitMenuItem { text: \"Split\"; symbol: \"split\"; enabled: false }\n        KvitMenuItem { text: \"Delete\"; symbol: \"trash\"; destructive: true }\n    }\n}"
+                },
+                {
+                    "caption": "The chosen one of a set, and an entry with a sentence",
+                    "snippet": "// The chosen entry of a set is drawn as chosen by the component: a tick\n// in the same gutter a symbol would use, the label in bold beside it, and\n// the checked state announced rather than spelled into the label. An\n// entry whose words cannot say what choosing it does takes a sentence.\nItem {\n    id: stage\n    width: parent.width; height: Interface.px(150)\n    KvitMenu {\n        id: menu\n        // Only once the item is in a window: popping a menu on an item\n        // with no window is a crash rather than a no-op.\n        Component.onCompleted: if (stage.Window.window) menu.popup(stage, 0, 0)\n        KvitMenuItem {\n            text: \"Apply\"\n            symbol: \"check\"\n            explanation: \"Writes the change into the note as one undo step.\"\n        }\n        MenuSeparator {}\n        KvitMenuItem { text: \"Fast\"; checkable: true; checked: true }\n        KvitMenuItem { text: \"Careful\"; checkable: true }\n    }\n}"
                 },
             ]
         },

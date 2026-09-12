@@ -22,6 +22,13 @@ MenuItem {
     property string symbol: ""
     property string shortcut: ""
     property bool destructive: false
+    // One sentence saying what choosing this does, for an entry whose words
+    // cannot say it: that applying a staged change writes it into the note as
+    // one undo step, that discarding it tells the agent the change was
+    // rejected. Shown as the tooltip and announced as the accessible
+    // description, the terms every other acting component in the vocabulary
+    // carries it on, and never where the label belongs.
+    property string explanation: ""
 
     implicitHeight: Interface.rowHeightSlim
     implicitWidth: Math.max(Interface.px(180),
@@ -30,11 +37,34 @@ MenuItem {
 
     Accessible.role: Accessible.MenuItem
     Accessible.name: root.text
-    Accessible.description: root.shortcut
+    // The shortcut and the sentence are both descriptions of the same entry,
+    // so they are announced together rather than one of them replacing the
+    // other.
+    Accessible.description: root.explanation === "" ? root.shortcut
+                          : root.shortcut === "" ? root.explanation
+                          : root.explanation + " " + root.shortcut
+    // An entry drawn as the chosen one has to say so. Without these a screen
+    // reader announces the profile in use exactly like the four that are not.
+    Accessible.checkable: root.checkable || root.checked
+    Accessible.checked: root.checked
+
+    KvitTooltip {
+        objectName: "tooltip"
+        text: root.explanation
+        visible: root.explanation !== ""
+                 && (root.hovered || root.highlighted)
+    }
 
     background: Rectangle {
         color: root.highlighted ? Theme.hoverTint : "transparent"
     }
+
+    // The check is drawn here rather than left to the host application's
+    // style. A MenuItem's own indicator comes from whichever style the
+    // application installed, lands in the same left gutter this puts its
+    // symbol in, and is therefore a different mark in each of the four
+    // applications and sometimes two marks in one place.
+    indicator: null
 
     contentItem: Item {
         KvitIcon {
@@ -42,9 +72,14 @@ MenuItem {
             anchors.left: parent.left
             anchors.leftMargin: Interface.space
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.symbol !== ""
-            name: root.symbol === "" ? "dot" : root.symbol
-            color: root.destructive ? Theme.danger : Theme.textMuted
+            visible: root.symbol !== "" || root.checked
+            // An entry that is the chosen one is marked as chosen whatever
+            // else it would have shown, since the state is the thing the
+            // reader is scanning the list for.
+            name: root.checked ? "check"
+                : root.symbol === "" ? "dot" : root.symbol
+            color: root.checked ? Theme.accent
+                 : root.destructive ? Theme.danger : Theme.textMuted
             implicitWidth: Interface.iconSizeSmall
             implicitHeight: Interface.iconSizeSmall
         }
@@ -57,6 +92,10 @@ MenuItem {
             anchors.verticalCenter: parent.verticalCenter
             text: root.text
             role: "body"
+            // Two channels for the chosen entry rather than the mark alone:
+            // the weight as well as the tick, so the entry in use is still
+            // the one that stands out in a grayscale capture.
+            font.bold: root.checked
             color: !root.enabled ? Theme.textDisabled
                  : root.destructive ? Theme.danger
                  : Theme.textPrimary

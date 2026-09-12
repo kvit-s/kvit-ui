@@ -1040,6 +1040,7 @@ A small labelled mark saying what kind of thing this is or what state it is in. 
 | `tone` | string | "neutral" \| "accent" \| "success" \| "warning" \| "danger" \| "info" |
 | `strong` | bool | A filled chip rather than a tinted one, for the one chip on a row that is the point of the row. |
 | `symbol` | string |  |
+| `explanation` | string | One sentence saying what the word on the chip means and what the reader is expected to do about it. |
 | `toneColor` | readonly color |  |
 
 *Every tone, tinted and filled*
@@ -1060,6 +1061,29 @@ Column {
         spacing: Interface.spaceNear
         KvitChip { text: "settled"; tone: "success"; strong: true }
         KvitChip { text: "disputed"; tone: "danger"; strong: true; symbol: "warning" }
+    }
+}
+```
+
+*A state whose word is not enough to act on*
+
+```qml
+// A chip that names a kind of thing is finished at its word. A chip that
+// names a state somebody has to act on is not, and `explanation` is where
+// the rest of it goes: shown in the tooltip and announced as the
+// accessible description, so both readers are told the same thing.
+Row {
+    spacing: Interface.spaceNear
+    KvitChip {
+        text: "stale"
+        tone: "warning"
+        explanation: "The note changed since this was staged. Update redoes "
+                     + "it against the note as it stands now."
+    }
+    KvitChip {
+        text: "read only"
+        explanation: "Another session holds the write lease on this copy, "
+                     + "so this turn only reads."
     }
 }
 ```
@@ -2537,6 +2561,7 @@ One line of a menu, carrying its shortcut on the right — which is how a menu t
 | `symbol` | string |  |
 | `shortcut` | string |  |
 | `destructive` | bool |  |
+| `explanation` | string | One sentence saying what choosing this does, for an entry whose words cannot say it: that applying a staged change writes it into the note as one undo step, that discarding it tells the agent the change was rejected. |
 
 *Ordinary, disabled and destructive*
 
@@ -2552,6 +2577,33 @@ Item {
         KvitMenuItem { text: "Reconcile"; symbol: "check"; shortcut: "Ctrl+R" }
         KvitMenuItem { text: "Split"; symbol: "split"; enabled: false }
         KvitMenuItem { text: "Delete"; symbol: "trash"; destructive: true }
+    }
+}
+```
+
+*The chosen one of a set, and an entry with a sentence*
+
+```qml
+// The chosen entry of a set is drawn as chosen by the component: a tick
+// in the same gutter a symbol would use, the label in bold beside it, and
+// the checked state announced rather than spelled into the label. An
+// entry whose words cannot say what choosing it does takes a sentence.
+Item {
+    id: stage
+    width: parent.width; height: Interface.px(150)
+    KvitMenu {
+        id: menu
+        // Only once the item is in a window: popping a menu on an item
+        // with no window is a crash rather than a no-op.
+        Component.onCompleted: if (stage.Window.window) menu.popup(stage, 0, 0)
+        KvitMenuItem {
+            text: "Apply"
+            symbol: "check"
+            explanation: "Writes the change into the note as one undo step."
+        }
+        MenuSeparator {}
+        KvitMenuItem { text: "Fast"; checkable: true; checked: true }
+        KvitMenuItem { text: "Careful"; checkable: true }
     }
 }
 ```
