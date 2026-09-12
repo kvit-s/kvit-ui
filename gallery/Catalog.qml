@@ -72,7 +72,7 @@ QtObject {
         {
             "name": "KvitLink",
             "group": "Foundation",
-            "summary": "An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented.",
+            "summary": "An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented. `explanation` says in a sentence where following it goes, shown as the tooltip and announced as the accessible description.",
             "specimens": [
                 {
                     "caption": "Plain, symbolic and keyboard-focused",
@@ -188,7 +188,7 @@ QtObject {
         {
             "name": "KvitSectionHeading",
             "group": "Content",
-            "summary": "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `countText` and is drawn beside the name as written; `actionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.",
+            "summary": "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `countText` and is drawn beside the name as written; `actionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `actionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.",
             "specimens": [
                 {
                     "caption": "Collapsible, counted, with an action",
@@ -201,6 +201,10 @@ QtObject {
                 {
                     "caption": "A written count, and an action drawn as a symbol",
                     "snippet": "// Some counts are not numbers. A Changes heading reads \"1 · +0 −0\" —\n// one changed file, and the lines added and removed across it — which\n// the service composes and hands over already written, and which no\n// integer expresses. `countText` is drawn exactly as given, beside the\n// name rather than at the right end where a number goes.\n//\n// `actionSymbol` draws the hoisted action as a symbol. The words stay\n// in `action` and become the button's accessible name and its tooltip,\n// so nothing is lost by a reader who cannot see the symbol; what is\n// gained is a column of headings a reader can scan rather than read.\nColumn {\n    width: parent.width\n    spacing: Interface.space\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Changes\"; countText: \"1 · +0 −0\"\n        action: \"Open the diff\"; actionSymbol: \"diff\"\n        collapsible: true\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Agents\"; countText: \"2 running\"\n        action: \"Start an agent\"; actionSymbol: \"plus\"\n        collapsible: true\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Terminal\"\n        action: \"Open a terminal\"; actionSymbol: \"terminal\"\n    }\n}"
+                },
+                {
+                    "caption": "What the action does, in a sentence",
+                    "snippet": "// An action drawn as a symbol has nowhere to say what it does beyond its\n// own name, and \"Start an agent\" leaves out the part a reader wants\n// before pressing it. `actionExplanation` is the sentence beside the\n// name, on the button rather than on the heading: a heading is not\n// something a reader presses, and a sentence announced there would be\n// read out on arriving at the group instead of on reaching the action.\n//\n// Hover either button, or tab to it, to read it. It is the accessible\n// description too, which a screen reader reads after the name.\nColumn {\n    width: parent.width\n    spacing: Interface.space\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Agents\"; countText: \"2 running\"\n        action: \"Start an agent\"; actionSymbol: \"plus\"\n        actionExplanation: \"Creates an agent at this project\u2019s root. An agent may change files. Nothing runs until you send its first message.\"\n        collapsible: true\n    }\n    KvitSectionHeading {\n        width: parent.width\n        text: \"Changes\"; countText: \"1 \u00b7 +0 \u22120\"\n        action: \"Review all\"\n        actionExplanation: \"Opens every changed file as one diff.\"\n        collapsible: true\n    }\n}"
                 },
             ]
         },

@@ -18,6 +18,15 @@ AbstractButton {
     property string symbol: ""
     property string role: "body"
     property int elide: Text.ElideRight
+    // One sentence saying where following this goes, beside its own words.
+    //
+    // The same property KvitButton, KvitIconButton and KvitChipButton carry,
+    // for the same reason and drawn the same way: shown as the tooltip and
+    // announced as the accessible description, so a pointer reader and a
+    // screen reader are told the same thing. A link's words are visible
+    // already, so this is never where its purpose belongs — it is for a
+    // destination the words alone do not describe.
+    property string explanation: ""
 
     signal activated()
 
@@ -30,7 +39,15 @@ AbstractButton {
 
     Accessible.role: Accessible.Link
     Accessible.name: root.text
+    Accessible.description: root.explanation
     Accessible.onPressAction: root.clicked()
+
+    KvitTooltip {
+        objectName: "tooltip"
+        text: root.explanation
+        visible: root.explanation !== ""
+                 && (root.hovered || root.visualFocus)
+    }
 
     onClicked: root.activated()
 

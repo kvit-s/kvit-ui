@@ -88,6 +88,20 @@ Item {
     // terminal. An action with no obvious symbol keeps its words, which is
     // what leaving this empty does.
     property string actionSymbol: ""
+    // One sentence saying what running the action does, beside its words.
+    //
+    // The same property every acting component in the library has, reaching
+    // the control the heading draws for the action rather than the heading
+    // itself: a heading is not something a reader presses, and a sentence
+    // announced on it would be read out on arriving at the group rather than
+    // on reaching the thing it describes. `action` stays the name in both
+    // forms and this is the description beside it, which is the pair a
+    // screen reader reads in that order.
+    //
+    // It matters most in the symbolic form, where the words are already
+    // hidden behind a glyph and the tooltip is the only place a pointer
+    // reader meets them at all.
+    property string actionExplanation: ""
     property bool strong: false
     property bool expanded: true
     property bool collapsible: false
@@ -261,6 +275,7 @@ Item {
             Layout.leftMargin: Interface.stackGap
             visible: root.action !== "" && root.actionSymbol === ""
             text: root.action
+            explanation: root.actionExplanation
             role: "small"
             onActivated: root.actioned()
         }
@@ -282,6 +297,7 @@ Item {
             // can see it.
             symbol: root.actionSymbol === "" ? "dot" : root.actionSymbol
             label: root.action
+            explanation: root.actionExplanation
             dense: true
             onClicked: root.actioned()
         }

@@ -186,13 +186,14 @@ Row {
 
 ### KvitLink
 
-An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented.
+An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented. `explanation` says in a sentence where following it goes, shown as the tooltip and announced as the accessible description.
 
 | Property | Type | |
 |---|---|---|
 | `symbol` | string |  |
 | `role` | string |  |
 | `elide` | int |  |
+| `explanation` | string | One sentence saying where following this goes, beside its own words. |
 
 *Plain, symbolic and keyboard-focused*
 
@@ -581,7 +582,7 @@ KvitWindow {
 
 ### KvitSectionHeading
 
-A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `countText` and is drawn beside the name as written; `actionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
+A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `countText` and is drawn beside the name as written; `actionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `actionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
 
 | Property | Type | |
 |---|---|---|
@@ -593,6 +594,7 @@ A group heading: a filled bar with a disclosure chevron, the name, what the grou
 | `kind` | string | The kind of thing the group holds, said beside the name where the name alone does not say it. |
 | `action` | string | The hoisted action, true for every row in the group. |
 | `actionSymbol` | string | Draw that action as a symbol instead of as its words. |
+| `actionExplanation` | string | One sentence saying what running the action does, beside its words. |
 | `strong` | bool |  |
 | `expanded` | bool |  |
 | `collapsible` | bool |  |
@@ -681,6 +683,38 @@ Column {
         width: parent.width
         text: "Terminal"
         action: "Open a terminal"; actionSymbol: "terminal"
+    }
+}
+```
+
+*What the action does, in a sentence*
+
+```qml
+// An action drawn as a symbol has nowhere to say what it does beyond its
+// own name, and "Start an agent" leaves out the part a reader wants
+// before pressing it. `actionExplanation` is the sentence beside the
+// name, on the button rather than on the heading: a heading is not
+// something a reader presses, and a sentence announced there would be
+// read out on arriving at the group instead of on reaching the action.
+//
+// Hover either button, or tab to it, to read it. It is the accessible
+// description too, which a screen reader reads after the name.
+Column {
+    width: parent.width
+    spacing: Interface.space
+    KvitSectionHeading {
+        width: parent.width
+        text: "Agents"; countText: "2 running"
+        action: "Start an agent"; actionSymbol: "plus"
+        actionExplanation: "Creates an agent at this project’s root. An agent may change files. Nothing runs until you send its first message."
+        collapsible: true
+    }
+    KvitSectionHeading {
+        width: parent.width
+        text: "Changes"; countText: "1 · +0 −0"
+        action: "Review all"
+        actionExplanation: "Opens every changed file as one diff."
+        collapsible: true
     }
 }
 ```
