@@ -78,6 +78,7 @@ private slots:
     void testTheStatusBarKeepsWhatDoesNotFitReachable();
     void testTheStatusBarCanPutItsGroupsFirst();
     void testTheStatusBarSurvivesItsGroupsBeingReplaced();
+    void testAStatusBarFactSaysWhatItsWordsDoNot();
 
 private:
     static QStringList componentUrls();
@@ -3127,6 +3128,131 @@ void TestComponents::testTheStatusBarSurvivesItsGroupsBeingReplaced()
     QVERIFY2(g_warnings.isEmpty(),
              qPrintable(QStringLiteral("narrowing a replaced bar wrote:\n  %1")
                             .arg(g_warnings.join(QStringLiteral("\n  ")))));
+}
+
+void TestComponents::testAStatusBarFactSaysWhatItsWordsDoNot()
+{
+    // The sentence beside a fact that its words do not say.
+    //
+    // A fact on this bar is a name -- an agent, a command, a file -- and what
+    // a reader wants beside it is the state that name is in: "queued behind 2
+    // others", "12s remaining". The bar drew the name and had nowhere to put
+    // the state, so an application migrating onto it either drew the state as
+    // a second label the design does not have, or dropped it and stopped
+    // announcing it to a screen reader.
+    //
+    // `explanation` is that sentence, on the terms every other acting
+    // component in this vocabulary already carries it: the tooltip and the
+    // accessible description, never the label. A fact reached from the
+    // overflow menu says the same thing, because it is the same fact.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 900
+            height: 120
+            KvitStatusBar {
+                id: bar
+                objectName: "bar"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                groupsAt: "left"
+                groups: [
+                    {
+                        "label": "",
+                        "facts": [
+                            { "text": "keyboard review",
+                              "symbol": "question",
+                              "explanation": "Waiting for an answer since 14:02" }
+                        ]
+                    },
+                    {
+                        "label": "",
+                        "facts": [
+                            { "text": "Build and test",
+                              "symbol": "robot",
+                              "explanation": "queued behind 2 others" }
+                        ]
+                    }
+                ]
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/status-explanation.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto *bar = window->findChild<QQuickItem *>(QStringLiteral("bar"));
+    QVERIFY(bar);
+    QTRY_COMPARE(bar->property("shownGroups").toInt(), 2);
+
+    // On the bar: the label is the name alone, and the sentence is the
+    // description a screen reader is given beside it.
+    const QList<QQuickItem *> facts = itemsNamed(bar, QStringLiteral("fact"));
+    QCOMPARE(facts.size(), 2);
+    QCOMPARE(facts.first()->property("text").toString(),
+             QStringLiteral("keyboard review"));
+    QCOMPARE(facts.first()->property("explanation").toString(),
+             QStringLiteral("Waiting for an answer since 14:02"));
+    QAccessibleInterface *reachable =
+        QAccessible::queryAccessibleInterface(facts.first());
+    QVERIFY(reachable);
+    QCOMPARE(reachable->text(QAccessible::Name),
+             QStringLiteral("keyboard review"));
+    QCOMPARE(reachable->text(QAccessible::Description),
+             QStringLiteral("Waiting for an answer since 14:02"));
+
+    // In the menu: the same sentence, on the same terms. Narrow the window
+    // until neither group fits, so both facts are in the overflow.
+    window->setWidth(150);
+    QTRY_COMPARE(bar->property("shownGroups").toInt(), 0);
+    const QVariantList hidden = bar->property("hiddenFacts").toList();
+    QCOMPARE(hidden.size(), 2);
+    QCOMPARE(hidden.at(0).toMap().value(QStringLiteral("explanation")).toString(),
+             QStringLiteral("Waiting for an answer since 14:02"));
+
+    QObject *menu = bar->findChild<QObject *>(QStringLiteral("overflowMenu"));
+    QVERIFY(menu);
+    QTRY_COMPARE(menu->property("count").toInt(), 2);
+    QQuickItem *entry = nullptr;
+    QVERIFY(QMetaObject::invokeMethod(menu, "itemAt",
+                                      Q_RETURN_ARG(QQuickItem *, entry),
+                                      Q_ARG(int, 1)));
+    QVERIFY(entry);
+    QCOMPARE(entry->property("text").toString(), QStringLiteral("Build and test"));
+    QCOMPARE(entry->property("explanation").toString(),
+             QStringLiteral("queued behind 2 others"));
+
+    // A fact that leaves it out is unchanged: no tooltip, and nothing
+    // announced where there is nothing to say.
+    QQmlExpression plain(
+        qmlContext(window), window,
+        QStringLiteral(R"(bar.groups = [{ "label": "",
+                                          "facts": [{ "text": "1,284 notes",
+                                                      "symbol": "note" }] }])"));
+    plain.evaluate();
+    QVERIFY2(!plain.hasError(), qPrintable(plain.error().toString()));
+    window->setWidth(900);
+    QTRY_COMPARE(bar->property("shownGroups").toInt(), 1);
+    const QList<QQuickItem *> after = itemsNamed(bar, QStringLiteral("fact"));
+    QCOMPARE(after.size(), 1);
+    QCOMPARE(after.first()->property("explanation").toString(), QString());
+    auto *tooltip = after.first()->findChild<QObject *>(QStringLiteral("tooltip"));
+    if (tooltip)
+        QVERIFY(!tooltip->property("visible").toBool());
 }
 
 QTEST_MAIN(TestComponents)

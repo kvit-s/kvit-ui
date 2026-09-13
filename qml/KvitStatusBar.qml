@@ -74,9 +74,15 @@ Rectangle {
     // between.
     property var facts: []
     // Groups of facts that do something. Each entry is
-    // `{ label, facts: [{ text, symbol }] }`; `label` names what the group is
-    // about — "Waiting on you", "Running" — and may be empty for a group that
-    // needs no heading.
+    // `{ label, facts: [{ text, symbol, explanation }] }`; `label` names what
+    // the group is about — "Waiting on you", "Running" — and may be empty for
+    // a group that needs no heading.
+    //
+    // A fact's `explanation` is the one sentence its words do not say: what
+    // state the thing it names is in, what pressing it opens. It is shown as
+    // the tooltip and announced as the accessible description, which is the
+    // pair every other acting component in the vocabulary carries it on. It
+    // is optional, and a fact whose words say everything leaves it out.
     property var groups: []
     // One or two controls, after the facts. An action that is not a fact —
     // the undo that reverses the last change — needs a real control rather
@@ -130,7 +136,10 @@ Rectangle {
                         ? text
                         : qsTr("%1 — %2", "a status-bar group and one of its facts")
                               .arg(groupLabel).arg(text),
-                    "symbol": facts[f].symbol !== undefined ? facts[f].symbol : ""
+                    "symbol": facts[f].symbol !== undefined ? facts[f].symbol : "",
+                    // A fact says the same thing in the menu as on the bar.
+                    "explanation": facts[f].explanation !== undefined
+                        ? facts[f].explanation : ""
                 })
             }
         }
@@ -233,6 +242,7 @@ Rectangle {
                 required property var modelData
                 text: modelData.label
                 symbol: modelData.symbol
+                explanation: modelData.explanation
                 onTriggered: root.factActivated(modelData.group, modelData.fact)
             }
             onObjectAdded: (index, object) => overflowMenu.insertItem(index, object)
@@ -354,6 +364,8 @@ Rectangle {
                                       ? modelData.text : ""
                                 symbol: modelData.symbol !== undefined
                                         ? modelData.symbol : ""
+                                explanation: modelData.explanation !== undefined
+                                             ? modelData.explanation : ""
                                 elide: Text.ElideNone
                                 onActivated: root.factActivated(wrapper.index,
                                                                 index)
