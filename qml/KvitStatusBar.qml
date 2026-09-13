@@ -338,7 +338,17 @@ Rectangle {
                                 required property var modelData
                                 required property int index
 
-                                anchors.verticalCenter: parent.verticalCenter
+                                // Guarded because a Repeater unparents a
+                                // delegate before it destroys it, and this
+                                // binding re-evaluates in that window. Every
+                                // replacement of `groups` otherwise wrote one
+                                // `Cannot read property 'verticalCenter' of
+                                // null` per fact -- invisible on the screen,
+                                // and enough to fail a consuming application
+                                // whose test gate refuses any run that wrote
+                                // a QML warning.
+                                anchors.verticalCenter: parent
+                                    ? parent.verticalCenter : undefined
                                 role: "caption"
                                 text: modelData.text !== undefined
                                       ? modelData.text : ""

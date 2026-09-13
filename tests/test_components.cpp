@@ -9,6 +9,8 @@
 #include <QQmlComponent>
 #include <QRegularExpression>
 #include <QQmlEngine>
+#include <QQmlExpression>
+#include <QQmlContext>
 #include <QQuickWindow>
 
 #include <functional>
@@ -75,6 +77,7 @@ private slots:
     void testAnEmptySectionSaysSoOnOneLine();
     void testTheStatusBarKeepsWhatDoesNotFitReachable();
     void testTheStatusBarCanPutItsGroupsFirst();
+    void testTheStatusBarSurvivesItsGroupsBeingReplaced();
 
 private:
     static QStringList componentUrls();
@@ -2926,6 +2929,204 @@ void TestComponents::testTheStatusBarCanPutItsGroupsFirst()
     window->setWidth(200);
     QTRY_COMPARE(left->property("shownGroups").toInt(),
                  right->property("shownGroups").toInt());
+}
+
+void TestComponents::testTheStatusBarSurvivesItsGroupsBeingReplaced()
+{
+    // A bar whose groups change while it is on the screen.
+    //
+    // The gallery gives its specimens one array and never changes it, so
+    // nothing here had ever replaced a bar's groups. A consuming application
+    // replaces them whenever the work the bar reports changes, which for a
+    // status bar is constantly, and every replacement wrote one warning per
+    // fact:
+    //
+    //     TypeError: Cannot read property 'verticalCenter' of null
+    //
+    // The bar drew correctly before and after, so nothing on the screen said
+    // anything was wrong. What it cost was the consuming application, whose
+    // test gate fails any run that produced a QML warning: adopting this
+    // component took that suite from three failing registrations to eight.
+    //
+    // The cause is that a Repeater unparents a delegate before destroying it,
+    // and a delegate anchored to `parent` re-evaluates that binding in the
+    // window where `parent` is null. So the check here is not that the bar
+    // still draws -- it always did -- but that the console stays clean.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 900
+            height: 200
+
+            property var reported: [
+                {
+                    "label": "Waiting on you",
+                    "facts": [
+                        { "text": "3 reviews", "symbol": "question" },
+                        { "text": "1 conflict", "symbol": "warning" }
+                    ]
+                },
+                {
+                    "label": "Running",
+                    "facts": [{ "text": "2 agents", "symbol": "robot" }]
+                }
+            ]
+            property var plain: ["1,284 notes", "last synced 14:02"]
+            property int lastGroup: -1
+            property int lastFact: -1
+            property int presses: 0
+
+            Column {
+                anchors.fill: parent
+
+                KvitStatusBar {
+                    objectName: "trailing"
+                    width: parent.width
+                    activity: "Indexing 4 of 26 working copies"
+                    groups: window.reported
+                    facts: window.plain
+                    onFactActivated: (group, fact) => {
+                        window.lastGroup = group
+                        window.lastFact = fact
+                        window.presses += 1
+                    }
+                }
+                KvitStatusBar {
+                    objectName: "leading"
+                    width: parent.width
+                    groupsAt: "left"
+                    activity: "Indexing 4 of 26 working copies"
+                    groups: window.reported
+                    facts: window.plain
+                    onFactActivated: (group, fact) => {
+                        window.lastGroup = group
+                        window.lastFact = fact
+                        window.presses += 1
+                    }
+                }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/status-replaced.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    auto bar = [window](const char *name) {
+        return window->findChild<QQuickItem *>(QLatin1String(name));
+    };
+    QVERIFY(bar("trailing"));
+    QVERIFY(bar("leading"));
+    QTRY_COMPARE(bar("trailing")->property("shownGroups").toInt(), 2);
+    QTRY_COMPARE(bar("leading")->property("shownGroups").toInt(), 2);
+
+    // Four replacements, because they tear down different things: a group
+    // dropped, a fact dropped from inside a group that stays, a group added
+    // back, and everything taken away at once. The plain facts beside the
+    // groups are replaced with them, since those are a repeater too.
+    const QList<QPair<QString, QString>> rounds{
+        { QStringLiteral("one group instead of two"),
+          QStringLiteral(R"([{ "label": "Running",
+                               "facts": [{ "text": "2 agents",
+                                           "symbol": "robot" }] }])") },
+        { QStringLiteral("a fact dropped from a group that stays"),
+          QStringLiteral(R"([{ "label": "Running",
+                               "facts": [{ "text": "1 agent",
+                                           "symbol": "robot" },
+                                         { "text": "4 queued",
+                                           "symbol": "clock" }] }])") },
+        { QStringLiteral("three groups where there was one"),
+          QStringLiteral(R"([{ "label": "Waiting on you",
+                               "facts": [{ "text": "9 reviews",
+                                           "symbol": "question" }] },
+                             { "label": "Running",
+                               "facts": [{ "text": "2 agents",
+                                           "symbol": "robot" }] },
+                             { "label": "Failed",
+                               "facts": [{ "text": "1 run",
+                                           "symbol": "warning" }] }])") },
+        { QStringLiteral("nothing left to report"), QStringLiteral("[]") },
+    };
+
+    int round = 0;
+    for (const auto &[what, groups] : rounds) {
+        g_warnings.clear();
+        QQmlExpression assign(
+            qmlContext(window), window,
+            QStringLiteral("reported = %1; plain = [\"%2 notes\"]")
+                .arg(groups).arg(1000 + round));
+        assign.evaluate();
+        QVERIFY2(!assign.hasError(), qPrintable(assign.error().toString()));
+        QCoreApplication::processEvents();
+        QTest::qWait(50);
+        QCoreApplication::processEvents();
+        QVERIFY2(g_warnings.isEmpty(),
+                 qPrintable(QStringLiteral("replacing the groups with %1 wrote:\n  %2")
+                                .arg(what, g_warnings.join(QStringLiteral("\n  ")))));
+        ++round;
+    }
+
+    // The reason for the anchor has not gone away: a fact still sits on the
+    // bar's vertical centre, at either end.
+    g_warnings.clear();
+    QQmlExpression restore(
+        qmlContext(window), window,
+        QStringLiteral(R"(reported = [{ "label": "Running",
+                                        "facts": [{ "text": "2 agents",
+                                                    "symbol": "robot" }] }])"));
+    restore.evaluate();
+    QVERIFY2(!restore.hasError(), qPrintable(restore.error().toString()));
+    QCoreApplication::processEvents();
+    for (const char *name : { "trailing", "leading" }) {
+        QQuickItem *item = bar(name);
+        QTRY_COMPARE(itemsNamed(item, QStringLiteral("fact")).size(), 1);
+        QQuickItem *fact = itemsNamed(item, QStringLiteral("fact")).first();
+        const qreal centre =
+            fact->mapToItem(item, QPointF(0, fact->height() / 2)).y();
+        QVERIFY2(qAbs(centre - item->height() / 2) <= 1.0,
+                 qPrintable(QStringLiteral("%1: the fact sits at %2 on a bar "
+                                           "%3 tall")
+                                .arg(QLatin1String(name)).arg(centre)
+                                .arg(item->height())));
+    }
+    QVERIFY2(g_warnings.isEmpty(),
+             qPrintable(g_warnings.join(QStringLiteral("\n  "))));
+
+    // And the overflow still behaves when the room runs out, on a bar whose
+    // model was replaced rather than set once.
+    g_warnings.clear();
+    QQmlExpression crowd(
+        qmlContext(window), window,
+        QStringLiteral(R"(reported = [{ "label": "Waiting on you",
+                                        "facts": [{ "text": "3 reviews",
+                                                    "symbol": "question" },
+                                                  { "text": "1 conflict",
+                                                    "symbol": "warning" }] },
+                                      { "label": "Running",
+                                        "facts": [{ "text": "2 agents",
+                                                    "symbol": "robot" }] }])"));
+    crowd.evaluate();
+    QVERIFY2(!crowd.hasError(), qPrintable(crowd.error().toString()));
+    QCoreApplication::processEvents();
+    QTRY_COMPARE(bar("trailing")->property("shownGroups").toInt(), 2);
+    window->setWidth(300);
+    checkWhatDoesNotFitStaysReachable(window, bar("trailing"));
+    checkWhatDoesNotFitStaysReachable(window, bar("leading"));
+    QVERIFY2(g_warnings.isEmpty(),
+             qPrintable(QStringLiteral("narrowing a replaced bar wrote:\n  %1")
+                            .arg(g_warnings.join(QStringLiteral("\n  ")))));
 }
 
 QTEST_MAIN(TestComponents)
