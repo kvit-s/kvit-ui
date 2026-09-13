@@ -27,7 +27,16 @@ import Kvit.Ui
 Column {
     id: root
 
-    // A list of { value, label, detail } objects.
+    // A list of { value, label, detail, objectName } objects. `detail` and
+    // `objectName` are both optional.
+    //
+    // `objectName` is there because an application does not create these
+    // options and so cannot give one a name of its own, and a test that
+    // drives a particular choice has to find it. Without it the only way to
+    // reach the second option is by its position among the group's children,
+    // which is a lookup that goes wrong silently the day somebody inserts an
+    // option above it. It is the standard Qt property, so `findChild` and the
+    // visual-tree walks an application already has both reach it.
     property var options: []
     property var current: undefined
     property string label: ""
@@ -48,6 +57,8 @@ Column {
             required property var modelData
             required property int index
 
+            objectName: modelData.objectName !== undefined
+                        ? modelData.objectName : ""
             width: root.width
             checked: root.current !== undefined
                      && modelData.value === root.current

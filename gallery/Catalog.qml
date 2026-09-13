@@ -859,6 +859,10 @@ QtObject {
                     "caption": "Three options with detail",
                     "snippet": "KvitRadioGroup {\n    width: parent.width\n    label: \"Appearance\"\n    current: \"system\"\n    options: [\n        { value: \"system\", label: \"Follow the system\",\n          detail: \"Light or dark, whichever the desktop is set to.\" },\n        { value: \"light\", label: \"Always light\" },\n        { value: \"dark\", label: \"Always dark\" }\n    ]\n}"
                 },
+                {
+                    "caption": "An option a test can find by name",
+                    "snippet": "KvitRadioGroup {\n    width: parent.width\n    label: \"Sessions run in\"\n    current: \"worktree\"\n    options: [\n        { value: \"worktree\", label: \"Separate working copies\",\n          objectName: \"copyModeWorktree\",\n          detail: \"Its own checkout per session. Works on any disk.\" },\n        { value: \"project\", label: \"The project folder itself\",\n          objectName: \"copyModeProject\",\n          detail: \"No copy; one writer at a time, and never confined.\" }\n    ]\n}"
+                },
             ]
         },
         {

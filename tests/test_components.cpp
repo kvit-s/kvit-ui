@@ -62,6 +62,7 @@ private slots:
     void testAGroupHeadingCountsItsGroupTheWayEverythingElseDoes();
     void testAProgressBarCannotTrailTheNumberBesideIt();
     void testARowSaysWhetherItIsPressableBeforeItIsPressed();
+    void testARadioOptionCanBeFoundByTheNameItWasGiven();
     void testARowAnnouncesItselfAsWhatItActuallyIs();
     void testAShortenedValueIsDisclosedToTheKeyboardAsWellAsThePointer();
     void testARowOpensFromTheKeyboardAndOnlyOnce();
@@ -1181,6 +1182,96 @@ void TestComponents::testAProgressBarCannotTrailTheNumberBesideIt()
     QVERIFY2(slide->property("running").toBool(),
              "a bar that was up to date stepped to its new value");
     QCOMPARE(fill->width(), 0.0);
+}
+
+void TestComponents::testARadioOptionCanBeFoundByTheNameItWasGiven()
+{
+    // An application does not create these options and so cannot name one
+    // itself, and a test that drives a particular choice has to find it.
+    // Without a name the only way to reach the second option is by its
+    // position among the group's children, which is a lookup that goes wrong
+    // silently the day somebody inserts an option above it.
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(
+        "import QtQuick\n"
+        "import Kvit.Ui\n"
+        "Item {\n"
+        "    width: 320; height: 160\n"
+        "    KvitRadioGroup {\n"
+        "        objectName: \"group\"\n"
+        "        width: 320\n"
+        "        label: \"Sessions run in\"\n"
+        "        current: \"worktree\"\n"
+        "        options: [\n"
+        "            { value: \"worktree\", label: \"Separate copies\",\n"
+        "              objectName: \"copyModeWorktree\",\n"
+        "              detail: \"Its own checkout per session.\" },\n"
+        "            { value: \"project\", label: \"The project folder\",\n"
+        "              objectName: \"copyModeProject\" },\n"
+        "            { value: \"snapshot\", label: \"Snapshot copies\" }\n"
+        "        ]\n"
+        "    }\n"
+        "}\n",
+        QUrl(QStringLiteral("qrc:/test/radio-named.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> holder(component.create());
+    QVERIFY2(!holder.isNull(), qPrintable(component.errorString()));
+    auto *content = qobject_cast<QQuickItem *>(holder.data());
+    QVERIFY(content);
+
+    // Walked rather than found with findChild: an item a Repeater created is
+    // owned by its delegate model rather than by the item it is drawn inside,
+    // so the QObject tree does not lead to it. A caller reaching one of these
+    // options needs the same walk, which is what an application's own
+    // visual-tree helper already does.
+    const std::function<void(QQuickItem *, QList<QQuickItem *> &)> walk =
+        [&walk](QQuickItem *parent, QList<QQuickItem *> &found) {
+            for (QQuickItem *child : parent->childItems()) {
+                found.append(child);
+                walk(child, found);
+            }
+        };
+    QList<QQuickItem *> drawn;
+    walk(content, drawn);
+    const auto byName = [&drawn](const QString &name) -> QQuickItem * {
+        for (QQuickItem *item : drawn)
+            if (item->objectName() == name)
+                return item;
+        return nullptr;
+    };
+    QQuickItem *named = byName(QStringLiteral("copyModeWorktree"));
+    QQuickItem *second = byName(QStringLiteral("copyModeProject"));
+    QVERIFY2(named, "an option given a name could not be found by it");
+    QVERIFY2(second, "the second named option could not be found either");
+
+    // It is the option it says it is, and the one that is chosen. The label
+    // is read from what the option publishes to a screen reader, since the
+    // group draws it in the content item rather than through `text`.
+    QAccessibleInterface *namedAccessible =
+        QAccessible::queryAccessibleInterface(named);
+    QVERIFY2(namedAccessible, "a named option has no accessible interface");
+    QVERIFY2(namedAccessible->text(QAccessible::Name)
+                 .startsWith(QStringLiteral("Separate copies")),
+             qPrintable(namedAccessible->text(QAccessible::Name)));
+    QCOMPARE(named->property("checked").toBool(), true);
+    QCOMPARE(second->property("checked").toBool(), false);
+
+    // A name is optional: an option without one is still built, and carries
+    // an empty name rather than inheriting a neighbour's.
+    int radios = 0;
+    int unnamed = 0;
+    for (QQuickItem *item : drawn) {
+        QAccessibleInterface *reachable =
+            QAccessible::queryAccessibleInterface(item);
+        if (!reachable || reachable->role() != QAccessible::RadioButton)
+            continue;
+        ++radios;
+        if (item->objectName().isEmpty())
+            ++unnamed;
+    }
+    QCOMPARE(radios, 3);
+    QCOMPARE(unnamed, 1);
 }
 
 void TestComponents::testARowSaysWhetherItIsPressableBeforeItIsPressed()

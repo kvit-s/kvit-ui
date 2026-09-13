@@ -2690,7 +2690,7 @@ One choice from a handful where the choice needs explaining. Arrow keys move wit
 
 | Property | Type | |
 |---|---|---|
-| `options` | var | A list of { value, label, detail } objects. |
+| `options` | var | A list of { value, label, detail, objectName } objects. |
 | `current` | var |  |
 | `label` | string |  |
 
@@ -2706,6 +2706,24 @@ KvitRadioGroup {
           detail: "Light or dark, whichever the desktop is set to." },
         { value: "light", label: "Always light" },
         { value: "dark", label: "Always dark" }
+    ]
+}
+```
+
+*An option a test can find by name*
+
+```qml
+KvitRadioGroup {
+    width: parent.width
+    label: "Sessions run in"
+    current: "worktree"
+    options: [
+        { value: "worktree", label: "Separate working copies",
+          objectName: "copyModeWorktree",
+          detail: "Its own checkout per session. Works on any disk." },
+        { value: "project", label: "The project folder itself",
+          objectName: "copyModeProject",
+          detail: "No copy; one writer at a time, and never confined." }
     ]
 }
 ```
