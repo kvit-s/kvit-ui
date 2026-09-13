@@ -35,6 +35,15 @@ import Kvit.Ui
 // state of the caller's: it is handed words and hands back which one was
 // pressed.
 //
+// ── Which end the groups sit at ────────────────────────────────────────────
+//
+// The groups sit beside the standing facts at the right, which is the answer
+// for a bar whose left end is a sentence about what is happening. A bar whose
+// left end is instead the list of what is waiting for the reader — each item
+// something to press — wants them first, and sets `groupsAt: "left"`. Only
+// the groups and the activity swap; the plain facts and the controls are at
+// the right in both.
+//
 // ── What happens when they do not fit ──────────────────────────────────────
 //
 // A bar is one line at the bottom of a window that can be any width, so the
@@ -73,6 +82,12 @@ Rectangle {
     // the undo that reverses the last change — needs a real control rather
     // than a sentence telling the reader which key to press.
     property alias controls: controlSlot.data
+    // "right" | "left": which end of the bar the groups sit at. "right" puts
+    // them beside the standing facts, after the activity. "left" puts them
+    // first, before the activity, for a bar whose left end is the list of
+    // what is waiting rather than a sentence about what is running. Nothing
+    // else moves: the plain facts and the controls stay at the right in both.
+    property string groupsAt: "right"
 
     // Which fact was pressed, as the index of its group and its index within
     // that group. The caller knows what it put there; the bar does not need
@@ -82,6 +97,9 @@ Rectangle {
     // How many of the groups are drawn on the bar. Written by the measurement
     // below and read by the delegates; a caller has no reason to set it.
     property int shownGroups: 0
+
+    // The groups come before the activity rather than after it.
+    readonly property bool groupsFirst: root.groupsAt === "left"
 
     // How much of the bar the activity keeps before the groups start taking
     // room from it: about eight words at the default interface size. Below
@@ -228,15 +246,29 @@ Rectangle {
         anchors.rightMargin: Interface.space
         spacing: Interface.space
 
+        // The activity, and the room the bar keeps when there is none.
+        //
+        // Both are written twice, once at each end of the groups, because a
+        // RowLayout draws its children in the order they are written and a
+        // written order is not something a binding can change: there is no
+        // property that says "this one is third now". The pair the order did
+        // not ask for is invisible, and a layout leaves an invisible child
+        // out altogether — no width, no gap beside it, no stop on the way
+        // along the bar — so a bar that takes the default is laid out to the
+        // pixel as it was before the other end existed.
         KvitLabel {
+            objectName: "activity"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             role: "caption"
             color: Theme.textMuted
             text: root.activity
-            visible: text !== ""
+            visible: !root.groupsFirst && text !== ""
         }
-        Item { Layout.fillWidth: root.activity === "" }
+        Item {
+            Layout.fillWidth: root.activity === ""
+            visible: !root.groupsFirst
+        }
 
         // The groups, and the control that says what is not among them.
         //
@@ -375,6 +407,26 @@ Rectangle {
                     }
                 }
             }
+        }
+
+        // The same two again, for a bar that puts its groups first, and in
+        // the mirrored order: the room first and then the activity, so that
+        // the gap between the last group and the sentence beside it is the
+        // same two gaps as at the other end. One gap would be the gap the
+        // bar puts between two groups, and the activity would read as a
+        // third group.
+        Item {
+            Layout.fillWidth: root.activity === ""
+            visible: root.groupsFirst
+        }
+        KvitLabel {
+            objectName: "activity"
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            role: "caption"
+            color: Theme.textMuted
+            text: root.activity
+            visible: root.groupsFirst && text !== ""
         }
 
         // The plain facts. Wrapped rather than repeated straight into the

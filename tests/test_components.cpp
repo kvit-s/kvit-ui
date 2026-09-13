@@ -74,6 +74,7 @@ private slots:
     void testAnEmptySectionSaysSoOnOneLine_data();
     void testAnEmptySectionSaysSoOnOneLine();
     void testTheStatusBarKeepsWhatDoesNotFitReachable();
+    void testTheStatusBarCanPutItsGroupsFirst();
 
 private:
     static QStringList componentUrls();
@@ -2473,6 +2474,127 @@ void TestComponents::testAnEmptySectionSaysSoOnOneLine()
              QStringLiteral("No agents. none started here yet"));
 }
 
+namespace {
+
+// What a bar too narrow for its groups does, whichever end they sit at.
+//
+// Three claims, and the order the groups are drawn in changes none of them,
+// which is why every bar that has groups is put through this rather than only
+// the one the component was written for. The window has already been narrowed
+// by the time this is called.
+//
+//   • the bar says how many facts are not on it, in a control rather than in
+//     a label, so there is a way to reach them
+//   • what it holds is the tail of the list — every fact from the first
+//     group that did not fit to the end — rather than whichever ones
+//     happened to be narrow
+//   • a fact activated from the menu reports the same two indices it would
+//     have reported from the bar, so the caller cannot tell the difference
+void checkWhatDoesNotFitStaysReachable(QQuickWindow *window, QQuickItem *bar)
+{
+    const int total = bar->property("groups").toList().size();
+    QTRY_VERIFY(bar->property("shownGroups").toInt() < total);
+    const int shown = bar->property("shownGroups").toInt();
+    const QVariantList hidden = bar->property("hiddenFacts").toList();
+    QVERIFY2(!hidden.isEmpty(), "a bar too narrow for its groups hid nothing");
+
+    // The tail, group by group: the hidden facts start at the first group
+    // that did not fit, run to the last group, and take every fact of each
+    // in the order they were given.
+    int expectedGroup = shown;
+    int expectedFact = 0;
+    for (const QVariant &entry : hidden) {
+        const QVariantMap fact = entry.toMap();
+        if (fact.value(QStringLiteral("fact")).toInt() == 0
+            && expectedFact != 0) {
+            expectedGroup += 1;
+            expectedFact = 0;
+        }
+        QCOMPARE(fact.value(QStringLiteral("group")).toInt(), expectedGroup);
+        QCOMPARE(fact.value(QStringLiteral("fact")).toInt(), expectedFact);
+        expectedFact += 1;
+    }
+    QCOMPARE(expectedGroup, total - 1);
+
+    auto *overflow = bar->findChild<QQuickItem *>(QStringLiteral("overflow"));
+    QVERIFY(overflow);
+    QTRY_VERIFY2(overflow->isVisible() && overflow->width() > 0,
+                 "nothing on the bar said that anything was hidden");
+    QCOMPARE(overflow->property("text").toString(),
+             QStringLiteral("%1 more").arg(hidden.size()));
+
+    QAccessibleInterface *overflowAccessible =
+        QAccessible::queryAccessibleInterface(overflow);
+    QVERIFY(overflowAccessible);
+    QVERIFY2(!overflowAccessible->text(QAccessible::Description).isEmpty(),
+             "the overflow control did not say which groups it holds");
+
+    // A group that is not on the bar is out of the tab order rather than an
+    // invisible stop on the way along it.
+    const QList<QQuickItem *> wrappers =
+        itemsNamed(bar, QStringLiteral("group"));
+    QCOMPARE(wrappers.size(), total);
+    for (int i = 0; i < wrappers.size(); ++i) {
+        QCOMPARE(wrappers.at(i)->isEnabled(), i < shown);
+        QCOMPARE(wrappers.at(i)->width() > 0, i < shown);
+    }
+
+    // And what is in the menu activates exactly as it would have on the bar.
+    QObject *menu = bar->findChild<QObject *>(QStringLiteral("overflowMenu"));
+    QVERIFY(menu);
+    QTRY_COMPARE(menu->property("count").toInt(), hidden.size());
+    QQuickItem *entry = nullptr;
+    QVERIFY(QMetaObject::invokeMethod(menu, "itemAt",
+                                      Q_RETURN_ARG(QQuickItem *, entry),
+                                      Q_ARG(int, 0)));
+    QVERIFY(entry);
+    const QVariantMap firstHidden = hidden.at(0).toMap();
+    QCOMPARE(entry->property("text").toString(),
+             firstHidden.value(QStringLiteral("label")).toString());
+
+    const int before = window->property("presses").toInt();
+    QVERIFY(QMetaObject::invokeMethod(entry, "clicked"));
+    QTRY_COMPARE(window->property("presses").toInt(), before + 1);
+    QCOMPARE(window->property("lastGroup").toInt(),
+             firstHidden.value(QStringLiteral("group")).toInt());
+    QCOMPARE(window->property("lastFact").toInt(),
+             firstHidden.value(QStringLiteral("fact")).toInt());
+}
+
+// The facts on a bar, in the order the keyboard walks them, checked against
+// the order they are drawn in. A reader tabbing along a bar and a reader
+// looking at it have to be walking the same list.
+void checkTheKeyboardFollowsTheDrawing(QQuickWindow *window, QQuickItem *bar,
+                                       const QStringList &expected)
+{
+    const QList<QQuickItem *> facts = itemsNamed(bar, QStringLiteral("fact"));
+    QCOMPARE(facts.size(), expected.size());
+
+    QStringList spoken;
+    qreal previous = -1;
+    for (QQuickItem *fact : facts) {
+        QAccessibleInterface *accessible =
+            QAccessible::queryAccessibleInterface(fact);
+        QVERIFY2(accessible, "a status-bar fact has no accessible interface");
+        QCOMPARE(accessible->role(), QAccessible::Link);
+        spoken.append(accessible->text(QAccessible::Name));
+        const qreal x = fact->mapToItem(bar, QPointF(0, 0)).x();
+        QVERIFY2(x > previous, "the facts are not laid out left to right");
+        previous = x;
+    }
+    QCOMPARE(spoken, expected);
+
+    facts.first()->forceActiveFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(facts.first()->hasActiveFocus());
+    for (int i = 1; i < facts.size(); ++i) {
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_VERIFY2(facts.at(i)->hasActiveFocus(),
+                     "tab did not reach the facts in the order they are drawn");
+    }
+}
+
+}   // namespace
+
 void TestComponents::testTheStatusBarKeepsWhatDoesNotFitReachable()
 {
     // What a bar does when it runs out of room.
@@ -2527,6 +2649,36 @@ void TestComponents::testTheStatusBarKeepsWhatDoesNotFitReachable()
                 width: 400
                 facts: ["1,284 notes", "last synced 14:02"]
             }
+            // The same bar with its groups at the other end. It sits above
+            // the bottom of the window rather than on it, because a bar drawn
+            // over the first would take the pointer presses meant for that
+            // one.
+            KvitStatusBar {
+                objectName: "leading"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                y: 40
+                groupsAt: "left"
+                activity: "Indexing 4 of 26 working copies"
+                groups: [
+                    {
+                        "label": "Waiting on you",
+                        "facts": [
+                            { "text": "3 reviews", "symbol": "question" },
+                            { "text": "1 conflict", "symbol": "warning" }
+                        ]
+                    },
+                    {
+                        "label": "Running",
+                        "facts": [{ "text": "2 agents", "symbol": "robot" }]
+                    }
+                ]
+                onFactActivated: (group, fact) => {
+                    window.lastGroup = group
+                    window.lastFact = fact
+                    window.presses += 1
+                }
+            }
         }
     )", QUrl(QStringLiteral("qrc:/test/status-groups.qml")));
     QVERIFY2(component.isReady(), qPrintable(component.errorString()));
@@ -2540,8 +2692,10 @@ void TestComponents::testTheStatusBarKeepsWhatDoesNotFitReachable()
 
     auto *bar = window->findChild<QQuickItem *>(QStringLiteral("bar"));
     auto *resting = window->findChild<QQuickItem *>(QStringLiteral("resting"));
+    auto *leading = window->findChild<QQuickItem *>(QStringLiteral("leading"));
     QVERIFY(bar);
     QVERIFY(resting);
+    QVERIFY(leading);
 
     // A bar holding only text is as tall as the text. Only a control in the
     // slot at the end makes it grow, which is what the height has always
@@ -2549,29 +2703,22 @@ void TestComponents::testTheStatusBarKeepsWhatDoesNotFitReachable()
     QCOMPARE(resting->implicitHeight(),
              qreal(KvitUi::DefaultServices::interfaceMetrics()->statusBarHeight()));
 
-    // Wide enough for both groups: nothing is in the menu.
+    // Wide enough for both groups: nothing is in the menu, at either end.
     QTRY_COMPARE(bar->property("shownGroups").toInt(), 2);
     QCOMPARE(bar->property("hiddenFacts").toList().size(), 0);
+    QTRY_COMPARE(leading->property("shownGroups").toInt(), 2);
+    QCOMPARE(leading->property("hiddenFacts").toList().size(), 0);
 
     // The facts are controls, and they run left to right in the order they
     // were given, which is the order the keyboard walks them in.
+    const QStringList inOrder{ QStringLiteral("3 reviews"),
+                               QStringLiteral("1 conflict"),
+                               QStringLiteral("2 agents") };
+    checkTheKeyboardFollowsTheDrawing(window, bar, inOrder);
+    checkTheKeyboardFollowsTheDrawing(window, leading, inOrder);
+
     const QList<QQuickItem *> facts = itemsNamed(bar, QStringLiteral("fact"));
     QCOMPARE(facts.size(), 3);
-    QStringList spoken;
-    qreal previous = -1;
-    for (QQuickItem *fact : facts) {
-        QAccessibleInterface *accessible =
-            QAccessible::queryAccessibleInterface(fact);
-        QVERIFY2(accessible, "a status-bar fact has no accessible interface");
-        QCOMPARE(accessible->role(), QAccessible::Link);
-        spoken.append(accessible->text(QAccessible::Name));
-        const qreal x = fact->mapToItem(bar, QPointF(0, 0)).x();
-        QVERIFY2(x > previous, "the facts are not laid out left to right");
-        previous = x;
-    }
-    QCOMPARE(spoken, (QStringList{ QStringLiteral("3 reviews"),
-                                   QStringLiteral("1 conflict"),
-                                   QStringLiteral("2 agents") }));
 
     // Pressed by the keyboard, and by the pointer, with the two indices the
     // caller needs to know which one it was.
@@ -2594,56 +2741,191 @@ void TestComponents::testTheStatusBarKeepsWhatDoesNotFitReachable()
     }
 
     // Now take the room away. What no longer fits is not dropped: the bar
-    // says how many there are and keeps them behind a control.
+    // says how many there are and keeps them behind a control — at whichever
+    // end the groups sit, which is why both bars are put through it.
     window->setWidth(300);
-    QTRY_VERIFY(bar->property("shownGroups").toInt() < 2);
-    const QVariantList hidden = bar->property("hiddenFacts").toList();
-    QVERIFY2(!hidden.isEmpty(), "a bar too narrow for its groups hid nothing");
+    checkWhatDoesNotFitStaysReachable(window, bar);
+    checkWhatDoesNotFitStaysReachable(window, leading);
+}
 
-    auto *overflow = bar->findChild<QQuickItem *>(QStringLiteral("overflow"));
-    QVERIFY(overflow);
-    QTRY_VERIFY2(overflow->isVisible() && overflow->width() > 0,
-                 "nothing on the bar said that anything was hidden");
-    QCOMPARE(overflow->property("text").toString(),
-             QStringLiteral("%1 more").arg(hidden.size()));
+void TestComponents::testTheStatusBarCanPutItsGroupsFirst()
+{
+    // Which end of the bar the groups sit at.
+    //
+    // The bar was written for a window whose left end is a sentence about
+    // what is running, so the groups sit at the right, beside the standing
+    // facts. The editor this layer serves draws the other bar: its left end
+    // lists what is waiting for the reader and what is running, each item
+    // something to press, with the standing facts at the right. Before
+    // `groupsAt` that window could not use this component at all, because
+    // taking it meant moving its groups across the screen.
+    //
+    // Two things are checked here. That `groupsAt: "left"` puts the groups
+    // before the activity and hard against the left margin, and that a bar
+    // that does not ask for it is laid out where it always was — the rest of
+    // what "where it always was" means is pinned by the case above, which is
+    // unchanged.
+    KvitUi::DefaultServices::interfaceMetrics()->setFontSize(
+        InterfaceMetrics::DefaultFontSize);
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            id: window
+            visible: true
+            width: 900
+            height: 400
 
-    QAccessibleInterface *overflowAccessible =
-        QAccessible::queryAccessibleInterface(overflow);
-    QVERIFY(overflowAccessible);
-    QVERIFY2(!overflowAccessible->text(QAccessible::Description).isEmpty(),
-             "the overflow control did not say which groups it holds");
+            // One set of groups, read by all four bars, so that the only
+            // difference between them is the two properties under test.
+            readonly property var sample: [
+                {
+                    "label": "Waiting on you",
+                    "facts": [
+                        { "text": "3 reviews", "symbol": "question" },
+                        { "text": "1 conflict", "symbol": "warning" }
+                    ]
+                },
+                {
+                    "label": "Running",
+                    "facts": [{ "text": "2 agents", "symbol": "robot" }]
+                }
+            ]
 
-    // A group that is not on the bar is out of the tab order rather than an
-    // invisible stop on the way along it.
-    const QList<QQuickItem *> wrappers =
-        itemsNamed(bar, QStringLiteral("group"));
-    QCOMPARE(wrappers.size(), 2);
-    for (int i = 0; i < wrappers.size(); ++i) {
-        const bool shown = i < bar->property("shownGroups").toInt();
-        QCOMPARE(wrappers.at(i)->isEnabled(), shown);
-        QCOMPARE(wrappers.at(i)->width() > 0, shown);
+            Column {
+                anchors.fill: parent
+
+                KvitStatusBar {
+                    objectName: "rightWithActivity"
+                    width: parent.width
+                    activity: "Indexing 4 of 26 working copies"
+                    groups: window.sample
+                    facts: ["7 changes"]
+                }
+                KvitStatusBar {
+                    objectName: "rightBare"
+                    width: parent.width
+                    groups: window.sample
+                }
+                KvitStatusBar {
+                    objectName: "leftWithActivity"
+                    width: parent.width
+                    groupsAt: "left"
+                    activity: "Indexing 4 of 26 working copies"
+                    groups: window.sample
+                    facts: ["7 changes"]
+                }
+                KvitStatusBar {
+                    objectName: "leftBare"
+                    width: parent.width
+                    groupsAt: "left"
+                    groups: window.sample
+                }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/status-order.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+
+    const qreal margin = KvitUi::DefaultServices::interfaceMetrics()->space();
+
+    auto bar = [window](const char *name) {
+        return window->findChild<QQuickItem *>(QLatin1String(name));
+    };
+    // Where the groups start, in the bar's own coordinates.
+    auto groupsStart = [](QQuickItem *item) {
+        const QList<QQuickItem *> wrappers =
+            itemsNamed(item, QStringLiteral("group"));
+        return wrappers.isEmpty()
+            ? -1.0 : wrappers.first()->mapToItem(item, QPointF()).x();
+    };
+    // The activity the bar is actually drawing. There are two labels for it,
+    // one at each end of the groups, and the one the order did not ask for is
+    // invisible: a layout leaves an invisible child out, so it takes no room
+    // and nothing on the bar moves because of it.
+    auto activity = [](QQuickItem *item) {
+        QQuickItem *drawn = nullptr;
+        int visible = 0;
+        const QList<QQuickItem *> labels =
+            itemsNamed(item, QStringLiteral("activity"));
+        for (QQuickItem *label : labels) {
+            if (!label->isVisible())
+                continue;
+            visible += 1;
+            drawn = label;
+        }
+        return visible == 1 ? drawn : nullptr;
+    };
+
+    for (const char *name : { "rightWithActivity", "rightBare",
+                              "leftWithActivity", "leftBare" }) {
+        QVERIFY2(bar(name), name);
+        QTRY_COMPARE(bar(name)->property("shownGroups").toInt(), 2);
     }
 
-    // And what is in the menu activates exactly as it would have on the bar.
-    QObject *menu = bar->findChild<QObject *>(QStringLiteral("overflowMenu"));
-    QVERIFY(menu);
-    QTRY_COMPARE(menu->property("count").toInt(), hidden.size());
-    QQuickItem *first = nullptr;
-    QVERIFY(QMetaObject::invokeMethod(menu, "itemAt",
-                                      Q_RETURN_ARG(QQuickItem *, first),
-                                      Q_ARG(int, 0)));
-    QVERIFY(first);
-    const QVariantMap firstHidden = hidden.at(0).toMap();
-    QCOMPARE(first->property("text").toString(),
-             firstHidden.value(QStringLiteral("label")).toString());
+    // The default. The activity is at the left margin and the groups are past
+    // the middle of the bar, beside the standing facts at the right.
+    QQuickItem *right = bar("rightWithActivity");
+    QQuickItem *rightActivity = activity(right);
+    QVERIFY2(rightActivity, "the default bar drew no activity, or drew two");
+    QCOMPARE(rightActivity->mapToItem(right, QPointF()).x(), margin);
+    QVERIFY2(groupsStart(right) > rightActivity->mapToItem(right, QPointF()).x(),
+             "the groups were drawn before the activity by default");
+    QVERIFY2(groupsStart(right) > right->width() / 2,
+             "the groups were not at the right-hand end of the bar");
 
-    const int before = window->property("presses").toInt();
-    QVERIFY(QMetaObject::invokeMethod(first, "clicked"));
-    QTRY_COMPARE(window->property("presses").toInt(), before + 1);
-    QCOMPARE(window->property("lastGroup").toInt(),
-             firstHidden.value(QStringLiteral("group")).toInt());
-    QCOMPARE(window->property("lastFact").toInt(),
-             firstHidden.value(QStringLiteral("fact")).toInt());
+    // And with nothing happening, they stay at the right-hand end rather than
+    // falling back to the left: the room the activity would have taken is
+    // held open.
+    QVERIFY2(!activity(bar("rightBare")),
+             "a bar with no activity drew one anyway");
+    QVERIFY2(groupsStart(bar("rightBare")) > bar("rightBare")->width() / 2,
+             "a bar with no activity moved its groups to the left");
+
+    // The new order. The groups are hard against the left margin, and the
+    // activity is drawn after them rather than before.
+    QQuickItem *left = bar("leftWithActivity");
+    QQuickItem *leftActivity = activity(left);
+    QVERIFY2(leftActivity, "the bar drew no activity, or drew two");
+    QCOMPARE(groupsStart(left), margin);
+    const QList<QQuickItem *> leftFacts =
+        itemsNamed(left, QStringLiteral("fact"));
+    QCOMPARE(leftFacts.size(), 3);
+    const QQuickItem *lastFact = leftFacts.last();
+    QVERIFY2(leftActivity->mapToItem(left, QPointF()).x()
+                 > lastFact->mapToItem(left, QPointF()).x(),
+             "the activity was drawn before the groups");
+
+    // With nothing happening they are still at the left margin, which is the
+    // case the consuming window is actually in most of the time.
+    QVERIFY2(!activity(bar("leftBare")),
+             "a bar with no activity drew one anyway");
+    QCOMPARE(groupsStart(bar("leftBare")), margin);
+
+    // How much room the groups get does not depend on which end they sit at.
+    // The measurement counts what the activity, the facts and the controls
+    // take, and none of those changed size by moving.
+    window->setWidth(420);
+    QTRY_VERIFY(right->property("shownGroups").toInt() < 2);
+    QTRY_COMPARE(left->property("shownGroups").toInt(),
+                 right->property("shownGroups").toInt());
+    QCOMPARE(left->property("hiddenFacts").toList().size(),
+             right->property("hiddenFacts").toList().size());
+
+    // Narrower still, until neither has room for anything: still the same
+    // answer at both ends.
+    window->setWidth(200);
+    QTRY_COMPARE(left->property("shownGroups").toInt(),
+                 right->property("shownGroups").toInt());
 }
 
 QTEST_MAIN(TestComponents)

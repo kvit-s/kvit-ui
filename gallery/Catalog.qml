@@ -157,7 +157,7 @@ QtObject {
         {
             "name": "KvitStatusBar",
             "group": "Structure",
-            "summary": "The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes \u2014 plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list.",
+            "summary": "The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes \u2014 plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `groupsAt: \"left\"` puts the groups before the activity, for a bar whose left end is the list of what is waiting.",
             "specimens": [
                 {
                     "caption": "Working, with two facts",
@@ -170,6 +170,10 @@ QtObject {
                 {
                     "caption": "Narrow: what does not fit is in the menu, not gone",
                     "snippet": "// The same two groups in a bar too narrow for them. The groups that fit\n// are drawn left to right; the rest are behind the count of what is not\n// there, which is a control \u2014 tab reaches it, Return opens the menu,\n// and the arrow keys move through it. Nothing is dropped, and nothing is\n// silent about it.\nColumn {\n    spacing: Interface.columnGap\n    width: parent.width\n\n    KvitStatusBar {\n        width: Math.min(parent.width, Interface.px(420))\n        activity: \"Indexing\"\n        groups: [\n            {\n                \"label\": \"Waiting on you\",\n                \"facts\": [\n                    { \"text\": \"3 reviews\", \"symbol\": \"question\" },\n                    { \"text\": \"1 conflict\", \"symbol\": \"warning\" }\n                ]\n            },\n            {\n                \"label\": \"Running\",\n                \"facts\": [{ \"text\": \"2 agents\", \"symbol\": \"robot\" }]\n            }\n        ]\n    }\n\n    // The resting height is unchanged: a bar holding only text is as tall as\n    // the text, and only a control in the slot at the end makes it grow.\n    KvitStatusBar {\n        width: Math.min(parent.width, Interface.px(320))\n        facts: [\"1,284 notes\", \"last synced 14:02\"]\n    }\n}"
+                },
+                {
+                    "caption": "Groups first, for a bar whose left end is the work",
+                    "snippet": "// A bar whose left end is the work rather than a sentence about it: what is\n// waiting and what is running, each item something to press, with the\n// standing facts at the right. `groupsAt: \"left\"` is the whole of the\n// difference \u2014 the groups come before the activity, and the plain facts and\n// the controls stay where they were.\nKvitStatusBar {\n    width: parent.width\n    groupsAt: \"left\"\n    activity: \"Fetching origin\"\n    groups: [\n        {\n            \"label\": \"Waiting on you\",\n            \"facts\": [\n                { \"text\": \"3 reviews\", \"symbol\": \"question\" },\n                { \"text\": \"1 conflict\", \"symbol\": \"warning\" }\n            ]\n        },\n        {\n            \"label\": \"Running\",\n            \"facts\": [{ \"text\": \"2 agents\", \"symbol\": \"robot\" }]\n        }\n    ]\n    facts: [\"7 changes\", \"main, 2 ahead\"]\n}"
                 },
             ]
         },

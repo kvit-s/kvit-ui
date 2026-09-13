@@ -417,7 +417,7 @@ KvitViewHead {
 
 ### KvitStatusBar
 
-The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list.
+The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `groupsAt: "left"` puts the groups before the activity, for a bar whose left end is the list of what is waiting.
 
 | Property | Type | |
 |---|---|---|
@@ -425,7 +425,9 @@ The strip along the bottom: what is happening on the left, standing facts on the
 | `facts` | var | Standing facts, right aligned. |
 | `groups` | var | Groups of facts that do something. |
 | `controls` | alias | One or two controls, after the facts. |
+| `groupsAt` | string | "right" \| "left": which end of the bar the groups sit at. |
 | `shownGroups` | int | How many of the groups are drawn on the bar. |
+| `groupsFirst` | readonly bool | The groups come before the activity rather than after it. |
 | `activityFloor` | readonly int | How much of the bar the activity keeps before the groups start taking room from it: about eight words at the default interface size. |
 | `hiddenFacts` | readonly var | The facts that did not fit, flattened into what the menu draws. |
 
@@ -508,6 +510,35 @@ Column {
         width: Math.min(parent.width, Interface.px(320))
         facts: ["1,284 notes", "last synced 14:02"]
     }
+}
+```
+
+*Groups first, for a bar whose left end is the work*
+
+```qml
+// A bar whose left end is the work rather than a sentence about it: what is
+// waiting and what is running, each item something to press, with the
+// standing facts at the right. `groupsAt: "left"` is the whole of the
+// difference — the groups come before the activity, and the plain facts and
+// the controls stay where they were.
+KvitStatusBar {
+    width: parent.width
+    groupsAt: "left"
+    activity: "Fetching origin"
+    groups: [
+        {
+            "label": "Waiting on you",
+            "facts": [
+                { "text": "3 reviews", "symbol": "question" },
+                { "text": "1 conflict", "symbol": "warning" }
+            ]
+        },
+        {
+            "label": "Running",
+            "facts": [{ "text": "2 agents", "symbol": "robot" }]
+        }
+    ]
+    facts: ["7 changes", "main, 2 ahead"]
 }
 ```
 
