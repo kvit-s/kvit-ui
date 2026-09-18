@@ -7,6 +7,20 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 
+# Settings the five Kvit repositories agree on: the compiler cache, the linker,
+# how debug information is stored, where tests write their evidence. They live
+# in one place, ~/kvit-build, so that changing one of those decisions is one
+# edit rather than five; kvit-works/build-infra.md is the design they belong to.
+#
+# Absent, this builds exactly as it did before, which is what keeps the
+# repository buildable for continuous integration and on Windows.
+KVIT_BUILD_ENV="${KVIT_BUILD_ENV:-$HOME/kvit-build/kvit-build-env.sh}"
+KVIT_CMAKE_SHARED_ARGS=()
+if [ -f "$KVIT_BUILD_ENV" ]; then
+    . "$KVIT_BUILD_ENV"
+    kvit_build_env "$PROJECT_DIR"
+fi
+
 # Find Qt. The newest 6.x kit under ~/Qt unless told otherwise, which is what
 # kvit-notes' script does and what every machine in this estate has.
 if [ -d "$HOME/Qt" ]; then
@@ -72,7 +86,7 @@ mkdir -p "$BUILD_DIR"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_PREFIX_PATH=$QT_PATH"
     fi
 
-    cmake .. $CMAKE_ARGS
+    cmake .. $CMAKE_ARGS "${KVIT_CMAKE_SHARED_ARGS[@]}"
     make -j"$(nproc)"
 
     echo ""
