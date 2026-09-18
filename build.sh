@@ -107,7 +107,11 @@ mkdir -p "$BUILD_DIR"
         # The screenshot set: one image per component per theme, under fixed
         # names. What gets reviewed after a token change is the diff against
         # the previous run rather than the whole set again.
-        SHOT_DIR="$BUILD_DIR/screenshots"
+        # In the artifact directory rather than the build tree, so a --clean
+        # does not destroy the set the next run is meant to be compared with.
+        # The default keeps the old location when the shared settings are not
+        # present. kvit-works/build-infra.md, step 3.
+        SHOT_DIR="${KVIT_ARTIFACT_ROOT:-$BUILD_DIR}/screenshots"
         mkdir -p "$SHOT_DIR"
         echo ""
         echo "Writing the gallery screenshot set to $SHOT_DIR..."
