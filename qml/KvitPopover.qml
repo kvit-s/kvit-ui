@@ -38,6 +38,53 @@ Popup {
         }
     }
 
+    // Where the reader put the keyboard while this was fading out. A popup
+    // that held the keyboard when it began to close takes it back when the
+    // fade ends -- Qt does that, not this file -- and gives it to whatever
+    // had it before the popup opened, or to the window's content. That
+    // takes it from wherever the reader went in the meantime: the field
+    // pressed straight after closing, and on a loaded machine, where the
+    // fade runs long, a field they have already typed half a word into. So
+    // it is given back to them. Only moves made while the fade is still
+    // visible count, since Qt's own move comes once it has finished. The
+    // window is held from the start of the fade, because by the time
+    // `closed` arrives this surface is in none.
+    QtObject {
+        id: exitState
+        property Item keyboard: null
+        property var window: null
+    }
+    onAboutToHide: {
+        exitState.keyboard = null
+        exitState.window = root.contentItem ? root.contentItem.Window.window : null
+    }
+    onClosed: {
+        var item = exitState.keyboard
+        var win = exitState.window
+        exitState.keyboard = null
+        exitState.window = null
+        if (item && win && item.visible && win.activeFocusItem !== item)
+            item.forceActiveFocus(Qt.PopupFocusReason)
+    }
+    Connections {
+        target: exitState.window
+        enabled: root.visible && !root.opened
+        function onActiveFocusItemChanged() {
+            var win = exitState.window
+            var item = win.activeFocusItem
+            if (root.opacity <= 0 || !item || item === win.contentItem
+                || item.parent === null)
+                return
+            // Anything of this surface's own, the frame around its content
+            // included, is the keyboard leaving rather than arriving.
+            for (var up = item; up; up = up.parent) {
+                if (up === root.contentItem || up === root.contentItem.parent)
+                    return
+            }
+            exitState.keyboard = item
+        }
+    }
+
     background: Rectangle {
         radius: Interface.radiusCard
         color: Theme.popupBackground

@@ -80,6 +80,7 @@ private slots:
     void testTheStatusBarCanPutItsGroupsFirst();
     void testTheStatusBarSurvivesItsGroupsBeingReplaced();
     void testAStatusBarFactSaysWhatItsWordsDoNot();
+    void testAPopoverLeavesTheKeyboardWhereItWasPutDuringItsFade();
 
 private:
     static QStringList componentUrls();
@@ -3344,6 +3345,75 @@ void TestComponents::testAStatusBarFactSaysWhatItsWordsDoNot()
     auto *tooltip = after.first()->findChild<QObject *>(QStringLiteral("tooltip"));
     if (tooltip)
         QVERIFY(!tooltip->property("visible").toBool());
+}
+
+void TestComponents::testAPopoverLeavesTheKeyboardWhereItWasPutDuringItsFade()
+{
+    // A popover holding the keyboard is closed, and before its fade has
+    // finished the reader presses another field. Qt, at the end of the fade,
+    // gives the keyboard to whatever had it before the popover opened; left
+    // to itself that takes it from the field just pressed, and what the
+    // reader types next goes somewhere else. On a loaded machine the fade
+    // runs long enough for half a word to be lost that way.
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData(R"(
+        import QtQuick
+        import QtQuick.Controls
+        import Kvit.Ui
+        ApplicationWindow {
+            visible: true
+            width: 420
+            height: 240
+            property alias popover: popover
+            property alias before: before
+            property alias after: after
+            property alias inside: inside
+            Column {
+                TextField { id: before; objectName: "before"; width: 200 }
+                TextField { id: after; objectName: "after"; width: 200 }
+            }
+            KvitPopover {
+                id: popover
+                x: 220
+                TextField { id: inside; width: 120 }
+            }
+        }
+    )", QUrl(QStringLiteral("qrc:/test/popover-fade.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QScopedPointer<QObject> instance(component.create());
+    QVERIFY2(!instance.isNull(), qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(instance.data());
+    QVERIFY(window);
+    window->show();
+    window->requestActivate();
+    QVERIFY(QTest::qWaitForWindowActive(window));
+    auto *before = window->property("before").value<QQuickItem *>();
+    auto *after = window->property("after").value<QQuickItem *>();
+    auto *inside = window->property("inside").value<QQuickItem *>();
+    QObject *popover = window->property("popover").value<QObject *>();
+    QVERIFY(before && after && inside && popover);
+
+    before->forceActiveFocus();
+    QTRY_VERIFY(before->hasActiveFocus());
+    QVERIFY(QMetaObject::invokeMethod(popover, "open"));
+    QTRY_VERIFY(popover->property("opened").toBool());
+    inside->forceActiveFocus();
+    QTRY_VERIFY(inside->hasActiveFocus());
+
+    // Closed, and the other field pressed while the popover is still
+    // visibly fading.
+    QVERIFY(QMetaObject::invokeMethod(popover, "close"));
+    QVERIFY(popover->property("visible").toBool());
+    const QPoint press = after->mapToScene(
+        QPointF(after->width() / 2, after->height() / 2)).toPoint();
+    QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, press);
+    QVERIFY(after->hasActiveFocus());
+
+    QTRY_VERIFY(!popover->property("visible").toBool());
+    QTest::qWait(50);
+    QVERIFY2(after->hasActiveFocus(),
+             "the end of the fade took the keyboard from the field pressed during it");
 }
 
 QTEST_MAIN(TestComponents)
