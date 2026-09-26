@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Checks formatting, runs go vet and the headless tests before every commit.
+# Enabled by: git config core.hooksPath .githooks
+set -euo pipefail
+exec "$(git rev-parse --show-toplevel)/build.sh" --test
