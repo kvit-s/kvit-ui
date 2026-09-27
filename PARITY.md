@@ -194,7 +194,10 @@ yet.
   explanation shows as a tooltip on pointer hover only, as with
   `KvitIconButton`.
 - [ ] `KvitChipButton`
-- [ ] `KvitStepper`
+- [x] `KvitStepper` (`Stepper`). Evidence: `TestAStepperStaysInItsRange`;
+  `light-KvitStepper.png`, and the gallery's own header. unison reads a spin
+  button as text and leaves out its children, so the minus and plus reach a
+  screen reader as the spin button's increment and decrement actions.
 - [x] `KvitField` (`Field`). Evidence:
   `TestAFieldTakesTypingAndSaysWhatIsWrong`; `light-KvitField.png` matches,
   except that the error message takes room of its own under the field,
@@ -259,7 +262,11 @@ yet.
 - [ ] `KvitProgress`
 - [ ] `KvitSlider`
 - [ ] `KvitSplitView`
-- [ ] `KvitSegmented`
+- [x] `KvitSegmented` (`Segmented`). Evidence:
+  `TestASegmentedControlChoosesOne`; `light-KvitSegmented.png` and the
+  gallery's own header. It is kvit-cash's form, a tab's height with the
+  chosen segment filled with the accent, so it differs from the Qt shots,
+  where the chosen segment is outlined.
 - [ ] `KvitTypeAhead`
 - [ ] `KvitConfirmInPlace`
 - [ ] `KvitTimeline`
@@ -305,7 +312,15 @@ yet.
 
 ## Gallery
 
-- [ ] One page per component, with its states and a working sample
+- [ ] One page per component, with its states and a working sample: 31 of
+  74 so far, each listed in the sidebar; the rest are listed faint.
+- [x] The gallery is built from the library's own components, as the Qt
+  gallery is: `Window`, a `Header` holding `Segmented` and `Stepper`, a
+  sidebar of `SectionHeading`s and `ListRow`s under a `SearchField` that
+  filters them, the page in a `Region`, and a `StatusBar` that says what the
+  screenshot run is writing. Evidence: `TestTheSidebarFilters`, and every
+  `compare/*.png`, whose frame now matches the Qt gallery's except for the
+  extra Foundations page and kvit-cash's segmented control.
 - [x] `--page`, `--theme`, `--interface-size`, and in the window Ctrl+1 to
   Ctrl+4, Ctrl+plus and Ctrl+minus
 - [ ] `--shots`: the fixed screenshot set (74 components × 4 themes, plus
@@ -337,7 +352,8 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 - [ ] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
   Done so far: the region's keyboard scrolling and bringing focus into view,
   the slim row's kind capped at a quarter of the row, the row's chevron, the
-  search field's clear button at a control's height, the status bar's
+  search field's clear button at a control's height, the segmented control
+  at a tab's height, the status bar's
   overflow link hidden when nothing is hidden, the card's chevron, the empty
   state's action reachable by the keyboard, and the pane's floor (not needed
   in unison).
@@ -345,7 +361,8 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 - [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
   Done so far: the row's and the card's `OpensLabel`, the pane's `closable`.
 - [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
-  Done so far: the rail opening on hover and for the keyboard.
+  Done so far: the rail opening on hover and for the keyboard, the segmented
+  control's filled choice.
 - [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
   Done so far: `ViewHead.Padding`, the view head's own side margin, and the
   region's wheel distance.

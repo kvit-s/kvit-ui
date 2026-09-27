@@ -46,6 +46,8 @@ type IconButton struct {
 	// TooltipEnabled shows the tooltip; true unless turned off by a control
 	// that already shows the label in a surface of its own.
 	TooltipEnabled bool
+	// Size is the button's square side; a control's height unless set.
+	Size Measure
 	// OnClick runs when the button is pressed.
 	OnClick func()
 }
@@ -57,6 +59,9 @@ func NewIconButton(ui *UI, symbol, label string) *IconButton {
 	b.initControl(ui, b.click, unison.KeySpace)
 	b.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
 		s := float32(ui.Interface.ControlHeight())
+		if b.Size != nil {
+			s = float32(b.Size.Of(ui))
+		}
 		size := geom.NewSize(s, s)
 		return size, size, size
 	})

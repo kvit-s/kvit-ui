@@ -39,6 +39,10 @@ func writeShots(dir, compare string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Motion is stilled for the run, as the Qt gallery stills it: a shot is
+	// taken as soon as the page is laid out, and anything that eases, such
+	// as the sidebar's width after a size change, would be caught partway.
+	ui.Theme.SetReducedMotion(true)
 	var g *gallery
 	var startErr error
 	widest := tokens.NewInterface()
@@ -67,12 +71,16 @@ func writeShots(dir, compare string) ([]string, error) {
 					}
 					ui.Theme.SetThemeID(theme)
 					ui.Interface.SetFontSize(size)
+					// The status bar says what is being written, as the Qt
+					// gallery's does during its own run.
+					g.activity = fmt.Sprintf("Writing screenshots: %s / %d px / %s", theme, size, page)
+					g.sync()
 					g.fit()
 				})
 				screen.Sync()
 				screen.Do(g.fit)
 				screen.Sync()
-				img := screen.CaptureWindow(g.wnd)
+				img := screen.CaptureWindow(g.wnd.Window)
 				name := shotName(theme, size, page)
 				if err := savePNG(filepath.Join(dir, name), img); err != nil {
 					return written, err
@@ -99,7 +107,7 @@ func writeShots(dir, compare string) ([]string, error) {
 func (g *gallery) fit() {
 	m := g.ui.Interface
 	width := float32(m.WidthDrawn())
-	need := float32(m.HeaderHeight()+m.StatusBarHeight()) + g.pageHeight(width-float32(m.SidebarWidth())) + float32(m.Space())
+	need := float32(m.HeaderHeight()+m.StatusBarHeight()) + g.pageHeight(width-float32(m.SidebarWidth()))
 	h := max(float32(windowHeight), need)
 	g.wnd.SetContentRect(geom.NewRect(0, 0, width, h))
 	g.wnd.Content().MarkForLayoutRecursively()

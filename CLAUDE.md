@@ -32,7 +32,7 @@ Give the command behind every number, and save screenshots under
 | `platform` | What the desktop says about dark mode, high contrast and reduced motion |
 | `icons` | The embedded Phosphor font and its names. `catalog_gen.go` is generated |
 | `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas |
-| root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison; the components will live here |
+| root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
 | `cmd/kvit-ui-gallery` | The gallery and its screenshot mode |
 | `tools/import-qt-*` | Generators reading the Qt library's sources; their tests fail when the Qt source has changed since the last run |
 | `third_party/typesetting` | go-text v0.3.5 with one patch (see below) |
@@ -63,6 +63,39 @@ kerning, emoji sequences or right-to-left ordering.
 they cannot be made again once Qt is removed. `./build.sh --shots` stacks
 each Go screenshot above the Qt one with the same name, in
 `build/shots/compare/`.
+
+## Writing a component
+
+- **Colours and sizes are functions, not values.** Take them as `Ink` and
+  `Measure` (`InkTextMuted`, `SizeSpace`, `Px(22)`), and read them at layout
+  and draw time. A value read when the component is built keeps the size it
+  had then, and `TestPagesFollowTheInterfaceSize` fails.
+- **Anything pressable embeds `control`** (`control.go`): hover and press,
+  activation by pointer, keys and a screen reader's press, and the focus
+  ring, drawn by the window outside the control. Focus counts as keyboard
+  focus only when a key moved it or `Focus()` asked for it; the focus unison
+  gives the first control when a window becomes active does not.
+- **Fields drive children through a `syncing` layout,** which copies the
+  fields into child panels before every size question and layout.
+- **unison's layout rules:** a panel with a layout ignores its sizer, so a
+  fixed size must be a layout (`Width`, `Sized`, `Height`, `AtLeast`); and a
+  flex layout told to fill stretches a child past its maximum size, so a
+  child that must keep its width says so (`Left`, or the wrappers above).
+- **Screen readers:** unison folds the children of a text node (`Label`,
+  `Heading`, `SpinButton`, `TextField` and the other roles
+  `role.Enum.IsText` lists) into its name and leaves them out of the tree. A
+  component that holds a control must not take one of those roles.
+- **Two parts are unison's, by the owner's choice (2026-09-26):** text entry
+  is unison's field with the Kvit look drawn around it (`field.go`), and
+  menus are unison's menus in the Kvit colours (`menu.go`).
+- **kvit-cash's copy of the Qt library is newer in places.** Its seven extra
+  commits are listed at the end of `PARITY.md`; a component follows them,
+  and its entry says where that makes it differ from the Qt screenshot.
+- **Every component gets a gallery page** in `cmd/kvit-ui-gallery`: a
+  catalogue entry in `catalog.go`, in the Qt catalogue's order, and one Go
+  function per specimen in `specimens_<group>.go`, whose source is the page's
+  code sample. Compare the page with the Qt screenshot before ticking it in
+  `PARITY.md`, and name the test and the screenshot as the evidence.
 
 ## Building and checking
 

@@ -42,7 +42,9 @@ func NewHeader(ui *UI, wordmark string, navigation unison.Paneler, actions ...un
 	h.navigation.SetLayout(&unison.FlexLayout{Columns: 1, HAlign: align.Start, VAlign: align.Middle})
 	h.navigation.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
 	if navigation != nil {
-		navigation.AsPanel().SetLayoutData(&unison.FlexLayoutData{VAlign: align.Middle, VGrab: true})
+		// As wide as the slot, so navigation can put things at its right
+		// end; a row of tabs still starts at the left.
+		navigation.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Middle, HGrab: true, VGrab: true})
 		h.navigation.AddChild(navigation)
 	}
 	h.AddChild(h.navigation)

@@ -78,6 +78,23 @@ func (p padding) Draw(_ *unison.Canvas, _ geom.Rect) {}
 // follows the interface size. Set it with panel.SetBorder.
 func Padding(ui *UI, m Measure) unison.Border { return padding{ui, m} }
 
+// Insets is space inside a panel's edges, a Measure on each side; a nil
+// Measure is no space. Set it with panel.SetBorder.
+func Insets(ui *UI, top, left, bottom, right Measure) unison.Border {
+	return insets{ui, top, left, bottom, right}
+}
+
+type insets struct {
+	ui                       *UI
+	top, left, bottom, right Measure
+}
+
+func (i insets) Insets() geom.Insets {
+	return geom.Insets{Top: orZero(i.ui, i.top), Left: orZero(i.ui, i.left), Bottom: orZero(i.ui, i.bottom), Right: orZero(i.ui, i.right)}
+}
+
+func (i insets) Draw(*unison.Canvas, geom.Rect) {}
+
 // Px is a Measure for a one-off design-pixel value, scaled with the
 // interface size. Reach for a named Size… measure first.
 func Px(design int) Measure {
@@ -179,6 +196,13 @@ func (a *atLeast) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, pr
 // or `Layout.fillWidth: true` says in QML.
 func FullWidth[T unison.Paneler](p T) T {
 	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Middle, HGrab: true})
+	return p
+}
+
+// Left keeps a panel at its own width at the start of the row or column it
+// sits in, where a column would otherwise stretch it across.
+func Left[T unison.Paneler](p T) T {
+	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Start, VAlign: align.Middle})
 	return p
 }
 

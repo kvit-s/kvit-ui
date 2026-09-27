@@ -69,24 +69,30 @@ func (l *Label) layout(width float32) *text.Layout {
 }
 
 func (l *Label) sizes(hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	var in geom.Insets
+	if b := l.Border(); b != nil {
+		in = b.Insets()
+	}
 	w, h := l.layout(0).Size()
 	if l.Wrap {
 		// Wrapping text takes the width it is given and grows downwards; it
 		// asks for no width of its own, or one long sentence would widen the
 		// whole column it sits in.
-		if hint.Width > 0 && hint.Width < w {
-			_, h = l.layout(hint.Width).Size()
+		if room := hint.Width - in.Width(); hint.Width > 0 && room < w {
+			_, h = l.layout(max(0, room)).Size()
 		}
-		return geom.NewSize(0, h), geom.NewSize(0, h), geom.NewSize(unison.DefaultMaxSize, h)
+		return geom.NewSize(in.Width(), h+in.Height()), geom.NewSize(in.Width(), h+in.Height()),
+			geom.NewSize(unison.DefaultMaxSize, h+in.Height())
 	}
-	return geom.NewSize(0, h), geom.NewSize(w, h), geom.NewSize(unison.DefaultMaxSize, h)
+	return geom.NewSize(in.Width(), h+in.Height()), geom.NewSize(w+in.Width(), h+in.Height()),
+		geom.NewSize(unison.DefaultMaxSize, h+in.Height())
 }
 
 func (l *Label) draw(gc *unison.Canvas, _ geom.Rect) {
 	b := l.ContentRect(false)
 	lay := l.layout(b.Width)
 	_, h := lay.Size()
-	lay.Draw(gc, 0, (b.Height-h)/2) // vertically centred, as the Qt label is
+	lay.Draw(gc, b.X, b.Y+(b.Height-h)/2) // vertically centred, as the Qt label is
 }
 
 // ProvideAccessibility describes the label to screen readers as static text.

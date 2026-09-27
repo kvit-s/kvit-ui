@@ -25,9 +25,8 @@ func buildComponentPage(ui *kvitui.UI, e entry) *unison.Panel {
 		}
 		parts = append(parts, kvitui.Column(ui, kvitui.SizeSpaceNear, caption, specimenFrame(ui, s.build(ui)), codeBlock(ui, sourceOf(s.build))))
 	}
-	page := kvitui.Column(ui, kvitui.SizeSpaceLoose, parts...)
-	page.SetBorder(kvitui.Padding(ui, kvitui.SizeViewMargin))
-	return page
+	// The region the page is shown in keeps the view margin around it.
+	return kvitui.Column(ui, kvitui.SizeSpaceLoose, parts...)
 }
 
 // specimenFrame is the box a live specimen sits in: the specimen at its top
@@ -78,7 +77,8 @@ func codeBlock(ui *kvitui.UI, src string) *unison.Panel {
 // in a panel as tall as it needs.
 func drawnPage(ui *kvitui.UI, draw func(p painter, x, y, width float32) float32) *unison.Panel {
 	p := unison.NewPanel()
-	margin := func() float32 { return float32(ui.Interface.ViewMargin()) }
+	// The region the page is shown in keeps the view margin around it.
+	margin := func() float32 { return 0 }
 	p.SetSizer(func(hint geom.Size) (geom.Size, geom.Size, geom.Size) {
 		w := max(hint.Width, 400)
 		h := draw(painter{nil, ui}, margin(), margin(), w-2*margin()) + 2*margin()

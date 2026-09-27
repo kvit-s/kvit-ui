@@ -4,6 +4,7 @@ package main
 
 import (
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/richardwilkes/unison"
 )
 
@@ -103,4 +104,12 @@ func searchFieldStates(ui *kvitui.UI) unison.Paneler {
 	year.SetText("2026")
 	year.Matches, year.MatchedNoun, year.MatchedNounPlural = 250000, "entry", "entries"
 	return kvitui.Width(ui, kvitui.Px(220), kvitui.Column(ui, kvitui.SizeSpaceLoose, kvitui.NewSearchField(ui), filtering, year))
+}
+
+func stepperInterfaceSize(ui *kvitui.UI) unison.Paneler {
+	size := kvitui.NewStepper(ui, "Interface size", tokens.MinInterfaceSize, tokens.MaxInterfaceSize)
+	size.Unit = "px"
+	size.Follow = ui.Interface.FontSize
+	size.OnChange = ui.Interface.SetFontSize
+	return size
 }

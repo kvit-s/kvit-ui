@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	kvitui "github.com/kvit-s/kvit-ui"
-	"github.com/kvit-s/kvit-ui/icons"
-	"github.com/kvit-s/kvit-ui/text"
 	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/align"
-	"github.com/richardwilkes/unison/enums/behavior"
 	"github.com/richardwilkes/unison/enums/mod"
 )
 
@@ -62,225 +60,171 @@ func buildPage(ui *kvitui.UI, name string) *unison.Panel {
 	return drawnPage(ui, drawFoundations)
 }
 
-// gallery is the window and the state it shows.
+// gallery is the window and the state it shows. It is built from the
+// library's own components, as the Qt gallery is: a Window holding a Header
+// with the theme and size controls, a sidebar of section headings and rows
+// under a filter field, the page in a Region, and a StatusBar.
 type gallery struct {
-	ui     *kvitui.UI
-	wnd    *unison.Window
-	page   string
-	header *unison.Panel
-	side   *unison.Panel
-	body   *unison.Panel
-	scroll *unison.ScrollPanel
-	status *unison.Panel
-	// segments are the theme choices' rectangles in the header, for clicks.
-	segments map[string]geom.Rect
-	// rows are the sidebar's page rows as last drawn, for clicks.
-	rows  map[string]geom.Rect
-	minus geom.Rect
-	plus  geom.Rect
+	ui       *kvitui.UI
+	wnd      *kvitui.Window
+	page     string
+	pages    *unison.Panel // holds the page being shown, inside the region
+	region   *kvitui.Region
+	list     *unison.Panel // the sidebar's groups and rows
+	rows     map[string]*kvitui.ListRow
+	search   *kvitui.SearchField
+	theme    *kvitui.Segmented
+	size     *kvitui.Stepper
+	status   *kvitui.StatusBar
+	activity string // what the screenshot run is doing, for the status bar
 }
 
 func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error) {
 	if !hasPage(page) {
 		return nil, fmt.Errorf("no page %q; the pages are the ones listed without grey in the sidebar", page)
 	}
-	g := &gallery{ui: ui, segments: map[string]geom.Rect{}, rows: map[string]geom.Rect{}}
-	wnd, err := unison.NewWindow("kvit-ui gallery")
+	wnd, err := kvitui.NewWindow(ui, "kvit-ui gallery")
 	if err != nil {
 		return nil, err
 	}
-	g.wnd = wnd
-	content := wnd.Content()
-	content.SetLayout(&unison.FlexLayout{Columns: 1})
-	drawn := false
-	content.DrawCallback = func(gc *unison.Canvas, r geom.Rect) {
-		painter{gc, ui}.fill(r, ui.Theme.Tokens().WindowBackground)
-		if !drawn {
-			drawn = true
-			if firstFrame != nil {
+	g := &gallery{ui: ui, wnd: wnd, rows: map[string]*kvitui.ListRow{}}
+
+	var options []kvitui.SegmentOption
+	for _, tl := range themeLabels {
+		options = append(options, kvitui.SegmentOption{Value: tl.id, Label: tl.label})
+	}
+	g.theme = kvitui.NewSegmented(ui, "Theme", options...)
+	g.theme.OnChoose = func(v string) { ui.Theme.SetThemeID(v) }
+	g.size = kvitui.NewStepper(ui, "Interface size", tokens.MinInterfaceSize, tokens.MaxInterfaceSize)
+	g.size.Unit = "px"
+	g.size.Follow = ui.Interface.FontSize
+	g.size.OnChange = ui.Interface.SetFontSize
+	room := kvitui.FullWidth(unison.NewPanel())
+	wnd.SetHeader(kvitui.NewHeader(ui, "kvit-ui", kvitui.FullWidth(kvitui.Row(ui, kvitui.SizeColumnGap, room, g.theme, g.size))))
+
+	g.search = kvitui.NewSearchField(ui)
+	g.search.Placeholder, g.search.MatchedNoun = "Filter components", "component"
+	g.search.OnChange = func(string) { g.buildList() }
+	searchBox := kvitui.Column(ui, kvitui.Px(0), g.search)
+	searchBox.SetBorder(kvitui.Padding(ui, kvitui.SizeSpace))
+	g.list = kvitui.Column(ui, kvitui.Px(0))
+	listRegion := kvitui.NewRegion(ui, g.list)
+	listRegion.Padding = kvitui.Px(0)
+	listRegion.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
+	wnd.SetSidebar(kvitui.Column(ui, kvitui.Px(0), searchBox, listRegion))
+
+	g.pages = unison.NewPanel()
+	g.pages.SetLayout(&unison.FlexLayout{Columns: 1})
+	g.region = kvitui.NewRegion(ui, g.pages)
+	wnd.SetBody(g.region)
+
+	g.status = kvitui.NewStatusBar(ui)
+	wnd.SetStatusBar(g.status)
+	wnd.OnKeyDown = g.keyDown
+
+	ui.OnChanged(g.sync)
+	g.buildList()
+	g.setPage(page)
+	g.sync()
+	if firstFrame != nil {
+		content := wnd.Content()
+		draw := content.DrawCallback
+		drawn := false
+		content.DrawCallback = func(gc *unison.Canvas, r geom.Rect) {
+			draw(gc, r)
+			if !drawn {
+				drawn = true
 				unison.InvokeTask(firstFrame)
 			}
 		}
 	}
-
-	g.header = unison.NewPanel()
-	g.header.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
-		s := geom.NewSize(0, float32(ui.Interface.HeaderHeight()))
-		return s, s, geom.NewSize(unison.DefaultMaxSize, s.Height)
-	})
-	g.header.DrawCallback = g.drawHeader
-	g.header.MouseDownCallback = g.headerClick
-	g.header.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
-	content.AddChild(g.header)
-
-	middle := unison.NewPanel()
-	middle.SetLayout(&unison.FlexLayout{Columns: 2})
-	middle.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
-	content.AddChild(middle)
-
-	g.side = unison.NewPanel()
-	g.side.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
-		s := geom.NewSize(float32(ui.Interface.SidebarWidth()), 0)
-		return s, s, geom.NewSize(s.Width, unison.DefaultMaxSize)
-	})
-	g.side.DrawCallback = g.drawSidebar
-	g.side.MouseDownCallback = func(where geom.Point, _, _ int, _ mod.Modifiers) bool {
-		for name, r := range g.rows {
-			if where.In(r) && hasPage(name) {
-				g.setPage(name)
-				return true
-			}
-		}
-		return false
-	}
-	g.side.SetLayoutData(&unison.FlexLayoutData{VAlign: align.Fill, VGrab: true})
-	middle.AddChild(g.side)
-
-	g.body = unison.NewPanel()
-	g.body.SetLayout(&unison.FlexLayout{Columns: 1})
-	g.body.SetBorder(scrollStrip{ui})
-	g.body.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
-		painter{gc, ui}.fill(g.body.ContentRect(true), ui.Theme.Tokens().WindowBackground)
-	}
-	g.scroll = unison.NewScrollPanel()
-	g.scroll.SetContent(g.body, behavior.Fill, behavior.Unmodified)
-	g.scroll.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
-	middle.AddChild(g.scroll)
-
-	g.status = unison.NewPanel()
-	g.status.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
-		s := geom.NewSize(0, float32(ui.Interface.StatusBarHeight()))
-		return s, s, geom.NewSize(unison.DefaultMaxSize, s.Height)
-	})
-	g.status.DrawCallback = g.drawStatus
-	g.status.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
-	content.AddChild(g.status)
-
-	g.setPage(page)
-	wnd.KeyDownCallback = g.keyDown
-	ui.OnChanged(func() {
-		content.MarkForLayoutRecursively()
-		wnd.MarkForRedraw()
-	})
-	wnd.SetContentRect(geom.NewRect(0, 0, windowWidth, windowHeight))
 	wnd.ToFront()
 	return g, nil
 }
 
-// scrollStrip keeps the strip a vertical scroll bar is drawn in clear of the
-// page whether or not the bar is showing, as the Qt region does, so the page
-// does not move sideways when it grows past the fold.
-type scrollStrip struct{ ui *kvitui.UI }
-
-func (s scrollStrip) Insets() geom.Insets {
-	return geom.Insets{Right: float32(s.ui.Interface.SpaceWide())}
+// sync shows the current theme and size in the header and the status bar.
+func (g *gallery) sync() {
+	ui := g.ui
+	g.theme.Current = ui.Theme.ThemeID()
+	g.status.Activity = g.activity
+	g.status.Facts = []string{
+		fmt.Sprintf("%d of 74 components", len(catalog)),
+		tokens.DisplayName(ui.Theme.ResolvedTheme()),
+		fmt.Sprintf("%d px", ui.Interface.FontSize()),
+	}
+	g.wnd.Content().MarkForLayoutRecursively()
+	g.wnd.MarkForRedraw()
 }
-func (s scrollStrip) Draw(*unison.Canvas, geom.Rect) {}
+
+// buildList fills the sidebar with the groups and pages the filter matches:
+// a section heading for each group, and a row for each page. A component
+// without a page yet is listed faint, and cannot be opened.
+func (g *gallery) buildList() {
+	ui := g.ui
+	g.list.RemoveAllChildren()
+	g.rows = map[string]*kvitui.ListRow{}
+	wanted := strings.ToLower(strings.TrimSpace(g.search.Text()))
+	shown := 0
+	for _, gr := range groups {
+		var pages []string
+		for _, name := range gr.pages {
+			if wanted == "" || strings.Contains(strings.ToLower(name), wanted) || strings.Contains(strings.ToLower(gr.name), wanted) {
+				pages = append(pages, name)
+			}
+		}
+		if len(pages) == 0 {
+			continue
+		}
+		g.list.AddChild(kvitui.FullWidth(kvitui.NewSectionHeading(ui, gr.name)))
+		for _, name := range pages {
+			label := kvitui.NewLabel(ui, name)
+			label.SetBorder(kvitui.Insets(ui, nil, kvitui.SizeSpaceLoose, nil, nil))
+			if !hasPage(name) {
+				label.Ink = kvitui.InkTextDisabled
+			}
+			row := kvitui.NewListRow(ui, kvitui.FullWidth(label))
+			row.Rule, row.Label, row.Selected = false, name, name == g.page
+			// A list of pages is navigation, like a sidebar, and draws no
+			// chevron on every line.
+			row.Interactive, row.NoOpensMark = hasPage(name), true
+			row.OnActivate = func() { g.setPage(name) }
+			g.rows[name] = row
+			g.list.AddChild(kvitui.FullWidth(row))
+			shown++
+		}
+	}
+	g.search.Matches = shown
+	g.list.MarkForLayoutAndRedraw()
+}
 
 // setPage shows a page, rebuilt from scratch, scrolled to its top.
 func (g *gallery) setPage(name string) {
 	g.page = name
-	g.body.RemoveAllChildren()
+	for n, row := range g.rows {
+		row.Selected = n == name
+		row.MarkForRedraw()
+	}
+	g.pages.RemoveAllChildren()
 	pg := buildPage(g.ui, name)
 	pg.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
-	g.body.AddChild(pg)
-	g.body.MarkForLayoutRecursively()
-	g.scroll.SetPosition(0, 0)
+	g.pages.AddChild(pg)
+	g.pages.MarkForLayoutRecursively()
+	g.region.ScrollTo(0)
 	g.wnd.MarkForRedraw()
 }
 
-// pageHeight is the height the current page needs at a width.
+// pageHeight is the height the body needs to show the current page in full
+// at a body width: the page at the width the region gives it, and the
+// region's padding above and below.
 func (g *gallery) pageHeight(width float32) float32 {
-	_, pref, _ := g.body.Sizes(geom.NewSize(width, 0))
-	return pref.Height
+	m := g.ui.Interface
+	inner := width - float32(m.SpaceWide()) - 2*float32(m.ViewMargin())
+	_, pref, _ := g.pages.Sizes(geom.NewSize(inner, 0))
+	return pref.Height + 2*float32(m.ViewMargin())
 }
 
 var themeLabels = []struct{ id, label string }{
 	{tokens.Light, "Light"}, {tokens.Dark, "Dark"}, {tokens.Sepia, "Sepia"}, {tokens.HighContrast, "Contrast"},
-}
-
-func (g *gallery) drawHeader(gc *unison.Canvas, r geom.Rect) {
-	ui := g.ui
-	m := ui.Interface
-	t := ui.Theme.Tokens()
-	p := painter{gc, ui}
-	b := g.header.ContentRect(false)
-	p.fill(b, t.PanelBackground)
-	p.fill(geom.NewRect(0, b.Height-float32(m.Hairline()), b.Width, float32(m.Hairline())), t.Border)
-	l := ui.Fonts.Layout(span("kvit-ui", ui.Chrome(m.Headline(), text.Bold, t.TextPrimary)), text.Options{})
-	_, lh := l.Size()
-	l.Draw(gc, float32(m.ViewMargin()), (b.Height-lh)/2)
-
-	// The size stepper at the right, then the theme choices left of it.
-	ch := float32(m.ControlHeight())
-	cy := (b.Height - ch) / 2
-	x := b.Width - float32(m.ViewMargin())
-	g.plus = geom.NewRect(x-ch, cy, ch, ch)
-	x -= ch
-	sizeLabel := ui.Fonts.Layout(span(fmt.Sprintf("%d px", m.FontSize()), ui.Chrome(m.Body(), text.Regular, t.TextSecondary)), text.Options{})
-	sw, sh := sizeLabel.Size()
-	x -= sw + float32(m.Space())*2
-	sizeLabel.Draw(gc, x+float32(m.Space()), (b.Height-sh)/2)
-	g.minus = geom.NewRect(x-ch, cy, ch, ch)
-	for _, btn := range []struct {
-		r    geom.Rect
-		icon string
-	}{{g.minus, "minus"}, {g.plus, "plus"}} {
-		p.round(btn.r, float32(m.RadiusControl()), t.WindowBackground)
-		p.outline(btn.r, float32(m.RadiusControl()), float32(m.Hairline()), t.BorderStrong)
-		glyph, _ := icons.Glyph(btn.icon)
-		il := ui.Fonts.Layout(span(string(glyph), ui.Icon(m.IconSizeSmall(), t.TextPrimary)), text.Options{})
-		iw, ih := il.Size()
-		il.Draw(gc, btn.r.X+(btn.r.Width-iw)/2, btn.r.Y+(btn.r.Height-ih)/2)
-	}
-	x = g.minus.X - float32(m.SpaceLoose())
-	var widths []float32
-	var layouts []*text.Layout
-	total := float32(0)
-	for _, tl := range themeLabels {
-		weight := text.Regular
-		if tl.id == ui.Theme.ThemeID() {
-			weight = text.Semibold
-		}
-		ll := ui.Fonts.Layout(span(tl.label, ui.Chrome(m.Body(), weight, t.TextPrimary)), text.Options{})
-		w, _ := ll.Size()
-		w += float32(m.SpaceLoose()) * 2
-		widths, layouts = append(widths, w), append(layouts, ll)
-		total += w
-	}
-	x -= total
-	group := geom.NewRect(x, cy, total, ch)
-	p.round(group, float32(m.RadiusControl()), t.WindowBackground)
-	for i, tl := range themeLabels {
-		seg := geom.NewRect(x, cy, widths[i], ch)
-		g.segments[tl.id] = seg
-		if tl.id == ui.Theme.ThemeID() {
-			p.round(seg, float32(m.RadiusControl()), t.ChipBackground)
-			p.outline(seg, float32(m.RadiusControl()), float32(m.FocusRingWidth()/2+1), t.BorderStrong)
-		}
-		_, lh := layouts[i].Size()
-		layouts[i].Draw(gc, x+float32(m.SpaceLoose()), cy+(ch-lh)/2)
-		x += widths[i]
-	}
-	p.outline(group, float32(m.RadiusControl()), float32(m.Hairline()), t.BorderStrong)
-}
-
-func (g *gallery) headerClick(where geom.Point, button, clickCount int, mods mod.Modifiers) bool {
-	for id, r := range g.segments {
-		if where.In(r) {
-			g.ui.Theme.SetThemeID(id)
-			return true
-		}
-	}
-	switch {
-	case where.In(g.minus):
-		g.ui.Interface.SetFontSize(g.ui.Interface.FontSize() - 1)
-	case where.In(g.plus):
-		g.ui.Interface.SetFontSize(g.ui.Interface.FontSize() + 1)
-	default:
-		return false
-	}
-	return true
 }
 
 // keyDown: Ctrl+1 to Ctrl+4 choose a theme, Ctrl+plus and Ctrl+minus change
@@ -302,56 +246,4 @@ func (g *gallery) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bool {
 		return false
 	}
 	return true
-}
-
-func (g *gallery) drawSidebar(gc *unison.Canvas, r geom.Rect) {
-	ui := g.ui
-	m := ui.Interface
-	t := ui.Theme.Tokens()
-	p := painter{gc, ui}
-	b := g.side.ContentRect(false)
-	p.fill(b, t.ListBackground)
-	p.fill(geom.NewRect(b.Width-float32(m.Hairline()), 0, float32(m.Hairline()), b.Height), t.Border)
-	y := float32(m.Space())
-	for _, gr := range groups {
-		_, h := p.text(span(gr.name, ui.Chrome(m.Small(), text.Semibold, t.TextMuted)), float32(m.Space()), y, 0)
-		y += h + float32(m.SpaceSnug())
-		for _, name := range gr.pages {
-			row := geom.NewRect(0, y, b.Width-float32(m.Hairline()), float32(m.RowHeightSlim()))
-			g.rows[name] = row
-			color := t.TextDisabled
-			if hasPage(name) {
-				color = t.TextPrimary
-			}
-			if name == g.page {
-				p.fill(row, t.SelectionTint)
-			}
-			l := ui.Fonts.Layout(span(name, ui.Chrome(m.Body(), text.Regular, color)), text.Options{})
-			_, lh := l.Size()
-			l.Draw(gc, float32(m.SpaceLoose()+m.SpaceTight()), y+(row.Height-lh)/2)
-			y += row.Height
-			if y > b.Height {
-				return
-			}
-		}
-		y += float32(m.SpaceNear())
-	}
-}
-
-func (g *gallery) drawStatus(gc *unison.Canvas, r geom.Rect) {
-	ui := g.ui
-	m := ui.Interface
-	t := ui.Theme.Tokens()
-	p := painter{gc, ui}
-	b := g.status.ContentRect(false)
-	p.fill(b, t.FooterBackground)
-	p.fill(geom.NewRect(0, 0, b.Width, float32(m.Hairline())), t.Border)
-	st := ui.Chrome(m.Caption(), text.Regular, t.TextMuted)
-	built := len(catalog)
-	left := ui.Fonts.Layout(span(fmt.Sprintf("%s  ·  %d of 74 components built", g.page, built), st), text.Options{})
-	_, lh := left.Size()
-	left.Draw(gc, float32(m.Space()), (b.Height-lh)/2)
-	right := ui.Fonts.Layout(span(fmt.Sprintf("%s  ·  %d px", tokens.DisplayName(ui.Theme.ResolvedTheme()), m.FontSize()), st), text.Options{})
-	rw, rh := right.Size()
-	right.Draw(gc, b.Width-rw-float32(m.Space()), (b.Height-rh)/2)
 }

@@ -248,6 +248,14 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitStepper",
+		group:   "Controls",
+		summary: "A number with a minus and a plus beside it, for a small range a reader adjusts by one or two. The range comes from whatever owns it rather than being repeated at the call site.",
+		specimens: []specimen{
+			{caption: "The interface-size row, pointed at the right setting", build: stepperInterfaceSize},
+		},
+	},
+	{
 		name:    "KvitField",
 		group:   "Controls",
 		summary: "A single line of text. The outline is the control-boundary token, so its edges are visible. An error is a message and a border together, never a border alone.",
@@ -278,6 +286,14 @@ var catalog = []entry{
 		summary: "A scroll bar, occupying its own strip rather than floating over content. Thirty-two files in the estate have a private version; an overlay bar hides the right-hand column of a table and the last character of every elided label.",
 		specimens: []specimen{
 			{caption: "Beside a scrolling column", build: scrollBarBesideColumn},
+		},
+	},
+	{
+		name:    "KvitSegmented",
+		group:   "Flow",
+		summary: "One choice from two to five short options, all visible — the shape kvit-cash's dashboard period control needs, where a control governing seven widgets should say what they are showing without being opened.",
+		specimens: []specimen{
+			{caption: "A period control", build: segmentedPeriod},
 		},
 	},
 }

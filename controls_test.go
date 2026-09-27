@@ -181,3 +181,52 @@ func TestASearchFieldClearsWithEscapeAndCountsWhatItLeft(t *testing.T) {
 		t.Errorf("Escape left %q", got)
 	}
 }
+
+func TestASegmentedControlChoosesOne(t *testing.T) {
+	var s *kvitui.Segmented
+	var chosen []string
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		s = kvitui.NewSegmented(ui, "Period",
+			kvitui.SegmentOption{Value: "week", Label: "Week"}, kvitui.SegmentOption{Value: "month", Label: "Month"})
+		s.OnChoose = func(v string) { chosen = append(chosen, v) }
+		return []unison.Paneler{s}
+	})
+	if n := screen.AccessibilityNodeFor(s); n == nil || n.Role != role.TabList || n.Name != "Period" {
+		t.Errorf("the strip's node: %+v", n)
+	}
+	month := s.Children()[1]
+	screen.Click(screen.PanelCenter(month))
+	if s.Current != "month" || len(chosen) != 1 || chosen[0] != "month" {
+		t.Errorf("clicking Month left %q chosen and reported %v", s.Current, chosen)
+	}
+	if n := screen.AccessibilityNodeFor(month); n == nil || n.Role != role.Tab || !n.Selected {
+		t.Errorf("the chosen segment's node: %+v", n)
+	}
+}
+
+func TestAStepperStaysInItsRange(t *testing.T) {
+	var s *kvitui.Stepper
+	var changes []int
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		s = kvitui.NewStepper(ui, "Interface size", 10, 12)
+		s.Value, s.Unit = 11, "px"
+		s.OnChange = func(v int) { changes = append(changes, v) }
+		return []unison.Paneler{s}
+	})
+	n := screen.AccessibilityNodeFor(s)
+	if n == nil || n.Role != role.SpinButton || n.Number != 11 || n.Min != 10 || n.Max != 12 || n.Value != "11 px" {
+		t.Fatalf("the stepper's node: %+v", n)
+	}
+	screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: n.ID, Action: accessibility.Increment})
+	screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: n.ID, Action: accessibility.Increment})
+	screen.Sync()
+	if s.Value != 12 || len(changes) != 1 {
+		t.Errorf("two increments from 11 to a top of 12 left %d and reported %v", s.Value, changes)
+	}
+	plus := s.Children()[2]
+	screen.Do(func() {
+		if plus.Enabled() {
+			t.Error("the plus is enabled at the top of the range")
+		}
+	})
+}

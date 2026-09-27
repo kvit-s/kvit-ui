@@ -129,8 +129,42 @@ func aspectOf(s Style) gfont.Aspect {
 	return a
 }
 
-// Layout shapes the spans and breaks them into lines.
+// layoutKey names a layout of one span, which is what nearly every label
+// and control lays out, and lays out again every time a layout asks its
+// size.
+type layoutKey struct {
+	span Span
+	opt  Options
+}
+
+// cacheLimit is how many layouts are kept before the cache starts again.
+const cacheLimit = 4096
+
+// Layout shapes the spans and breaks them into lines. A layout is not changed
+// once made, so a layout of one span is kept and handed out again for the
+// same text, style and options.
 func (f *Fonts) Layout(spans []Span, opt Options) *Layout {
+	if len(spans) != 1 {
+		return f.layoutFresh(spans, opt)
+	}
+	key := layoutKey{spans[0], opt}
+	f.cacheMu.Lock()
+	l, ok := f.cache[key]
+	f.cacheMu.Unlock()
+	if ok {
+		return l
+	}
+	l = f.layoutFresh(spans, opt)
+	f.cacheMu.Lock()
+	if f.cache == nil || len(f.cache) >= cacheLimit {
+		f.cache = map[layoutKey]*Layout{}
+	}
+	f.cache[key] = l
+	f.cacheMu.Unlock()
+	return l
+}
+
+func (f *Fonts) layoutFresh(spans []Span, opt Options) *Layout {
 	var l *Layout
 	if opt.Elide && opt.MaxWidth > 0 {
 		l = f.elided(spans, opt)
@@ -228,7 +262,7 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 	// covers each character.
 	var outs []shaping.Output
 	var seg shaping.Segmenter
-	var shaper shaping.HarfbuzzShaper
+	shaper := &l.fonts.shaper
 	for i, st := range l.styles {
 		start, end := l.starts[i], len(l.runes)
 		if i+1 < len(l.starts) {

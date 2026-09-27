@@ -14,6 +14,7 @@ package text
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-text/typesetting/shaping"
 	"io"
 	"log"
 	"os"
@@ -39,6 +40,13 @@ type Fonts struct {
 	data   map[string][]byte                // font bytes by file or identifier
 	canvas map[gfont.FontID]*cfont.Typeface // canvas typefaces by file and face index
 	sized  map[fontKey]*cfont.Font          // canvas fonts by face and size
+	// shaper is kept for the life of the fonts, because it caches what
+	// HarfBuzz builds from each font; a shaper made per paragraph rebuilt
+	// the kerning tables of every font for every piece of text.
+	shaper shaping.HarfbuzzShaper
+	// cache holds recent layouts of one span; see Layout.
+	cacheMu sync.Mutex
+	cache   map[layoutKey]*Layout
 }
 
 // NewFonts scans the system's fonts, keeping the index in cacheDir so later
@@ -67,6 +75,10 @@ func NewFonts(cacheDir string) (*Fonts, error) {
 // AddFont makes a font held in memory available under a family name, such as
 // the embedded icon font.
 func (f *Fonts) AddFont(data []byte, family string) error {
+	// A new font can change what an earlier layout would draw with.
+	f.cacheMu.Lock()
+	f.cache = nil
+	f.cacheMu.Unlock()
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	id := "memory:" + family

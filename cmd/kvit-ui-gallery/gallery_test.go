@@ -133,3 +133,38 @@ func TestTheSourceOnlySamplesRun(t *testing.T) {
 		t.Error(e)
 	}
 }
+
+// The sidebar's filter keeps the pages whose name or group has the words in
+// it, and says how many it kept.
+func TestTheSidebarFilters(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var g *gallery
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: windowWidth, Height: windowHeight},
+		unison.StartupFinishedCallback(func() { g, _ = newGallery(ui, "KvitIcon", nil) }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Stop()
+	screen.Sync()
+	screen.Do(func() { g.search.SetText("row") })
+	screen.Sync()
+	screen.Do(func() {
+		if _, ok := g.rows["KvitSlimRow"]; !ok {
+			t.Error("filtering for row dropped KvitSlimRow")
+		}
+		if _, ok := g.rows["KvitLabel"]; ok {
+			t.Error("filtering for row kept KvitLabel")
+		}
+		if g.search.Matches != len(g.rows) {
+			t.Errorf("the filter says %d matches and shows %d", g.search.Matches, len(g.rows))
+		}
+	})
+	// A page row opens its page.
+	screen.Click(screen.PanelCenter(g.rows["KvitSlimRow"]))
+	if g.page != "KvitSlimRow" {
+		t.Errorf("clicking the KvitSlimRow row opened %q", g.page)
+	}
+}

@@ -17,3 +17,13 @@ func scrollBarBesideColumn(ui *kvitui.UI) unison.Paneler {
 	region := kvitui.NewRegion(ui, kvitui.Column(ui, kvitui.Px(0), rows...))
 	return kvitui.Sized(ui, kvitui.Px(480), kvitui.Px(120), region)
 }
+
+func segmentedPeriod(ui *kvitui.UI) unison.Paneler {
+	period := kvitui.NewSegmented(ui, "Period",
+		kvitui.SegmentOption{Value: "week", Label: "Week"}, kvitui.SegmentOption{Value: "month", Label: "Month"},
+		kvitui.SegmentOption{Value: "quarter", Label: "Quarter"}, kvitui.SegmentOption{Value: "year", Label: "Year"})
+	period.Current = "month"
+	whose := kvitui.NewSegmented(ui, "",
+		kvitui.SegmentOption{Value: "All", Label: "All"}, kvitui.SegmentOption{Value: "Mine", Label: "Mine"})
+	return kvitui.Column(ui, kvitui.SizeSpace, kvitui.Left(period), kvitui.Left(whose))
+}

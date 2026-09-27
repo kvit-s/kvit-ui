@@ -33,6 +33,11 @@ type Window struct {
 	// SidebarExpandsOnHover opens the rail while the pointer rests on it or
 	// the keyboard is inside it; on unless an application has a reason.
 	SidebarExpandsOnHover bool
+	// OnKeyDown is offered every key press before the focused control, for
+	// the application's own shortcuts; true says it used the key. It is
+	// here rather than in the window's KeyDownCallback, which Kvit uses to
+	// tell keyboard focus from the rest.
+	OnKeyDown func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool
 
 	header, sidebar, body, status unison.Paneler
 	panel                         *Panel // the sidebar's ground, ruled on its right
@@ -76,6 +81,9 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 			geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)
 	}
 	w.watchPointer()
+	uw.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		return w.OnKeyDown != nil && w.OnKeyDown(key, mods, repeat)
+	}
 	ui.watchWindow(uw)
 	m := ui.Interface
 	uw.SetContentRect(geom.NewRect(0, 0, float32(m.WidthDrawn()), float32(m.Px(960))))
