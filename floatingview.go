@@ -1,6 +1,7 @@
 package kvitui
 
 import (
+	"github.com/kvit-s/kvit-ui/palette"
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
@@ -175,7 +176,7 @@ func (v *FloatingView) draw(gc *unison.Canvas, _ geom.Rect) {
 	// What is behind, dimmed with the wash a spotlight uses, at half its
 	// weight: this is a view the reader opened rather than a pointer at
 	// something.
-	shade := unison.RGB(0, 0, 0).SetAlphaIntensity(0.28)
+	shade := Color(palette.Shade).SetAlphaIntensity(0.28)
 	gc.DrawRect(r, shade.Paint(gc, r, paintstyle.Fill))
 	card := v.card()
 	radius := float32(m.RadiusCard())

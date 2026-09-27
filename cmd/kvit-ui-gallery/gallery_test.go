@@ -13,9 +13,8 @@ import (
 
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/kvit-s/kvit-ui/tokens"
+	"github.com/kvit-s/kvit-ui/uitest"
 	"github.com/richardwilkes/unison"
-	"github.com/richardwilkes/unison/accessibility"
-	"github.com/richardwilkes/unison/enums/role"
 )
 
 // TestShots writes the whole screenshot set headlessly, one image per page,
@@ -217,20 +216,8 @@ func TestEveryControlSaysWhatItIs(t *testing.T) {
 	for _, page := range pageNames() {
 		screen.Do(func() { g.setPage(page) })
 		screen.Sync()
-		tree := screen.AccessibilityTree(g.wnd.Window)
-		for _, n := range tree.Nodes {
-			reachable := n.Focusable || n.Actions.Has(accessibility.Press)
-			if !reachable || n.Ignored || n.Disabled || n.Role == role.ScrollBar {
-				continue
-			}
-			if n.Role == role.Auto || n.Role == role.None || n.Role == role.Unknown {
-				t.Errorf("%s: a %v node %q has no role", page, n.Role, n.Name)
-			}
-			// A cell may hold nothing, and its description still names
-			// its row.
-			if n.Name == "" && len(n.LabeledBy) == 0 && n.Role != role.Cell {
-				t.Errorf("%s: a %v node has no name (focusable %v, actions %v, bounds %v)", page, n.Role, n.Focusable, n.Actions, n.Bounds)
-			}
+		for _, problem := range uitest.Unnamed(screen.AccessibilityTree(g.wnd.Window)) {
+			t.Errorf("%s: %s", page, problem)
 		}
 		screen.KeyPress(unison.KeyEscape, 0)
 	}

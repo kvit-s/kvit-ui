@@ -52,6 +52,11 @@ func RGB8(r, g, b uint8) Color {
 	return Color{float64(r) / 255, float64(g) / 255, float64(b) / 255}
 }
 
+// Shade is the black a floating surface darkens what is behind it with, at
+// a share of its strength: the same in every theme, as the Qt library's
+// spotlight and floating view draw it.
+var Shade = RGB8(0, 0, 0)
+
 // RGBA8 returns the channels rounded to 8 bits.
 func (c Color) RGBA8() (r, g, b uint8) {
 	q := func(v float64) uint8 { return uint8(math.Round(math.Min(1, math.Max(0, v)) * 255)) }

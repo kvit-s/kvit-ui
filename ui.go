@@ -159,10 +159,13 @@ func Color(c palette.Color) unison.Color {
 	return unison.RGB(int(r), int(g), int(b))
 }
 
+// opaque is a colour's alpha with nothing showing through.
+const opaque = 255
+
 // TextColor converts a design colour for the text package.
 func TextColor(c palette.Color) text.Color {
 	r, g, b := c.RGBA8()
-	return text.Color{R: r, G: g, B: b, A: 255}
+	return text.Color{R: r, G: g, B: b, A: opaque}
 }
 
 // Chrome is the text style of one of the interface's type roles, at the

@@ -92,12 +92,15 @@ func unisonFont(ui *UI, family string, px int) unison.Font {
 		return unison.FieldFont
 	}
 	const trial = 10
+	// probeSize is a size to measure a line at, large so rounding is small;
+	// it is never drawn.
+	const probeSize = 1000
 	probe := face.Font(trial)
-	_, big := ui.Fonts.Layout([]text.Span{{Text: "Hg", Style: text.Style{Family: family, Size: 1000}}}, text.Options{}).Size()
+	_, big := ui.Fonts.Layout([]text.Span{{Text: "Hg", Style: text.Style{Family: family, Size: probeSize}}}, text.Options{}).Size()
 	if probe.LineHeight() <= 0 || big <= 0 {
 		return probe
 	}
-	em := probe.LineHeight() / (big / 1000)
+	em := probe.LineHeight() / (big / probeSize)
 	return face.Font(trial * float32(px) / em)
 }
 

@@ -33,6 +33,7 @@ Give the command behind every number, and save screenshots under
 | `icons` | The embedded Phosphor font and its names. `catalog_gen.go` is generated |
 | `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas |
 | root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
+| `uitest` | Headless test helpers for the library and the applications: a Kvit window in a chosen theme and interface size (`Open`), a screen reader's view of it, the check that every control has a role and a name (`CheckNamed`), and the check on a program's source for colour literals and numeric font sizes (`CheckRules`) |
 | `cmd/kvit-ui-gallery` | The gallery, its screenshot mode, and `--catalog`, which writes the skill's component catalogue |
 | `agent/skills` | The two agent skills, `kvit-ui` (the vocabulary, with the generated `catalog.md`) and `kvit-preview` |
 | `ux` | The drawing layer for proposing a screen as HTML: `tokens.css`, written by `tools/tokens-to-css`, and the hand-written `frame.css`, `render.sh`, `PATTERN.md` and `visual-language.md` |

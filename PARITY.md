@@ -500,7 +500,12 @@ component draws it itself, cut off at its box.
   builds the page, compiled with the gallery; `TestShots` runs every one,
   and `TestTheSourceOnlySamplesRun` the one that cannot be drawn in a page.
 - [x] No colour literal and no numeric font size outside the design values
-  (`rules_test.go`; in Qt, qmllint at full strength)
+  (`rules_test.go`, through `uitest.CheckRules`, which an application's
+  tests call on its own source; in Qt, qmllint at full strength). Until
+  2026-09-27 the check read no files, because it skipped every directory
+  whose name starts with a dot and the directory it starts from is named
+  "."; it now fails when it finds fewer than it should, and the four
+  literals it then found are named design values.
 - [ ] No unnamed geometry value outside the design values: not checked by a
   test yet, since a literal offset cannot be told from ordinary arithmetic
   by reading the source

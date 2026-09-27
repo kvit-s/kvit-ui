@@ -1,6 +1,7 @@
 package kvitui
 
 import (
+	"github.com/kvit-s/kvit-ui/palette"
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/richardwilkes/toolbox/v2/geom"
@@ -137,7 +138,7 @@ func (s *Spotlight) draw(gc *unison.Canvas, _ geom.Rect) {
 	hole := s.hole()
 	// The shade as four boxes around the hole, which leave the lit part
 	// untouched.
-	shade := unison.RGB(0, 0, 0).SetAlphaIntensity(0.55)
+	shade := Color(palette.Shade).SetAlphaIntensity(0.55)
 	for _, b := range []geom.Rect{
 		geom.NewRect(r.X, r.Y, r.Width, max(0, hole.Y-r.Y)),
 		geom.NewRect(hole.Right(), hole.Y, max(0, r.Right()-hole.Right()), hole.Height),
