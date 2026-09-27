@@ -148,12 +148,18 @@ func (m *Interface) SpaceWide() int  { return m.Px(10) }
 func (m *Interface) SpaceLoose() int { return m.Px(12) }
 
 // Layout.
-func (m *Interface) ViewMargin() int       { return m.Px(16) }
-func (m *Interface) ColumnGap() int        { return m.Px(14) }
-func (m *Interface) StackGap() int         { return m.Px(7) }
-func (m *Interface) SidebarWidth() int     { return m.Px(232) }
-func (m *Interface) RailWidth() int        { return m.Px(48) } // the sidebar collapsed
-func (m *Interface) PaneWidth() int        { return m.Px(392) }
+func (m *Interface) ViewMargin() int   { return m.Px(16) }
+func (m *Interface) ColumnGap() int    { return m.Px(14) }
+func (m *Interface) StackGap() int     { return m.Px(7) }
+func (m *Interface) SidebarWidth() int { return m.Px(232) }
+func (m *Interface) RailWidth() int    { return m.Px(48) } // the sidebar collapsed
+func (m *Interface) PaneWidth() int    { return m.Px(392) }
+
+// FloatingViewWidth is the width of a view floated over a list: wider than
+// the pane, because it takes no width out of the layout (kvit-cash's copy of
+// the Qt library).
+func (m *Interface) FloatingViewWidth() int { return m.Px(720) }
+
 func (m *Interface) HeaderHeight() int     { return m.Px(52) }
 func (m *Interface) BreadcrumbHeight() int { return m.Px(34) }
 func (m *Interface) StatusBarHeight() int  { return m.Px(22) }

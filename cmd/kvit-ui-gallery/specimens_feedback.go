@@ -71,3 +71,30 @@ func dialogDestructive(ui *kvitui.UI) unison.Paneler {
 	confirm.ConfirmText, confirm.Destructive = "Delete them", true
 	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(210), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), confirm))))
 }
+
+func floatingRecord(ui *kvitui.UI) unison.Paneler {
+	// Shown over a stand-in list, which is what a floating view is always
+	// over: the card is centred on the region it floats in, and the region is
+	// the list's, not the window's.
+	row := func(name, figure string) unison.Paneler {
+		r := kvitui.NewSlimRow(ui, name)
+		r.Figure = figure
+		return kvitui.FullWidth(r)
+	}
+	list := kvitui.Column(ui, kvitui.Px(0),
+		row("Whole Foods", "-84.10"), row("Rent", "-1,850.00"), row("Payroll", "3,204.55"), row("Con Edison", "-96.22"))
+	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(260), list))
+	detail := func(name, phrase string) unison.Paneler {
+		r := kvitui.NewSlimRow(ui, name)
+		r.Phrase = phrase
+		return kvitui.FullWidth(r)
+	}
+	body := kvitui.NewRegion(ui, kvitui.Column(ui, kvitui.SizeSpace,
+		kvitui.FullWidth(kvitui.NewSectionHeading(ui, "Source record")),
+		detail("Payee", "Whole Foods"), detail("Category", "Groceries")))
+	record := kvitui.NewFloatingView(ui, "Whole Foods · 3 Sep", body)
+	record.CloseLabel = "Close record"
+	record.OnCloseRequested = record.Close
+	whenShown(stage, func() { record.Open(stage) })
+	return stage
+}

@@ -434,6 +434,14 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitFloatingView",
+		group:   "Feedback",
+		summary: "Detail about the one thing selected, held over the list rather than beside it: a centred card with a name and a close control, and the list dimmed behind. Unlike KvitPane it takes no width out of the layout, so the list keeps the whole window at every size; unlike KvitDialog it is closed rather than answered, and it floats over one region rather than over the window. From kvit-cash's copy of the Qt library.",
+		specimens: []specimen{
+			{caption: "A record held over the list it came from", build: floatingRecord},
+		},
+	},
+	{
 		name:    "KvitBar",
 		group:   "Data",
 		summary: "One quantity against a stated scale. A bar with no value draws a tick rather than a zero-width fill; a bounded figure is hatched, and the hatch survives grayscale; and the scale is required, because a bar drawn against its own list rescales invisibly.",
@@ -455,6 +463,15 @@ var catalog = []entry{
 		summary: "The shape of a series, small enough to sit in a row. A period that was never measured is a baseline tick rather than a zero-height bar: a missing week and a quiet week are different facts.",
 		specimens: []specimen{
 			{caption: "With a hole in the middle", build: sparkWithHole},
+		},
+	},
+	{
+		name:    "KvitNetFlow",
+		group:   "Data",
+		summary: "Two opposed series over the same periods, on one baseline and one scale, with what they come to drawn as a line. What comes in is drawn up from the baseline and what goes out is drawn down, so which of the two was larger in a period is a glance rather than a comparison between two strips an inch apart. Each column names its own period underneath, and the names thin out to whatever spacing they actually fit in. From kvit-cash's copy of the Qt library.",
+		specimens: []specimen{
+			{caption: "A year of money in and money out, netted off", build: netFlowYear},
+			{caption: "Daily columns, where the names thin out, and a period nobody measured", build: netFlowDays},
 		},
 	},
 	{

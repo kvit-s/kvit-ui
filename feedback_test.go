@@ -204,3 +204,44 @@ func TestANoticeSaysItsConditionAndIsDismissedOnlyWhenItCanBe(t *testing.T) {
 		t.Errorf("close controls: %d on the dismissible notice, %d on the other", count(licence), count(vault))
 	}
 }
+
+// A floating view takes every press on what it covers, closes on Escape, and
+// says what it holds.
+func TestAFloatingViewCoversTheListAndClosesOnEscape(t *testing.T) {
+	var view *kvitui.FloatingView
+	var list *kvitui.ListRow
+	var pressed, asked int
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		list = kvitui.NewListRow(ui, kvitui.NewLabel(ui, "Whole Foods"))
+		list.Interactive = true
+		list.OnActivate = func() { pressed++ }
+		return []unison.Paneler{kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(260), list))}
+	})
+	screen.Do(func() {
+		view = kvitui.NewFloatingView(ui, "Whole Foods · 3 Sep", kvitui.NewLabel(ui, "Payee"))
+		view.CloseLabel = "Close record"
+		view.OnCloseRequested = func() { asked++; view.Close() }
+		view.Open(list.Parent())
+	})
+	screen.Sync()
+	// A press at the list's left end, where the dimmed area is, does not
+	// reach the row under it.
+	screen.Click(screen.PanelPoint(list, geom.NewPoint(4, 10)))
+	if pressed != 0 || asked != 0 || !view.Opened() {
+		t.Errorf("a press on the dimmed area pressed the row %d times and asked to close %d times", pressed, asked)
+	}
+	if n := screen.AccessibilityNodeFor(view); n == nil || n.Name != "Whole Foods · 3 Sep" {
+		t.Errorf("the view's node is %+v", n)
+	}
+	found := false
+	for _, n := range screen.AccessibilityTree(w.Window).Nodes {
+		found = found || (n.Role == role.Button && n.Name == "Close record")
+	}
+	if !found {
+		t.Error("no close control named Close record")
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	if asked != 1 || view.Opened() {
+		t.Errorf("Escape asked to close %d times and left the view open: %v", asked, view.Opened())
+	}
+}

@@ -52,7 +52,7 @@ func TestEveryValueIsTheIdentityAtTheDefault(t *testing.T) {
 		"RadiusBar": 2, "RadiusChip": 3, "RadiusControl": 4, "RadiusCard": 6, "RadiusPill": 8,
 		"Hairline": 1, "FocusRingWidth": 2, "WidthFloor": 880, "WidthLaptop": 1100, "WidthDrawn": 1440,
 		// Added in kvit-cash's copy of the Qt library (722906e).
-		"HeightFloor": 600,
+		"HeightFloor": 600, "FloatingViewWidth": 720,
 	}
 	got := derived(tokens.NewInterface())
 	if len(got) != len(want) {

@@ -543,33 +543,65 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 `722906e`) has 7 commits that `~/kvit-ui` lacks. The two split after `46a67c0`
 (2026-09-10). kvit-ui-go has to do what these commits do as well.
 
-- [ ] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
-  Done so far: the region's keyboard scrolling and bringing focus into view,
-  the slim row's kind capped at a quarter of the row, the row's chevron, the
-  search field's clear button at a control's height, the segmented control
-  at a tab's height, the status bar's
-  overflow link hidden when nothing is hidden, the card's chevron, the empty
-  state's action reachable by the keyboard, the pane's floor (not needed
-  in unison), the tooltip kept inside the window and beside its control,
-  and in the table the hover card behind an amount, the strip of row marks,
+- [x] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
+  The region's keyboard scrolling and bringing focus into view, the slim
+  row's kind capped at a quarter of the row, the row's and the card's
+  chevron, the search field's clear button at a control's height, the
+  segmented control at a tab's height, the status bar's overflow link
+  hidden when nothing is hidden, the empty state's action reachable by the
+  keyboard, the pane's floor (not needed in unison), the tooltip kept inside
+  the window and beside its control, the type-ahead's list above the field
+  where there is no room below and only while the reader is in the field,
+  and in the table the hover card behind an amount, the strip of row marks
   and the column menu's entries for moving, widening and narrowing.
 - [x] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses.
   Evidence: `light-KvitTable.png`, the header a slim row tall and its box
   and menu button a control's height.
-- [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
-  Done so far: the row's, the card's and the table's `OpensLabel`, the
-  pane's `closable`, the dialog's buttons left out when they have no words.
-- [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
-  Done so far: the rail opening on hover and for the keyboard, the segmented
-  control's filled choice, the chip button's quick-filter state, the
-  dialog's close control in its title row.
-- [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
-  Done so far: `ViewHead.Padding`, the view head's own side margin, and the
-  region's and the table's wheel distance.
-- [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
-  Done so far: the quiet button's ground at rest, the field's shortcut, one
-  press acting on one thing in a card, the tooltip's placement, the
-  notice's action hint, and in the table the row's name in the link colour
-  (`OpensColumn`) and the ring round the keyboard's row.
+- [x] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
+  The row's, the card's and the table's `OpensLabel`, the pane's `closable`,
+  the dialog's buttons left out when they have no words, and the
+  type-ahead's trailing control (`SetTrailing`).
+- [x] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
+  The floating view (see below), the rail opening on hover and for the
+  keyboard, the segmented control's filled choice, the chip button's
+  quick-filter state, the dialog's close control in its title row.
+- [x] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
+  The wheel moving the distance it was turned in the region, the table, the
+  tree, the dual list and the type-ahead's list (one `wheelScroll`, which
+  is what `KvitWheelScroll` is in Go); `ViewHead.Padding` and the view
+  head's own side margin; the floating view's card holding what it holds
+  inside its edge; and the net flow (see below). The select's list is
+  unison's menu, which scrolls with unison's own wheel handling.
+- [x] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
+  The quiet button's ground at rest, the field's shortcut, one press acting
+  on one thing in a card, the tooltip's placement, the notice's action
+  hint, the floating view's title shown whole under the pointer, and in the
+  table the row's name in the link colour (`OpensColumn`) and the ring round
+  the keyboard's row.
 - [x] `722906e` 2026-09-13: Name the shortest window the chrome holds.
   `Interface.HeightFloor`, and `Window`'s minimum height.
+
+### Components that exist only in kvit-cash's copy
+
+A screenshot set written by kvit-cash's built Qt gallery
+(`~/kvit-cash/third-party/kvit-ui/build/gallery/kvit-ui-gallery --shots`)
+was used for the floating view. That build predates the net flow's commit,
+so the net flow was checked against its QML alone.
+
+- [x] `KvitFloatingView` (`FloatingView`, and `Interface.FloatingViewWidth`).
+  Evidence: `TestAFloatingViewCoversTheListAndClosesOnEscape`;
+  `light-KvitFloatingView.png` matches kvit-cash's Qt shot to within a
+  pixel. It is shown in the window's popup layer over the region it covers
+  (`Open`), so nothing under it can be pressed, whereas in Qt a pointer
+  handler under the view still hears a press (kvit-cash's defect D82) and
+  the caller has to disable the list. It appears at once rather than
+  fading in over 120 ms.
+- [x] `KvitNetFlow` (`NetFlow`). Evidence: `TestANetFlowSaysWhatItShows`;
+  `light-KvitNetFlow.png` compared with the QML by reading: bars up and down
+  from one baseline, the net line with a dot per column and breaks where a
+  column has no value, the key, and period names thinned from the newest
+  column.
+- [x] `KvitWheelScroll`: not a component in Go. The wheel's distance is
+  built into every view that scrolls (`wheelScroll` in `wheel.go`), so
+  there is nothing for a caller to declare.
+

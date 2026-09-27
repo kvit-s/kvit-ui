@@ -32,8 +32,8 @@ var groups = []group{
 	{"Marks", []string{"KvitChip", "KvitTag", "KvitBadge", "KvitSlug", "KvitDot", "KvitSignal", "KvitPip"}},
 	{"Quantities", []string{"KvitFigure", "KvitBeforeAfter"}},
 	{"Controls", []string{"KvitButton", "KvitChipButton", "KvitStepper", "KvitField", "KvitTextArea", "KvitSearchField", "KvitCheck", "KvitSelect", "KvitTab"}},
-	{"Feedback", []string{"KvitTooltip", "KvitPopover", "KvitHint", "KvitHoverCard", "KvitToast", "KvitNotice", "KvitDialog"}},
-	{"Data", []string{"KvitBar", "KvitStackedBar", "KvitSpark", "KvitTrend", "KvitDistribution", "KvitGauge", "KvitDelta", "KvitStatTile", "KvitFigureBlock", "KvitCell", "KvitTable"}},
+	{"Feedback", []string{"KvitTooltip", "KvitPopover", "KvitHint", "KvitHoverCard", "KvitToast", "KvitNotice", "KvitDialog", "KvitFloatingView"}},
+	{"Data", []string{"KvitBar", "KvitStackedBar", "KvitSpark", "KvitNetFlow", "KvitTrend", "KvitDistribution", "KvitGauge", "KvitDelta", "KvitStatTile", "KvitFigureBlock", "KvitCell", "KvitTable"}},
 	{"Flow", []string{"KvitScrollBar", "KvitMenu", "KvitMenuItem", "KvitTree", "KvitSwitch", "KvitRadioGroup", "KvitProgress", "KvitSlider", "KvitSplitView", "KvitSegmented", "KvitTypeAhead", "KvitConfirmInPlace", "KvitTimeline", "KvitNumberField", "KvitMoneyField", "KvitDualList", "KvitSpotlight"}},
 }
 
@@ -148,7 +148,7 @@ func (g *gallery) sync() {
 	g.theme.Current = ui.Theme.ThemeID()
 	g.status.Activity = g.activity
 	g.status.Facts = []string{
-		fmt.Sprintf("%d of 74 components", len(catalog)),
+		fmt.Sprintf("%d components", len(catalog)),
 		tokens.DisplayName(ui.Theme.ResolvedTheme()),
 		fmt.Sprintf("%d px", ui.Interface.FontSize()),
 	}

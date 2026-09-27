@@ -116,3 +116,17 @@ func TestAGaugesPaceTickStandsOutOfTheBar(t *testing.T) {
 		}
 	}
 }
+
+func TestANetFlowSaysWhatItShows(t *testing.T) {
+	var flow *kvitui.NetFlow
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		flow = kvitui.NewNetFlow(ui, []float64{0.6, kvitui.NotMeasured, 0.2}, []float64{0.4, kvitui.NotMeasured, 0.9}, "Jan", "Feb", "Mar")
+		flow.Label = "Cash flow by month"
+		flow.RisingLabel, flow.FallingLabel = "Money in", "Money out"
+		return []unison.Paneler{kvitui.FullWidth(flow)}
+	})
+	if n := screen.AccessibilityNodeFor(flow); n == nil || n.Role != role.Image || n.Name != "Cash flow by month" ||
+		n.Description != "3 periods, what came in above the line and what went out below it" {
+		t.Errorf("the chart's node is %+v", n)
+	}
+}

@@ -81,7 +81,7 @@ func NewTypeAhead(ui *UI, label string, allowNew bool, source ...Suggestion) *Ty
 		}
 	}
 	a.changed = func() {
-		a.cursor = 0
+		a.cursor, a.list.scrollY = 0, 0
 		if !a.setting {
 			a.shut = false
 		}
@@ -190,11 +190,13 @@ func (a *TypeAhead) keyDown(key unison.KeyCode) bool {
 			return false
 		}
 		a.cursor = min(n-1, a.cursor+1)
+		a.list.reveal(a.cursor)
 	case unison.KeyUp:
 		if a.hide == nil {
 			return false
 		}
 		a.cursor = max(0, a.cursor-1)
+		a.list.reveal(a.cursor)
 	case unison.KeyReturn, unison.KeyNumPadEnter:
 		a.accept()
 	default:
@@ -249,11 +251,18 @@ type typeAheadList struct {
 	unison.Panel
 	a       *TypeAhead
 	hovered int
+	scrollY float32 // how far the matches are scrolled
+	ease    wheelScroll
 }
 
 func newTypeAheadList(a *TypeAhead) *typeAheadList {
 	l := &typeAheadList{a: a, hovered: -1}
 	l.Self = l
+	l.ease = wheelScroll{ui: a.ui,
+		at:     func() (x, y float32) { return 0, l.scrollY },
+		travel: func() (x, y float32) { return 0, l.travel() },
+		moveTo: func(_, y float32) { l.scrollTo(y) }}
+	l.MouseWheelCallback = func(_, delta geom.Point, _ mod.Modifiers) bool { return l.ease.wheel(delta) }
 	l.SetSizer(l.sizes)
 	l.DrawCallback = l.draw
 	l.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool { l.hover(l.rowAt(where)); return false }
@@ -283,9 +292,38 @@ func (l *typeAheadList) rows() int {
 
 func (l *typeAheadList) rowHeight() float32 { return float32(l.a.ui.Interface.RowHeightSlim()) }
 
+// view is the height the matches are shown in: all of them up to 200 design
+// pixels, scrolling past that.
+func (l *typeAheadList) view() float32 {
+	return min(float32(len(l.a.Matches()))*l.rowHeight(), float32(l.a.ui.Interface.Px(200)))
+}
+
+func (l *typeAheadList) travel() float32 {
+	return max(0, float32(len(l.a.Matches()))*l.rowHeight()-l.view())
+}
+
+func (l *typeAheadList) scrollTo(y float32) {
+	y = max(0, min(l.travel(), y))
+	if y != l.scrollY {
+		l.scrollY = y
+		l.MarkForRedraw()
+	}
+}
+
+// reveal scrolls the cursor's match into view.
+func (l *typeAheadList) reveal(i int) {
+	top := float32(i) * l.rowHeight()
+	switch {
+	case top < l.scrollY:
+		l.scrollTo(top)
+	case top+l.rowHeight() > l.scrollY+l.view():
+		l.scrollTo(top + l.rowHeight() - l.view())
+	}
+}
+
 func (l *typeAheadList) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	m := l.a.ui.Interface
-	matches := min(float32(len(l.a.Matches()))*l.rowHeight(), float32(m.Px(200)))
+	matches := l.view()
 	extra := float32(0)
 	if l.a.offersNew() {
 		extra = l.rowHeight()
@@ -300,11 +338,13 @@ func (l *typeAheadList) rowAt(where geom.Point) int {
 	if !where.In(r) {
 		return -1
 	}
-	i := int((where.Y - r.Y) / l.rowHeight())
-	if i >= l.rows() {
+	if where.Y >= r.Y+l.view() {
+		if l.a.offersNew() && where.Y < r.Y+l.view()+l.rowHeight() {
+			return len(l.a.Matches())
+		}
 		return -1
 	}
-	return i
+	return int((where.Y - r.Y + l.scrollY) / l.rowHeight())
 }
 
 func (l *typeAheadList) hover(i int) {
@@ -326,8 +366,10 @@ func (l *typeAheadList) draw(gc *unison.Canvas, _ geom.Rect) {
 	rowH := l.rowHeight()
 	near := float32(m.SpaceNear())
 	matches := a.Matches()
+	gc.Save()
+	gc.ClipRect(geom.NewRect(r.X, r.Y, r.Width, l.view()), pathop.Intersect, false)
 	for i, s := range matches {
-		box := geom.NewRect(r.X, r.Y+float32(i)*rowH, r.Width, rowH)
+		box := geom.NewRect(r.X, r.Y+float32(i)*rowH-l.scrollY, r.Width, rowH)
 		switch {
 		case i == a.cursor:
 			p.fill(box, t.FocusTint)
@@ -339,10 +381,11 @@ func (l *typeAheadList) draw(gc *unison.Canvas, _ geom.Rect) {
 		_, h := lay.Size()
 		lay.Draw(gc, box.X+near, box.Y+(rowH-h)/2)
 	}
+	gc.Restore()
 	if a.offersNew() {
 		// The row says what it will make, in quotes: a row reading "Create"
 		// under a list of matches does not say which of them it means.
-		box := geom.NewRect(r.X, r.Y+min(float32(len(matches))*rowH, float32(m.Px(200))), r.Width, rowH)
+		box := geom.NewRect(r.X, r.Y+l.view(), r.Width, rowH)
 		if l.hovered == len(matches) {
 			p.fill(box, t.HoverTint)
 		}

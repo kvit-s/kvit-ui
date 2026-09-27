@@ -3,6 +3,7 @@ package main
 // The Data group's specimens.
 
 import (
+	"strconv"
 	"time"
 
 	kvitui "github.com/kvit-s/kvit-ui"
@@ -200,4 +201,32 @@ func tableEmpty(ui *kvitui.UI) unison.Paneler {
 	table := kvitui.NewTable(ui, kvitui.NewBenchmarkTableModel(0))
 	table.EmptyTitle, table.EmptyDetail = "No transactions", "Nothing matches the current filter."
 	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(200), table))
+}
+
+func netFlowYear(ui *kvitui.UI) unison.Paneler {
+	flow := kvitui.NewNetFlow(ui,
+		[]float64{0.62, 0.55, 0.71, 0.58, 0.64, 0.60, 0.66, 0.59, 0.63, 0.70, 0.61, 0.65},
+		[]float64{0.48, 0.72, 0.51, 0.66, 0.44, 0.81, 0.52, 0.47, 0.69, 0.55, 0.90, 0.50},
+		"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+	flow.Maximum = 1
+	flow.RisingLabel, flow.FallingLabel, flow.NetLabel = "Money in", "Money out", "Kept"
+	// Money in and money out are good and bad news, so this chart says so
+	// with the meaning colours; a chart's default is the categorical pair.
+	flow.RisingInk, flow.FallingInk = kvitui.InkSuccess, kvitui.InkDanger
+	flow.Label = "Cash flow by month"
+	return kvitui.FullWidth(flow)
+}
+
+func netFlowDays(ui *kvitui.UI) unison.Paneler {
+	gap := kvitui.NotMeasured
+	var days []string
+	for d := 1; d <= 20; d++ {
+		days = append(days, strconv.Itoa(d))
+	}
+	flow := kvitui.NewNetFlow(ui,
+		[]float64{0.2, 0.0, 0.9, 0.1, gap, 0.3, 0.0, 0.5, 0.2, 0.0, 0.7, 0.1, 0.0, 0.4, 0.0, 0.8, 0.2, 0.0, 0.3, 0.6},
+		[]float64{0.3, 0.4, 0.2, 0.5, gap, 0.1, 0.6, 0.2, 0.7, 0.3, 0.2, 0.4, 0.5, 0.1, 0.3, 0.2, 0.6, 0.4, 0.2, 0.3},
+		days...)
+	flow.Maximum, flow.Label = 1, "Cash flow by day"
+	return kvitui.FullWidth(flow)
 }
