@@ -46,6 +46,8 @@ if [ $test = 1 ]; then
     fi
     go vet ./...
     go test ./...
+    # The patched go-text copy is a module of its own, which ./... skips.
+    (cd third_party/typesetting && go test ./fontscan -run TestSetFaceLoader)
 fi
 
 if [ $cross = 1 ]; then

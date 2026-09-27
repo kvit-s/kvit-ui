@@ -10,6 +10,7 @@ require (
 	github.com/richardwilkes/toolbox/v2 v2.20.0
 	github.com/richardwilkes/unison v0.108.0
 	golang.org/x/image v0.46.0
+	golang.org/x/sys v0.48.0
 )
 
 require (
@@ -19,6 +20,7 @@ require (
 	github.com/yuin/goldmark v1.8.6 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 )
+
+replace github.com/go-text/typesetting => ./third_party/typesetting

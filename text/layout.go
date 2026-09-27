@@ -3,6 +3,7 @@ package text
 import (
 	"math"
 	"sort"
+	"unicode"
 
 	"github.com/go-text/typesetting/di"
 	gfont "github.com/go-text/typesetting/font"
@@ -187,7 +188,9 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 				Language:  language.NewLanguage("en"),
 			}
 			for _, part := range seg.Split(in, scriptFontmap{f.fm}) {
-				outs = append(outs, shaper.Shape(part))
+				out := shaper.Shape(part)
+				markInk(&out, para)
+				outs = append(outs, out)
 			}
 			a = b
 		}
@@ -240,6 +243,22 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 		y += ln.height
 	}
 	return y
+}
+
+// markInk gives every glyph that is not whitespace a nominal ink width.
+// Shaping faces are parsed without their outlines (see strippedFace), so
+// every glyph reports zero ink width, and go-text's line wrapper treats a
+// glyph with zero ink width at the end of a line as a space: it drops its
+// advance and lets it hang past the wrap width. The text package reads no
+// ink sizes itself, so the width only has to be non-zero for real glyphs.
+func markInk(out *shaping.Output, text []rune) {
+	for i := range out.Glyphs {
+		g := &out.Glyphs[i]
+		if g.Width != 0 || g.ClusterIndex >= len(text) || unicode.IsSpace(text[g.ClusterIndex]) {
+			continue
+		}
+		g.Width = g.XAdvance
+	}
 }
 
 // emojiFamilies are the colour emoji fonts of the three platforms.

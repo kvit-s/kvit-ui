@@ -19,10 +19,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 
 	gfont "github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
 	"github.com/go-text/typesetting/fontscan"
 	"github.com/go-text/typesetting/language"
 	cfont "github.com/richardwilkes/canvas/font"
@@ -53,11 +55,13 @@ func NewFonts(cacheDir string) (*Fonts, error) {
 	if err := fm.UseSystemFonts(cacheDir); err != nil {
 		return nil, fmt.Errorf("text: scanning system fonts: %w", err)
 	}
-	return &Fonts{
+	f := &Fonts{
 		fm:     fm,
 		data:   map[string][]byte{},
 		canvas: map[gfont.FontID]*cfont.Typeface{},
-	}, nil
+	}
+	fm.SetFaceLoader(f.shapingFace)
+	return f, nil
 }
 
 // AddFont makes a font held in memory available under a family name, such as
@@ -66,9 +70,11 @@ func (f *Fonts) AddFont(data []byte, family string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	id := "memory:" + family
-	if err := f.fm.AddFont(bytes.NewReader(data), id, family); err != nil {
+	face, err := strippedFace(data, 0)
+	if err != nil {
 		return err
 	}
+	f.fm.AddFace(face, fontscan.Location{File: id}, gfont.Description{Family: family, Aspect: face.Describe().Aspect})
 	f.data[id] = data
 	return nil
 }
@@ -149,13 +155,9 @@ func (f *Fonts) typeface(face *gfont.Face) (*cfont.Typeface, error) {
 	if tf, ok := f.canvas[loc]; ok {
 		return tf, nil
 	}
-	data, ok := f.data[loc.File]
-	if !ok {
-		var err error
-		if data, err = os.ReadFile(loc.File); err != nil {
-			return nil, err
-		}
-		f.data[loc.File] = data
+	data, err := f.fileData(loc.File)
+	if err != nil {
+		return nil, err
 	}
 	tf, err := cfont.NewTypefaceFromData(data, int(loc.Index))
 	if err != nil {
@@ -163,4 +165,75 @@ func (f *Fonts) typeface(face *gfont.Face) (*cfont.Typeface, error) {
 	}
 	f.canvas[loc] = tf
 	return tf, nil
+}
+
+// fileData returns a font file's bytes, mapped from disk once and kept.
+func (f *Fonts) fileData(path string) ([]byte, error) {
+	if data, ok := f.data[path]; ok {
+		return data, nil
+	}
+	data, err := mapFile(path)
+	if err != nil {
+		return nil, err
+	}
+	f.data[path] = data
+	return data, nil
+}
+
+// shapingFace is the loader fontscan calls once it has chosen a system font.
+// Shaping reads the character map, the substitution and positioning tables
+// and the metrics, never the glyphs themselves; canvas draws those from its
+// own parse of the full file. So the face shaping uses is parsed from a copy
+// without the outline, bitmap and colour tables, which go-text would
+// otherwise parse and hold for the life of the face.
+func (f *Fonts) shapingFace(loc fontscan.Location) (*gfont.Face, error) {
+	data, err := f.fileData(loc.File)
+	if err != nil {
+		return nil, err
+	}
+	return strippedFace(data, int(loc.Index))
+}
+
+// withoutGlyphs are the tables shaping never reads: outlines (TrueType,
+// CFF), bitmap strikes, and colour glyphs.
+var withoutGlyphs = map[ot.Tag]bool{}
+
+func init() {
+	for _, t := range []string{"glyf", "loca", "CFF ", "CFF2", "COLR", "CPAL", "CBDT", "CBLC", "sbix", "SVG ", "EBDT", "EBLC", "EBSC"} {
+		withoutGlyphs[ot.MustNewTag(t)] = true
+	}
+}
+
+// strippedFace parses face index of a font file or collection from a copy
+// holding every table but the glyph tables.
+func strippedFace(data []byte, index int) (*gfont.Face, error) {
+	lds, err := ot.NewLoaders(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	if index >= len(lds) {
+		return nil, fmt.Errorf("text: face %d of a collection of %d", index, len(lds))
+	}
+	ld := lds[index]
+	var tables []ot.Table
+	for _, tag := range ld.Tables() {
+		if withoutGlyphs[tag] {
+			continue
+		}
+		raw, err := ld.RawTable(tag)
+		if err != nil {
+			return nil, err
+		}
+		tables = append(tables, ot.Table{Tag: tag, Content: raw})
+	}
+	sort.Slice(tables, func(a, b int) bool { return tables[a].Tag < tables[b].Tag })
+	small, err := ot.NewLoader(bytes.NewReader(ot.WriteTTF(tables)))
+	if err != nil {
+		return nil, err
+	}
+	ft, err := gfont.NewFont(small)
+	if err != nil {
+		return nil, err
+	}
+	return gfont.NewFace(ft), nil
 }

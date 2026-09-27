@@ -35,6 +35,7 @@ Give the command behind every number, and save screenshots under
 | root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison; the components will live here |
 | `cmd/kvit-ui-gallery` | The gallery and its screenshot mode |
 | `tools/import-qt-*` | Generators reading the Qt library's sources; their tests fail when the Qt source has changed since the last run |
+| `third_party/typesetting` | go-text v0.3.5 with one patch (see below) |
 
 The two generated files are rebuilt with:
 
@@ -42,6 +43,16 @@ The two generated files are rebuilt with:
 go run ./tools/import-qt-theme ~/kvit-ui/src/tokens/theme.cpp > tokens/tables_gen.go
 go run ./tools/import-qt-icons ~/kvit-ui/src/qml/iconcatalog.cpp > icons/catalog_gen.go
 ```
+
+**go-text is a patched copy.** `third_party/typesetting` is go-text v0.3.5
+with one addition, a font-loader option in its font finder, used through a
+`replace` line in `go.mod`. `KVIT-PATCH.md` there says what, why and when
+it goes away. Every app built on kvit-ui-go needs the same line:
+
+    replace github.com/go-text/typesetting => ../kvit-ui-go/third_party/typesetting
+
+Without it the app still compiles against go-text's own release, which
+lacks `SetFaceLoader`, so the build fails and the missing line is visible.
 
 **Draw text with the `text` package, never with unison's `Text` or
 `Label`.** unison's own text draws one glyph per character, without

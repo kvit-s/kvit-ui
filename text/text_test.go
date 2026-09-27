@@ -217,3 +217,47 @@ func mustGlyph(t *testing.T, name string) rune {
 	}
 	return r
 }
+
+// The last glyph of a line keeps its width. go-text's wrapper decides what
+// is a trailing space by ink width, and shaping faces carry no ink (see
+// markInk), so a line of several runs, or a wrapped line, lost its final
+// glyph's width before markInk.
+func TestTheLastGlyphOfALineKeepsItsWidth(t *testing.T) {
+	f := sharedFonts(t)
+	bold := text.Style{Size: 20, Weight: text.Bold, Color: black}
+	two := f.Layout([]text.Span{{Text: "link, ", Style: bold}, {Text: "struck", Style: text.Style{Size: 20, Color: black}}}, text.Options{})
+	w, _ := two.Size()
+	a, _ := f.Layout([]text.Span{{Text: "link, ", Style: bold}}, text.Options{KeepTrailingSpace: true}).Size()
+	b, _ := f.Layout(plain("struck", 20), text.Options{}).Size()
+	if d := w - (a + b); d < -0.5 || d > 0.5 {
+		t.Errorf("two runs are %.2f wide, their parts %.2f: the last glyph lost its width", w, a+b)
+	}
+	if x, _, _ := two.CaretAt(two.Len()); x < w-0.5 {
+		t.Errorf("the caret after the last letter is at %.2f, inside the %.2f wide line", x, w)
+	}
+	// Each line of a wrapped paragraph is as wide as its own text alone.
+	long := "abcdefghij klmnopqrst uvwxyzabcd efghijklmn opqrstuvwx"
+	rs := []rune(long)
+	for _, width := range []float32{90, 140, 200} {
+		l := f.Layout(plain(long, 20), text.Options{MaxWidth: width})
+		for i := 0; i < l.LineCount(); i++ {
+			start, end, _, _ := l.LineBounds(i)
+			for end > start && rs[end-1] == ' ' {
+				end--
+			}
+			alone, _ := f.Layout(plain(string(rs[start:end]), 20), text.Options{}).Size()
+			x0, _, _ := l.CaretAt(start)
+			x1, _, _ := l.CaretAt(end)
+			if i < l.LineCount()-1 {
+				// the caret at a wrapped line's end is placed on the next line
+				last := []rune{rs[end-1]}
+				lw, _ := f.Layout(plain(string(last), 20), text.Options{}).Size()
+				xl, _, _ := l.CaretAt(end - 1)
+				x1 = xl + lw
+			}
+			if d := (x1 - x0) - alone; d < -0.5 || d > 0.5 {
+				t.Errorf("at width %.0f line %d is %.2f wide, its text alone %.2f", width, i, x1-x0, alone)
+			}
+		}
+	}
+}

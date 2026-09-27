@@ -1,0 +1,90 @@
+--- a/fontscan/fontmap.go
++++ b/fontscan/fontmap.go
+@@ -61,6 +61,9 @@
+ 	faceCache map[Location]*font.Face
+ 	metaCache map[*font.Font]cacheEntry
+ 
++	// faceLoader, when set, replaces loading a system font from disk
++	faceLoader FaceLoader
++
+ 	// the database to query, either loaded from an index
+ 	// or populated with the [UseSystemFonts], [AddFont], and/or [AddFace] method.
+ 	database  fontSet
+@@ -595,6 +598,19 @@
+ 	return nil
+ }
+ 
++// FaceLoader loads the face stored at a location on disk. See
++// [FontMap.SetFaceLoader].
++type FaceLoader func(location Location) (*font.Face, error)
++
++// SetFaceLoader replaces how the font map loads a system font once it has
++// chosen one. By default the whole font file is read and parsed. A caller
++// that only shapes text, and draws glyphs by other means, can load a lighter
++// face instead: for example one parsed from a copy of the font without its
++// outline, bitmap and colour tables, which a font parser otherwise holds in
++// memory for the life of the face. Pass nil to restore the default. Faces
++// already loaded are kept.
++func (fm *FontMap) SetFaceLoader(loader FaceLoader) { fm.faceLoader = loader }
++
+ func (fm *FontMap) loadFont(fp Footprint) (*font.Face, error) {
+ 	if face, hasCached := fm.faceCache[fp.Location]; hasCached {
+ 		return face, nil
+@@ -602,7 +618,13 @@
+ 
+ 	// since user provided fonts are added to `faceCache`
+ 	// we may now assume the font is stored on the file system
+-	face, err := fp.loadFromDisk()
++	var face *font.Face
++	var err error
++	if fm.faceLoader != nil {
++		face, err = fm.faceLoader(fp.Location)
++	} else {
++		face, err = fp.loadFromDisk()
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/fontscan/faceloader_test.go
++++ b/fontscan/faceloader_test.go
+@@ -0,0 +1,40 @@
++package fontscan
++
++import (
++	"testing"
++
++	"github.com/go-text/typesetting/font"
++)
++
++// A loader set with SetFaceLoader is used for each system font the map
++// chooses, once per font, and nil restores loading from disk.
++func TestSetFaceLoader(t *testing.T) {
++	fm := NewFontMap(nil)
++	if err := fm.UseSystemFonts(t.TempDir()); err != nil {
++		t.Skipf("no system fonts: %v", err)
++	}
++	var calls []Location
++	fm.SetFaceLoader(func(loc Location) (*font.Face, error) {
++		calls = append(calls, loc)
++		fp := Footprint{Location: loc}
++		return fp.loadFromDisk()
++	})
++	fm.SetQuery(Query{Families: []string{"sans-serif"}})
++	if face := fm.ResolveFace('a'); face == nil {
++		t.Fatal("no face resolved")
++	}
++	if len(calls) == 0 {
++		t.Fatal("the loader was not used")
++	}
++	n := len(calls)
++	fm.ResolveFace('b')
++	if len(calls) != n {
++		t.Errorf("a face already loaded was loaded again: %d calls, then %d", n, len(calls))
++	}
++	fm.SetFaceLoader(nil)
++	fm.SetQuery(Query{Families: []string{"monospace"}})
++	fm.ResolveFace('a')
++	if len(calls) != n {
++		t.Error("the loader was used after being removed")
++	}
++}
