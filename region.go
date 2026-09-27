@@ -166,6 +166,17 @@ func (r *Region) reveal(p *unison.Panel) {
 	box := r.holder.RectFromRoot(p.RectToRoot(p.ContentRect(true)))
 	_, y := r.scroll.Position()
 	space := float32(r.ui.Interface.Space())
+	if box.Height > r.view() {
+		// A panel taller than the view, such as an editor holding a whole
+		// note, is left where it is while any of it shows: scrolling to its
+		// edge would jump away from where it was pressed, and it brings its
+		// own caret into view.
+		if box.Bottom() > y && box.Y < y+r.view() {
+			return
+		}
+		r.ScrollTo(box.Y - space)
+		return
+	}
 	switch {
 	case box.Bottom() > y+r.view():
 		r.ScrollTo(box.Bottom() - r.view() + space)

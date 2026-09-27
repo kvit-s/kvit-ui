@@ -71,6 +71,14 @@ type Options struct {
 	// its middle, or at its end. The width is MaxWidth, or the widest line
 	// when there is none.
 	Align Alignment
+	// Pitch, when above zero, makes every line exactly this tall, with its
+	// baseline the font's ascent below the line's top and the rest of the
+	// height under the text, and LineHeight is ignored. That is how Qt's text
+	// documents space the lines of a paragraph set to a proportional line
+	// height, which Kvit's editor gives its blocks: at 14 px and 1.3 the
+	// lines are 18.2 px apart, where LineHeight's rule, which follows Qt's
+	// labels, puts them 23 px apart.
+	Pitch float32
 }
 
 // Alignment is where a line sits across the width of its layout.
@@ -256,6 +264,15 @@ func lineBox(ascent, descent, lineMult float32) (height, baseline float32) {
 	return height, baseline
 }
 
+// lineBox is lineBox for a line whose top is at y, or the fixed pitch when
+// opt asks for one, with the baseline on a whole pixel either way.
+func (l *Layout) lineBox(ascent, descent, lineMult, y float32, opt Options) (height, baseline float32) {
+	if opt.Pitch > 0 {
+		return opt.Pitch, float32(math.Round(float64(y+ascent))) - y
+	}
+	return lineBox(ascent, descent, lineMult)
+}
+
 // layoutParagraph shapes and wraps runes [ps, pe), adds its lines from y
 // down, and returns the y below them.
 func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) float32 {
@@ -315,7 +332,7 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 		// force there, so a caret has somewhere to be.
 		st := l.styles[l.styleAt(ps)]
 		ascent, descent := l.emptyMetrics(st)
-		h, baseline := lineBox(ascent, descent, lineMult)
+		h, baseline := l.lineBox(ascent, descent, lineMult, y, opt)
 		l.lines = append(l.lines, line{start: ps, end: ps, hardEnd: true, top: y, height: h,
 			baseline: y + baseline, stops: []stop{{ps, 0}}})
 		return y + h
@@ -346,7 +363,7 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 			ln.runs = append(ln.runs, placedRun{out: o, base: ps, x: x, width: w, style: l.styleAt(ps + o.Runes.Offset)})
 			x += w
 		}
-		h, baseline := lineBox(ascent, descent, lineMult)
+		h, baseline := l.lineBox(ascent, descent, lineMult, y, opt)
 		ln.height = h
 		ln.top = y
 		ln.baseline = y + baseline
@@ -534,6 +551,24 @@ func (l *Layout) Baseline() float32 { return l.lines[0].baseline }
 func (l *Layout) LineBounds(i int) (start, end int, top, height float32) {
 	ln := l.lines[i]
 	return ln.start, ln.end, ln.top, ln.height
+}
+
+// LineStops is the x of every rune boundary on line i, from its first rune
+// to just past its last, measured from the layout's left edge: what a
+// screen reader is told about where each character of the line was drawn.
+func (l *Layout) LineStops(i int) []float32 {
+	ln := l.lines[i]
+	out := make([]float32, ln.end-ln.start+1)
+	k := 0
+	x := float32(0)
+	for j := range out {
+		for k < len(ln.stops) && ln.stops[k].index <= ln.start+j {
+			x = ln.stops[k].x
+			k++
+		}
+		out[j] = x
+	}
+	return out
 }
 
 func (l *Layout) lineFor(index int) int {
