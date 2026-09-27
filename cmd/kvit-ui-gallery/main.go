@@ -37,7 +37,16 @@ func main() {
 	compare := flag.String("compare", "", "with --shots: the Qt gallery's shot directory, to stack each Go shot above its Qt one")
 	smoke := flag.Duration("smoke", 0, "close the window after this long, printing when its first frame was drawn")
 	heapProfile := flag.String("heap-profile", "", "with --smoke: write a heap profile to this file halfway through")
+	catalogFile := flag.String("catalog", "", "write the vocabulary skill's component catalogue to this file and exit, from a checkout of the library ("+catalogPath+" there)")
 	flag.Parse()
+
+	if *catalogFile != "" {
+		if err := writeCatalog(*catalogFile); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	if *shots != "" {
 		written, err := writeShots(*shots, *compare)

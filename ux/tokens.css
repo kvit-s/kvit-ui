@@ -1,0 +1,493 @@
+/* kvit-ui design tokens, for the drawing layer.
+ *
+ * GENERATED FILE — do not edit.
+ *
+ * Written by tools/tokens-to-css from the same design values the
+ * applications draw with (the tokens package: tokens.Tokens and
+ * tokens.Interface), so a drawing is judged in the colours the
+ * application will actually use. Editing this file by hand fails
+ * the generator's test.
+ *
+ * Values only. The window, the base elements and the component
+ * classes are in frame.css, which is hand-written.
+ *
+ * Themes: :root carries dark. Put .theme-light, .theme-dark,
+ * .theme-sepia or .theme-contrast on <body> to render a mockup in
+ * another one.
+ */
+
+/* ══════════════════════════════════════════════ theme tokens ══════ */
+
+:root,
+.theme-dark {
+  /* surfaces */
+  --window-background: #1e1e1e;
+  --panel-background: #252526;
+  --list-background: #212122;
+  --footer-background: #2a2a2b;
+  --popup-background: #2d2d30;
+  --chip-background: #37373a;
+  --banner-background: #3a3320;
+  --code-panel-background: #262624;
+
+  /* text */
+  --text-primary: #eeeeee;
+  --text-secondary: #c8c8c8;
+  --text-muted: #a8a8a8;
+  --text-faint: #858585;
+  --text-disabled: #5f5f5f;
+  --banner-text: #d9c37a;
+  --on-accent: #1a1a1a;
+
+  /* lines and glyphs */
+  --border: #3c3c3c;
+  --border-strong: #696969;
+  --quote-bar: #696969;
+  --muted-glyph: #6f7d8a;
+
+  /* interactive tints */
+  --hover-tint: #333336;
+  --block-hover-tint: #232324;
+  --focus-tint: #263544;
+  --focus-ring: #58a6ff;
+  --selection-tint: #2d4356;
+  --selection-active-tint: #35506b;
+  --block-selection-tint: #2a3f52;
+
+  /* accent and semantic */
+  --accent: #5c9fe0;
+  --danger: #e06c60;
+  --danger-bright: #e05c5c;
+  --success: #5abd82;
+  --warning: #e0a34c;
+  --pin-color: #e0a04c;
+  --link: #6fb1ff;
+  --marker: #6f6f6f;
+  --inline-code-background: #333330;
+  --highlight-background: #6b5c17;
+  --search-match-background: #264f78;
+  --search-current-background: #96601f;
+  --changed-text-background: #3d3060;
+  --added-text-background: #1d3a26;
+  --removed-text-background: #45211f;
+  --callout-tip: #4db6ac;
+
+  /* code, for a mockup that shows a document */
+  --code-keyword: #c678dd;
+  --code-type: #61afef;
+  --code-string: #98c379;
+  --code-comment: #888c96;
+  --code-number: #d19a66;
+
+  /* portfolio vocabulary */
+  --axis-attention: #d9a04c;
+  --axis-attention-text: #e6b877;
+  --axis-agent: #4aa3a3;
+  --axis-agent-text: #7cc7c4;
+  --scope-discovered: #a37fd4;
+  --signal-hard: #e06c60;
+  --signal-soft: #e0a34c;
+  --signal-hygiene: #a37fd4;
+  --hatch-alt: #1e1e1e;
+
+  /* categorical ramp */
+  --categorical-0: #ff8e93;
+  --categorical-1: #ffc163;
+  --categorical-2: #8b8800;
+  --categorical-3: #acffbd;
+  --categorical-4: #74deff;
+  --categorical-5: #4081e1;
+  --categorical-6: #ad9efe;
+  --categorical-7: #cc5b9a;
+
+  /* sequential ramp */
+  --sequential-0: #7c3c5d;
+  --sequential-1: #9d4b75;
+  --sequential-2: #bc5d8d;
+  --sequential-3: #d973a6;
+  --sequential-4: #f28dbe;
+  --sequential-5: #feb0d4;
+  --sequential-6: #ffd8e9;
+
+  /* diverging ramp */
+  --diverging-0: #89dd76;
+  --diverging-1: #8ac07f;
+  --diverging-2: #89a384;
+  --diverging-3: #868686;
+  --diverging-4: #ae8faa;
+  --diverging-5: #d596cf;
+  --diverging-6: #fd9cf5;
+}
+
+.theme-light {
+  /* surfaces */
+  --window-background: #ffffff;
+  --panel-background: #f4f4f4;
+  --list-background: #fafafa;
+  --footer-background: #f5f5f5;
+  --popup-background: #ffffff;
+  --chip-background: #f2f2f0;
+  --banner-background: #fdf3d8;
+  --code-panel-background: #f6f6f4;
+
+  /* text */
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted: #666666;
+  --text-faint: #767676;
+  --text-disabled: #aaaaaa;
+  --banner-text: #886c1a;
+  --on-accent: #1a1a1a;
+
+  /* lines and glyphs */
+  --border: #dddddd;
+  --border-strong: #949494;
+  --quote-bar: #949494;
+  --muted-glyph: #7d909f;
+
+  /* interactive tints */
+  --hover-tint: #ebebeb;
+  --block-hover-tint: #fafafa;
+  --focus-tint: #eaf2fb;
+  --focus-ring: #1f6feb;
+  --selection-tint: #dce8f5;
+  --selection-active-tint: #c8dff5;
+  --block-selection-tint: #dbe9f9;
+
+  /* accent and semantic */
+  --accent: #4a90d9;
+  --danger: #b3261e;
+  --danger-bright: #e05c5c;
+  --success: #1e874b;
+  --warning: #a66908;
+  --pin-color: #e0a04c;
+  --link: #2970c8;
+  --marker: #949494;
+  --inline-code-background: #f0f0ee;
+  --highlight-background: #fdf3a9;
+  --search-match-background: #b5dcff;
+  --search-current-background: #ffb454;
+  --changed-text-background: #e4d7f2;
+  --added-text-background: #d3edd8;
+  --removed-text-background: #f6d5d2;
+  --callout-tip: #2a9d8f;
+
+  /* code, for a mockup that shows a document */
+  --code-keyword: #a626a4;
+  --code-type: #2967f0;
+  --code-string: #3f7e3e;
+  --code-comment: #6f7178;
+  --code-number: #986801;
+
+  /* portfolio vocabulary */
+  --axis-attention: #d99a3d;
+  --axis-attention-text: #b06a10;
+  --axis-agent: #4aa3a3;
+  --axis-agent-text: #1f7a7a;
+  --scope-discovered: #8a5cc0;
+  --signal-hard: #c0392b;
+  --signal-soft: #d99a3d;
+  --signal-hygiene: #8a5cc0;
+  --hatch-alt: #ffffff;
+
+  /* categorical ramp */
+  --categorical-0: #971c4b;
+  --categorical-1: #cd7707;
+  --categorical-2: #7a6402;
+  --categorical-3: #093c00;
+  --categorical-4: #097f95;
+  --categorical-5: #00459a;
+  --categorical-6: #9977e4;
+  --categorical-7: #530054;
+
+  /* sequential ramp */
+  --sequential-0: #f5aacd;
+  --sequential-1: #e48bb6;
+  --sequential-2: #cf6e9f;
+  --sequential-3: #b75487;
+  --sequential-4: #9b3f70;
+  --sequential-5: #7d2e58;
+  --sequential-6: #5e2142;
+
+  /* diverging ramp */
+  --diverging-0: #227702;
+  --diverging-1: #538647;
+  --diverging-2: #799374;
+  --diverging-3: #9e9e9e;
+  --diverging-4: #9d7f9a;
+  --diverging-5: #995e94;
+  --diverging-6: #93398e;
+}
+
+.theme-sepia {
+  /* surfaces */
+  --window-background: #f6efdf;
+  --panel-background: #eee5d0;
+  --list-background: #f2ead8;
+  --footer-background: #ece2cc;
+  --popup-background: #faf4e6;
+  --chip-background: #ece3cb;
+  --banner-background: #eadfb2;
+  --code-panel-background: #efe7d1;
+
+  /* text */
+  --text-primary: #3d3427;
+  --text-secondary: #5a4f3d;
+  --text-muted: #6e6250;
+  --text-faint: #776b59;
+  --text-disabled: #a99a80;
+  --banner-text: #776017;
+  --on-accent: #ffffff;
+
+  /* lines and glyphs */
+  --border: #ded2b8;
+  --border-strong: #9c875d;
+  --quote-bar: #9f8756;
+  --muted-glyph: #938166;
+
+  /* interactive tints */
+  --hover-tint: #e8dfc9;
+  --block-hover-tint: #f0e8d6;
+  --focus-tint: #ece0c4;
+  --focus-ring: #9a6a2b;
+  --selection-tint: #e2d4b4;
+  --selection-active-tint: #d8c69e;
+  --block-selection-tint: #e0d2b2;
+
+  /* accent and semantic */
+  --accent: #9a6b2f;
+  --danger: #a33b30;
+  --danger-bright: #c25a4e;
+  --success: #4d7839;
+  --warning: #91641a;
+  --pin-color: #b07a2a;
+  --link: #8a5a20;
+  --marker: #9a8863;
+  --inline-code-background: #ece3cb;
+  --highlight-background: #f0dd8c;
+  --search-match-background: #cfd9a8;
+  --search-current-background: #e8a94e;
+  --changed-text-background: #ded0e0;
+  --added-text-background: #d5e6c9;
+  --removed-text-background: #f2d6c8;
+  --callout-tip: #3a8a7a;
+
+  /* code, for a mockup that shows a document */
+  --code-keyword: #9a2f8a;
+  --code-type: #2f69af;
+  --code-string: #497236;
+  --code-comment: #73674e;
+  --code-number: #8a5a20;
+
+  /* portfolio vocabulary */
+  --axis-attention: #c08a2e;
+  --axis-attention-text: #8a5f14;
+  --axis-agent: #3f8f8a;
+  --axis-agent-text: #2a6b66;
+  --scope-discovered: #7a4fa8;
+  --signal-hard: #a33b30;
+  --signal-soft: #b07a1f;
+  --signal-hygiene: #7a4fa8;
+  --hatch-alt: #f6efdf;
+
+  /* categorical ramp */
+  --categorical-0: #b93f67;
+  --categorical-1: #612700;
+  --categorical-2: #838303;
+  --categorical-3: #1c6701;
+  --categorical-4: #0088bb;
+  --categorical-5: #2063bf;
+  --categorical-6: #410371;
+  --categorical-7: #892f84;
+
+  /* sequential ramp */
+  --sequential-0: #f5aacd;
+  --sequential-1: #e48bb6;
+  --sequential-2: #cf6e9f;
+  --sequential-3: #b75487;
+  --sequential-4: #9b3f70;
+  --sequential-5: #7d2e58;
+  --sequential-6: #5e2142;
+
+  /* diverging ramp */
+  --diverging-0: #227702;
+  --diverging-1: #538647;
+  --diverging-2: #799374;
+  --diverging-3: #9e9e9e;
+  --diverging-4: #9d7f9a;
+  --diverging-5: #995e94;
+  --diverging-6: #93398e;
+}
+
+.theme-contrast {
+  /* surfaces */
+  --window-background: #000000;
+  --panel-background: #000000;
+  --list-background: #050505;
+  --footer-background: #000000;
+  --popup-background: #0a0a0a;
+  --chip-background: #1a1a1a;
+  --banner-background: #1a1a00;
+  --code-panel-background: #0a0a0a;
+
+  /* text */
+  --text-primary: #ffffff;
+  --text-secondary: #f0f0f0;
+  --text-muted: #d8d8d8;
+  --text-faint: #bcbcbc;
+  --text-disabled: #8a8a8a;
+  --banner-text: #ffff00;
+  --on-accent: #1a1a1a;
+
+  /* lines and glyphs */
+  --border: #ffffff;
+  --border-strong: #ffffff;
+  --quote-bar: #ffffff;
+  --muted-glyph: #ffff66;
+
+  /* interactive tints */
+  --hover-tint: #333333;
+  --block-hover-tint: #1a1a1a;
+  --focus-tint: #00335c;
+  --focus-ring: #ffff00;
+  --selection-tint: #0055aa;
+  --selection-active-tint: #0070d0;
+  --block-selection-tint: #004488;
+
+  /* accent and semantic */
+  --accent: #33ccff;
+  --danger: #ff6666;
+  --danger-bright: #ff8080;
+  --success: #44ff99;
+  --warning: #ffbb33;
+  --pin-color: #ffbb33;
+  --link: #66ddff;
+  --marker: #ffff66;
+  --inline-code-background: #222222;
+  --highlight-background: #5c5c00;
+  --search-match-background: #0055aa;
+  --search-current-background: #995a00;
+  --changed-text-background: #4b0082;
+  --added-text-background: #00420f;
+  --removed-text-background: #5c0000;
+  --callout-tip: #33ffdd;
+
+  /* code, for a mockup that shows a document */
+  --code-keyword: #ff99ff;
+  --code-type: #99ddff;
+  --code-string: #99ff99;
+  --code-comment: #d0d0d0;
+  --code-number: #ffcc88;
+
+  /* portfolio vocabulary */
+  --axis-attention: #ffbb33;
+  --axis-attention-text: #ffcc66;
+  --axis-agent: #33ddcc;
+  --axis-agent-text: #77ffe8;
+  --scope-discovered: #cc99ff;
+  --signal-hard: #ff6666;
+  --signal-soft: #ffbb33;
+  --signal-hygiene: #cc99ff;
+  --hatch-alt: #000000;
+
+  /* categorical ramp */
+  --categorical-0: #c0453f;
+  --categorical-1: #d38406;
+  --categorical-2: #e4ffa6;
+  --categorical-3: #89dd76;
+  --categorical-4: #10919d;
+  --categorical-5: #5ea7ff;
+  --categorical-6: #795ec9;
+  --categorical-7: #fec0f4;
+
+  /* sequential ramp */
+  --sequential-0: #7c3c5d;
+  --sequential-1: #9d4b75;
+  --sequential-2: #bc5d8d;
+  --sequential-3: #d973a6;
+  --sequential-4: #f28dbe;
+  --sequential-5: #feb0d4;
+  --sequential-6: #ffd8e9;
+
+  /* diverging ramp */
+  --diverging-0: #89dd76;
+  --diverging-1: #8ac07f;
+  --diverging-2: #89a384;
+  --diverging-3: #868686;
+  --diverging-4: #ae8faa;
+  --diverging-5: #d596cf;
+  --diverging-6: #fd9cf5;
+}
+
+/* ═══════════════════════════════════ type, density, geometry ══════ */
+
+:root {
+  /* Local families only — no @font-face, no network, so a mockup
+   * renders identically here and on any machine. */
+  --font-ui: Ubuntu, "Ubuntu Sans", "DejaVu Sans", system-ui, sans-serif;
+  --font-mono: "DejaVu Sans Mono", "Ubuntu Mono", ui-monospace, monospace;
+
+  /* The seven type roles, in pixels at the default interface
+   * size of 12. */
+  --type-caption: 10px;        /* kind tags, counts */
+  --type-small: 11px;          /* chip labels, sub-lines */
+  --type-body: 12px;           /* row text, prose */
+  --type-strong: 13px;         /* a name, an emphasised row */
+  --type-title: 15px;          /* a section heading */
+  --type-headline: 17px;       /* a pane title, the wordmark */
+  --type-display: 20px;        /* a page title */
+
+  /* The spacing scale. 3 and 5 are deliberately not steps. */
+  --space-tight: 2px;
+  --space-snug: 4px;
+  --space-near: 6px;
+  --space: 8px;  /* the ordinary gap */
+  --space-wide: 10px;
+  --space-loose: 12px;
+
+  /* kvit-hub's older type names, on the merged scale. New work
+   * uses the seven roles above; these keep the existing mockups
+   * rendering until Wave 3 moves them over. */
+  --type-micro: 10px;  /* was baseSize - 6 */
+  --type-small: 11px;  /* was baseSize - 5 */
+  --type-secondary: 11px;  /* was baseSize - 4 */
+  --type-row: 12px;  /* was baseSize - 3 */
+  --type-name: 13px;  /* was baseSize */
+  --type-heading: 15px;  /* was baseSize + 1 */
+  --type-page: 17px;  /* was baseSize + 2 */
+
+  /* Density. One reader, desktop, no mobile target. */
+  --view-margin: 16px;  /* the outer margin of a view */
+  --column-gap: 14px;
+  --stack-gap: 7px;  /* between stacked blocks */
+  --sidebar-width: 232px;
+  --rail-width: 48px;  /* the sidebar collapsed */
+  --pane-width: 392px;  /* the side pane */
+  --floating-view-width: 720px;  /* a view held over a list */
+  --header-height: 52px;
+  --breadcrumb-height: 34px;
+  --status-bar-height: 22px;
+  --row-height: 56px;  /* name over description */
+  --row-height-sub: 48px;  /* an expanded line */
+  --row-height-slim: 30px;  /* a list at rest */
+  --row-height-compact: 24px;  /* a disclosure */
+  --control-height: 28px;
+  --tab-height: 30px;
+  --chip-height: 17px;
+  --tag-height: 16px;
+  --pill-height: 15px;
+  --bar-height: 7px;  /* a compact bar */
+  --bar-height-wide: 9px;  /* a full-size bar */
+  --icon-size: 18px;
+  --icon-size-small: 13px;
+  --radius-bar: 2px;
+  --radius-chip: 3px;
+  --radius-control: 4px;
+  --radius-card: 6px;
+  --radius-pill: 8px;
+  --hairline: 1px;
+  --focus-ring-width: 2px;
+  --width-floor: 880px;  /* below this, effort dots collide */
+  --width-laptop: 1100px;  /* the sidebar collapses */
+  --width-drawn: 1440px;  /* every drawing is this wide */
+}

@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"strings"
+
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
@@ -107,4 +109,30 @@ func (l *Label) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Name == "" {
 		n.Name = l.Text
 	}
+}
+
+// wordsIn is the words the labels and figures inside a panel say, in order,
+// for a panel that needs a name and has none of its own.
+func wordsIn(p *unison.Panel) string {
+	var words []string
+	var walk func(q *unison.Panel)
+	walk = func(q *unison.Panel) {
+		for _, c := range q.Children() {
+			if c.Hidden {
+				continue
+			}
+			switch v := c.Self.(type) {
+			case *Label:
+				if v.Text != "" {
+					words = append(words, v.Text)
+				}
+			case *Figure:
+				words = append(words, v.Phrase())
+			default:
+				walk(c)
+			}
+		}
+	}
+	walk(p)
+	return strings.Join(words, ", ")
 }

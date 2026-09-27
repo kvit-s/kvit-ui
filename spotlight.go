@@ -52,14 +52,14 @@ func NewSpotlight(ui *UI, target unison.Paneler, title, detail string) *Spotligh
 	twice := func(m *tokens.Interface) int { return 2 * m.SpaceLoose() }
 	s.title.SetBorder(Insets(ui, nil, nil, nil, twice))
 	s.words.SetBorder(Insets(ui, nil, nil, nil, twice))
-	s.card = NewCard(ui, s.title, s.words)
-	s.card.SetLayout(&spaced{FlexLayout: unison.FlexLayout{Columns: 1}, ui: ui, gap: SizeSpaceNear})
+	column := Column(ui, SizeSpaceNear, s.title, s.words)
+	s.card = NewCard(ui, column)
 	s.AddChild(s.card)
 	s.SetLayout(syncing{Layout: spotlightLayout{s}, sync: func() {
 		s.title.Text, s.words.Text = s.Title, s.Detail
 		s.words.Hidden = s.Detail == ""
 		s.card.Hidden = s.Title == "" && s.Detail == ""
-		showOnly(s.card.AsPanel(), s.title, s.words)
+		showOnly(column, s.title, s.words)
 	}})
 	s.DrawCallback = s.draw
 	s.MouseDownCallback = func(geom.Point, int, int, mod.Modifiers) bool {

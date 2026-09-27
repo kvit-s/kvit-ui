@@ -480,7 +480,11 @@ component draws it itself, cut off at its box.
 - [x] The three chart ramps in all four themes, checked in OKLab against that
   theme's surfaces and every hue that already means something, under normal
   vision and three colour-vision deficiencies (`palette/palette_test.go`)
-- [ ] Every component opening in all four themes with no warning
+- [x] Every component opening in all four themes with no warning.
+  Evidence: `TestShots`, which opens every page in all four themes at three
+  interface sizes and fails on anything logged at warning level or above,
+  a panic while drawing included; it requires the icon page's deliberate
+  warning about an unknown symbol, which shows the capture works.
 - [x] `KvitTable`: 250,000 rows and twelve columns, scrolling smoothly and
   filtering in under 100 ms. Evidence:
   `TestFilteringAQuarterMillionRowsStaysUnderTheBudget` (about 5 ms to
@@ -492,17 +496,25 @@ component draws it itself, cut off at its box.
   are on screen (253). The time is the table's drawing into an offscreen
   canvas, without the canvas's setup and readback, as the Qt check times its
   page layout without the window grab.
-- [ ] Every gallery sample compiling
+- [x] Every gallery sample compiling. Each sample is the Go function that
+  builds the page, compiled with the gallery; `TestShots` runs every one,
+  and `TestTheSourceOnlySamplesRun` the one that cannot be drawn in a page.
 - [x] No colour literal and no numeric font size outside the design values
   (`rules_test.go`; in Qt, qmllint at full strength)
 - [ ] No unnamed geometry value outside the design values: not checked by a
   test yet, since a literal offset cannot be told from ordinary arithmetic
   by reading the source
-- [ ] Every interactive component giving screen readers a role and a name
+- [x] Every interactive component giving screen readers a role and a name.
+  Evidence: `TestEveryControlSaysWhatItIs`, which opens every page and
+  checks every node that takes the focus or a press. It found two gaps,
+  both fixed: a pressable card had no name (the Qt card has none either),
+  and a card that does nothing when pressed was offered as pressable,
+  because unison offers a press on anything with a mouse handler. An empty
+  table cell may have no name; its description still names its row.
 - [x] Generated files matching their sources: the theme tables and the icon
   catalogue (`tools/import-qt-*/main_test.go`)
-- [ ] The same for the drawing stylesheet and the agent skill's component
-  catalogue, which do not exist in Go yet
+- [x] The same for the drawing stylesheet and the agent skill's component
+  catalogue: `TestTheStylesheetIsGenerated` and `TestTheCatalogueIsCurrent`.
 
 ## Gallery
 
@@ -517,25 +529,35 @@ component draws it itself, cut off at its box.
   extra Foundations page and kvit-cash's segmented control.
 - [x] `--page`, `--theme`, `--interface-size`, and in the window Ctrl+1 to
   Ctrl+4, Ctrl+plus and Ctrl+minus
-- [ ] `--shots`: the fixed screenshot set (74 components × 4 themes, plus
-  control-size variants, about 300 images), compared with the Qt set. The
-  mechanism exists: `./build.sh --shots` writes the set under the Qt file
-  names and stacks each image above the Qt one from
-  `~/kvit-qt-reference/kvit-ui-0a0b210`. The foundations page and the four
-  Foundation components have shots so far.
-- [ ] `--catalog`: writes the agent skill's component catalogue
+- [x] `--shots`: the fixed screenshot set, compared with the Qt set.
+  `./build.sh --shots` writes every page in four themes at 10, 12 and 24 px
+  (924 images) under the Qt file names, and stacks each 12 px image above
+  the Qt one from `~/kvit-qt-reference/kvit-ui-0a0b210` in
+  `build/shots/compare/`. Each page's entry above names the images it was
+  compared by.
+- [x] `--catalog`: writes the agent skill's component catalogue
+  (`agent/skills/kvit-ui/catalog.md`): every component's summary, its
+  constructor, fields and methods read from the library's source, and its
+  samples. Evidence: `TestTheCatalogueIsCurrent`.
 
 ## Drawing a screen before building it
 
-- [ ] `ux/tokens.css` generated from the Go design values
-- [ ] `ux/frame.css`, `ux/render.sh`, `visual-language.md` and
-  `PATTERN.md` copied across
+- [x] `ux/tokens.css` generated from the Go design values, by
+  `tools/tokens-to-css`. Evidence: `TestTheStylesheetIsGenerated`, and
+  `TestTheStylesheetIsTheQtOne`, which requires every line after the
+  opening comment to equal the file kvit-cash's copy of the Qt tool writes.
+- [x] `ux/frame.css`, `ux/render.sh`, `visual-language.md` and
+  `PATTERN.md` copied across, from kvit-cash's copy (the same as the Qt
+  library's). `visual-language.md` is kept as written: it records where the
+  values were measured, in kvit-hub's QML.
 
 ## Agent skills
 
-- [ ] `kvit-ui`: the vocabulary and workflow, rewritten for Go
-- [ ] `kvit-preview`: rendering, screenshot sets and single components,
-  rewritten for Go
+- [x] `kvit-ui`: the vocabulary and workflow, rewritten for Go
+  (`agent/skills/kvit-ui/SKILL.md`), with the rules named by the tests that
+  hold them.
+- [x] `kvit-preview`: rendering, screenshot sets and single components,
+  rewritten for Go (`agent/skills/kvit-preview/SKILL.md`).
 
 ## Changes that exist only in kvit-cash's copy of kvit-ui
 

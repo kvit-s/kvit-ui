@@ -34,6 +34,9 @@ type Card struct {
 	OpensLabel string
 	// Selected marks a chosen card.
 	Selected bool
+	// Label is what a screen reader calls the card; the words it holds
+	// unless set. A pressable card with no name is read as a bare "group".
+	Label string
 	// Padding is the space inside the edge; the loose space unless set.
 	Padding Measure
 	// OnActivate runs when a pressable card is pressed.
@@ -147,12 +150,20 @@ func (c *Card) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.Group
 	}
+	n.Name = c.Label
+	if n.Name == "" && c.Interactive {
+		n.Name = wordsIn(c.AsPanel())
+	}
 	if c.opens() {
 		n.Description = c.OpensLabel
 	}
 	n.Selectable, n.Selected = c.Interactive || c.Selected, c.Selected
 	if c.Interactive && c.Enabled() {
 		n.Actions = n.Actions.With(accessibility.Press)
+	} else {
+		// unison offers a press on anything with a mouse handler; a card
+		// that does nothing when pressed must not be offered as one.
+		n.Actions = n.Actions.Without(accessibility.Press)
 	}
 }
 

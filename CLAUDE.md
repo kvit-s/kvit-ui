@@ -33,16 +33,23 @@ Give the command behind every number, and save screenshots under
 | `icons` | The embedded Phosphor font and its names. `catalog_gen.go` is generated |
 | `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas |
 | root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
-| `cmd/kvit-ui-gallery` | The gallery and its screenshot mode |
+| `cmd/kvit-ui-gallery` | The gallery, its screenshot mode, and `--catalog`, which writes the skill's component catalogue |
+| `agent/skills` | The two agent skills, `kvit-ui` (the vocabulary, with the generated `catalog.md`) and `kvit-preview` |
+| `ux` | The drawing layer for proposing a screen as HTML: `tokens.css`, written by `tools/tokens-to-css`, and the hand-written `frame.css`, `render.sh`, `PATTERN.md` and `visual-language.md` |
 | `tools/import-qt-*` | Generators reading the Qt library's sources; their tests fail when the Qt source has changed since the last run |
 | `third_party/typesetting` | go-text v0.3.5 with one patch (see below) |
 
-The two generated files are rebuilt with:
+The generated files are rebuilt with:
 
 ```sh
 go run ./tools/import-qt-theme ~/kvit-ui/src/tokens/theme.cpp > tokens/tables_gen.go
 go run ./tools/import-qt-icons ~/kvit-ui/src/qml/iconcatalog.cpp > icons/catalog_gen.go
+go run ./tools/gen-names > names_gen.go
+go run ./tools/tokens-to-css > ux/tokens.css
+go run ./cmd/kvit-ui-gallery --catalog agent/skills/kvit-ui/catalog.md
 ```
+
+A test fails when any of them is out of date.
 
 **go-text is a patched copy.** `third_party/typesetting` is go-text v0.3.5
 with one addition, a font-loader option in its font finder, used through a
