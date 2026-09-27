@@ -89,9 +89,9 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 	}
 	g := &gallery{ui: ui, wnd: wnd, rows: map[string]*kvitui.ListRow{}}
 
-	var options []kvitui.SegmentOption
+	var options []kvitui.Option
 	for _, tl := range themeLabels {
-		options = append(options, kvitui.SegmentOption{Value: tl.id, Label: tl.label})
+		options = append(options, kvitui.Option{Value: tl.id, Label: tl.label})
 	}
 	g.theme = kvitui.NewSegmented(ui, "Theme", options...)
 	g.theme.OnChoose = func(v string) { ui.Theme.SetThemeID(v) }

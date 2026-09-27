@@ -187,7 +187,7 @@ func TestASegmentedControlChoosesOne(t *testing.T) {
 	var chosen []string
 	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
 		s = kvitui.NewSegmented(ui, "Period",
-			kvitui.SegmentOption{Value: "week", Label: "Week"}, kvitui.SegmentOption{Value: "month", Label: "Month"})
+			kvitui.Option{Value: "week", Label: "Week"}, kvitui.Option{Value: "month", Label: "Month"})
 		s.OnChoose = func(v string) { chosen = append(chosen, v) }
 		return []unison.Paneler{s}
 	})
@@ -229,4 +229,114 @@ func TestAStepperStaysInItsRange(t *testing.T) {
 			t.Error("the plus is enabled at the top of the range")
 		}
 	})
+}
+
+func TestACheckHasThreeStates(t *testing.T) {
+	var c *kvitui.Check
+	var seen []bool
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		c = kvitui.NewCheck(ui, "Some of these")
+		c.Partial = true
+		c.OnChange = func(on bool) { seen = append(seen, on) }
+		return []unison.Paneler{c}
+	})
+	if n := screen.AccessibilityNodeFor(c); n == nil || n.Role != role.CheckBox || n.Checked != check.Mixed {
+		t.Fatalf("a partial check's node: %+v", n)
+	}
+	// Pressing a partial box checks the whole of it.
+	screen.Click(screen.PanelCenter(c))
+	screen.Click(screen.PanelCenter(c))
+	if len(seen) != 2 || !seen[0] || seen[1] {
+		t.Errorf("two presses from partial reported %v", seen)
+	}
+}
+
+func TestAnUnavailableChipStaysReachableAndDoesNothing(t *testing.T) {
+	var behind, filter *kvitui.ChipButton
+	pressed := 0
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		behind = kvitui.NewChipButton(ui, "2 behind")
+		behind.UnavailableReason = "The remote has not been fetched yet."
+		behind.OnActivate = func() { pressed++ }
+		filter = kvitui.NewChipButton(ui, "Uncategorised")
+		filter.Selectable, filter.Selected = true, true
+		return []unison.Paneler{behind, filter}
+	})
+	screen.Click(screen.PanelCenter(behind))
+	var focusable bool
+	screen.Do(func() { focusable = behind.Focusable() })
+	if pressed != 0 || !focusable {
+		t.Errorf("an unavailable chip was pressed %d times, focusable %v", pressed, focusable)
+	}
+	if n := screen.AccessibilityNodeFor(behind); n == nil || n.Description != behind.UnavailableReason {
+		t.Errorf("the unavailable chip's node: %+v", n)
+	}
+	n := screen.AccessibilityNodeFor(filter)
+	if n == nil || n.Role != role.ToggleButton || !n.Pressed || n.Checked != check.On {
+		t.Errorf("a quick filter that is on: %+v", n)
+	}
+	screen.Do(func() {
+		_, p, _ := filter.Sizes(geom.Size{})
+		if p.Height < 28 {
+			t.Errorf("a quick filter is %.1f tall, under a control's height", p.Height)
+		}
+	})
+}
+
+func TestASelectStepsWithTheArrowsAndOpensAMenu(t *testing.T) {
+	var s *kvitui.Select
+	var chosen []string
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		s = kvitui.NewSelect(ui, "Currency",
+			kvitui.Option{Value: "GBP", Label: "GBP"}, kvitui.Option{Value: "EUR", Label: "EUR"}, kvitui.Option{Value: "USD", Label: "USD"})
+		s.OnChoose = func(v string) { chosen = append(chosen, v) }
+		return []unison.Paneler{s}
+	})
+	screen.Do(func() { s.Focus() })
+	screen.KeyPress(unison.KeyDown, 0)
+	if s.Current != "EUR" {
+		t.Errorf("Down chose %q", s.Current)
+	}
+	if n := screen.AccessibilityNodeFor(s); n == nil || n.Role != role.ComboBox || n.Name != "Currency" || n.Value != "EUR" {
+		t.Errorf("the select's node: %+v", n)
+	}
+	screen.KeyPress(unison.KeySpace, 0)
+	screen.Sync()
+	var w *unison.Window
+	screen.Do(func() { w = s.Window() })
+	var usd *accessibility.Node
+	for _, n := range screen.AccessibilityTree(w).Nodes {
+		if n.Role == role.MenuItem && n.Name == "USD" {
+			usd = n
+		}
+	}
+	if usd == nil {
+		t.Fatal("Space opened no menu with the options")
+	}
+	screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: usd.ID, Action: accessibility.Press})
+	screen.Sync()
+	if s.Current != "USD" || len(chosen) != 2 {
+		t.Errorf("choosing USD from the menu left %q, reported %v", s.Current, chosen)
+	}
+}
+
+func TestAReadOnlyTextAreaTakesNoTyping(t *testing.T) {
+	var a *kvitui.TextArea
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		a = kvitui.NewTextArea(ui)
+		a.Label, a.ReadOnly = "Source", true
+		a.SetText("one\ntwo")
+		return []unison.Paneler{a}
+	})
+	screen.Click(screen.PanelCenter(a.Edit()))
+	screen.Type("x")
+	screen.KeyPress(unison.KeyBackspace, 0)
+	screen.KeyPress(unison.KeyReturn, 0)
+	screen.Sync()
+	if got := a.Text(); got != "one\ntwo" {
+		t.Errorf("a read-only area was changed to %q", got)
+	}
+	if n := screen.AccessibilityNodeFor(a.Edit()); n == nil || n.Role != role.TextArea || !n.ReadOnly || n.Name != "Source" {
+		t.Errorf("the text area's node: %+v", n)
+	}
 }

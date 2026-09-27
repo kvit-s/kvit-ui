@@ -20,10 +20,10 @@ func scrollBarBesideColumn(ui *kvitui.UI) unison.Paneler {
 
 func segmentedPeriod(ui *kvitui.UI) unison.Paneler {
 	period := kvitui.NewSegmented(ui, "Period",
-		kvitui.SegmentOption{Value: "week", Label: "Week"}, kvitui.SegmentOption{Value: "month", Label: "Month"},
-		kvitui.SegmentOption{Value: "quarter", Label: "Quarter"}, kvitui.SegmentOption{Value: "year", Label: "Year"})
+		kvitui.Option{Value: "week", Label: "Week"}, kvitui.Option{Value: "month", Label: "Month"},
+		kvitui.Option{Value: "quarter", Label: "Quarter"}, kvitui.Option{Value: "year", Label: "Year"})
 	period.Current = "month"
 	whose := kvitui.NewSegmented(ui, "",
-		kvitui.SegmentOption{Value: "All", Label: "All"}, kvitui.SegmentOption{Value: "Mine", Label: "Mine"})
+		kvitui.Option{Value: "All", Label: "All"}, kvitui.Option{Value: "Mine", Label: "Mine"})
 	return kvitui.Column(ui, kvitui.SizeSpace, kvitui.Left(period), kvitui.Left(whose))
 }

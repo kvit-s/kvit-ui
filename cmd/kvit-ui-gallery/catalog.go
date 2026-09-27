@@ -298,6 +298,19 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitChipButton",
+		group:   "Controls",
+		summary: "KvitChip's twin for a fact that opens something. Drawn from the same tone table, so a row mixing facts that act with facts that do not reads as one row; what separates them is what a control has anyway — a ground that changes under the pointer, a hand cursor, a focus ring and a button role. A chip that cannot be pressed keeps its place in the tab order and says why, a chip that can may say where it goes, and the chip whose destination is already open is drawn as the current one.",
+		specimens: []specimen{
+			{caption: "Every tone, tinted, filled and keyboard-focused", build: chipButtonTones},
+			{caption: "What pressing it leads to, where the caller knows", build: chipButtonLeadsTo},
+			{caption: "Unavailable, with the reason attached", build: chipButtonUnavailable},
+			{caption: "Elided in a narrow column, at any interface size", build: chipButtonElided},
+			{caption: "The one that is already open", build: chipButtonCurrent},
+			{caption: "Where pressing one goes", build: chipButtonExplanation},
+		},
+	},
+	{
 		name:    "KvitStepper",
 		group:   "Controls",
 		summary: "A number with a minus and a plus beside it, for a small range a reader adjusts by one or two. The range comes from whatever owns it rather than being repeated at the call site.",
@@ -314,11 +327,37 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitTextArea",
+		group:   "Controls",
+		summary: "Several lines of text, typed or read. KvitField's outline and error rule in the field form, no ground at all in the plain one, which is for a document filling a pane. `Underlay` draws behind the words in the text's own coordinates, so a wash over a marked passage does not mean replacing the background.",
+		specimens: []specimen{
+			{caption: "Resting, filled, monospace and in error", build: textAreaStates},
+			{caption: "Plain: a document filling a pane, with no ground of its own", build: textAreaPlain},
+			{caption: "A wash behind a marked passage, drawn through `Underlay`", build: textAreaUnderlay},
+		},
+	},
+	{
 		name:    "KvitSearchField",
 		group:   "Controls",
 		summary: "A field that filters something. Escape clears rather than reverting, and it announces its result count — filtering is the one interaction whose whole outcome happens somewhere else on the screen.",
 		specimens: []specimen{
 			{caption: "Empty and filtering", build: searchFieldStates},
+		},
+	},
+	{
+		name:    "KvitCheck",
+		group:   "Controls",
+		summary: "A checkbox in three states. The third — partial — is what a parent row shows when some of its children are checked; drawing that as unchecked loses the information and drawing it as checked is a lie.",
+		specimens: []specimen{
+			{caption: "Off, on, partial and disabled", build: checkStates},
+		},
+	},
+	{
+		name:    "KvitSelect",
+		group:   "Controls",
+		summary: "A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason.",
+		specimens: []specimen{
+			{caption: "A currency picker", build: selectCurrency},
 		},
 	},
 	{

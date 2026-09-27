@@ -34,7 +34,7 @@ func NewSearchField(ui *UI) *SearchField {
 	s := &SearchField{Matches: -1, MatchedNoun: "result"}
 	s.ui = ui
 	s.Self = s
-	s.initField(ui)
+	s.initField(ui, false)
 	s.Placeholder = "Filter…"
 	m := ui.Interface
 	s.padLeft = func() float32 { return float32(m.ControlHeight()) }

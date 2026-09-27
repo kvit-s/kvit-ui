@@ -10,8 +10,8 @@ import (
 	"github.com/richardwilkes/unison/enums/role"
 )
 
-// SegmentOption is one choice in a Segmented control.
-type SegmentOption struct {
+// Option is one choice in a Segmented control or a Select.
+type Option struct {
 	// Value is what the choice means to the caller.
 	Value string
 	// Label is what the segment says.
@@ -46,11 +46,11 @@ type Segmented struct {
 type segment struct {
 	control
 	s      *Segmented
-	option SegmentOption
+	option Option
 }
 
 // NewSegmented returns a choice of options, the first chosen.
-func NewSegmented(ui *UI, label string, options ...SegmentOption) *Segmented {
+func NewSegmented(ui *UI, label string, options ...Option) *Segmented {
 	s := &Segmented{ui: ui, Label: label}
 	s.Self = s
 	for _, o := range options {

@@ -203,7 +203,12 @@ yet.
   ground and faint border at rest, so it differs from the Qt shot. Its
   explanation shows as a tooltip on pointer hover only, as with
   `KvitIconButton`.
-- [ ] `KvitChipButton`
+- [x] `KvitChipButton` (`ChipButton`). Evidence:
+  `TestAnUnavailableChipStaysReachableAndDoesNothing`;
+  `light-KvitChipButton.png` matches. It has both versions' additions: the
+  Qt library's `explanation` and `current`, and kvit-cash's quick-filter
+  state (`Selectable`, `Selected`), a control's height and filled with the
+  accent when on. The tooltip shows on pointer hover only, as elsewhere.
 - [x] `KvitStepper` (`Stepper`). Evidence: `TestAStepperStaysInItsRange`;
   `light-KvitStepper.png`, and the gallery's own header. unison reads a spin
   button as text and leaves out its children, so the minus and plus reach a
@@ -216,13 +221,23 @@ yet.
   text is drawn by unison's text engine rather than the Kvit text layer.
   kvit-cash's `shortcut` is `Shortcut`, shown with the label as the tooltip
   on pointer hover.
-- [ ] `KvitTextArea`
+- [x] `KvitTextArea` (`TextArea`). Evidence:
+  `TestAReadOnlyTextAreaTakesNoTyping`; `light-KvitTextArea.png` matches as
+  far as the Qt shot reaches (it ends at the window's bottom edge). unison's
+  field has no read-only mode, so `ReadOnly` (on `Field` too) drops typing,
+  the keys that delete or break lines, and cut and paste.
 - [x] `KvitSearchField` (`SearchField`). Evidence:
   `TestASearchFieldClearsWithEscapeAndCountsWhatItLeft`;
   `dark-KvitSearchField.png` matches, with kvit-cash's clear button a
   control's height square.
-- [ ] `KvitCheck`
-- [ ] `KvitSelect`
+- [x] `KvitCheck` (`Check`). Evidence: `TestACheckHasThreeStates`;
+  `dark-KvitCheck.png` matches. A disabled box that is checked draws its
+  mark in the disabled text colour; the Qt one draws it in the colour made
+  for the accent fill, which a disabled box does not have, so it vanishes.
+- [x] `KvitSelect` (`Select`). Evidence:
+  `TestASelectStepsWithTheArrowsAndOpensAMenu`; `sepia-KvitSelect.png`
+  matches. The list is unison's menu with the chosen option ticked, as the
+  owner chose for menus; Up and Down change the choice without opening it.
 - [x] `KvitTab` (`Tab`). Evidence:
   `TestATabSaysWhatItHoldsAndWhetherItIsChosen`; `dark-KvitTab.png`,
   `dark-24px-KvitTab.png` and `light-10px-KvitTab.png` match. The Qt tab also
@@ -322,7 +337,7 @@ yet.
 
 ## Gallery
 
-- [ ] One page per component, with its states and a working sample: 37 of
+- [ ] One page per component, with its states and a working sample: 41 of
   74 so far, each listed in the sidebar; the rest are listed faint.
 - [x] The gallery is built from the library's own components, as the Qt
   gallery is: `Window`, a `Header` holding `Segmented` and `Stepper`, a
@@ -372,7 +387,7 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
   Done so far: the row's and the card's `OpensLabel`, the pane's `closable`.
 - [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
   Done so far: the rail opening on hover and for the keyboard, the segmented
-  control's filled choice.
+  control's filled choice, the chip button's quick-filter state.
 - [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
   Done so far: `ViewHead.Padding`, the view head's own side margin, and the
   region's wheel distance.
