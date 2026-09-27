@@ -39,10 +39,27 @@ var groups = []group{
 	{"Flow", []string{"KvitScrollBar", "KvitMenu", "KvitMenuItem", "KvitTree", "KvitSwitch", "KvitRadioGroup", "KvitProgress", "KvitSlider", "KvitSplitView", "KvitSegmented", "KvitTypeAhead", "KvitConfirmInPlace", "KvitTimeline", "KvitNumberField", "KvitMoneyField", "KvitDualList", "KvitSpotlight"}},
 }
 
-// pages are the pages that exist, by name, each drawing itself and
-// returning its height.
-var pages = map[string]func(p painter, x, y, width float32) float32{
-	"Foundations": drawFoundations,
+// pageNames lists the pages that exist: the foundations, then every
+// component in the catalogue.
+func pageNames() []string {
+	names := []string{"Foundations"}
+	for _, e := range catalog {
+		names = append(names, e.name)
+	}
+	return names
+}
+
+func hasPage(name string) bool {
+	_, ok := entryNamed(name)
+	return ok || name == "Foundations"
+}
+
+// buildPage builds a page's panel.
+func buildPage(ui *kvitui.UI, name string) *unison.Panel {
+	if e, ok := entryNamed(name); ok {
+		return buildComponentPage(ui, e)
+	}
+	return drawnPage(ui, drawFoundations)
 }
 
 // gallery is the window and the state it shows.
@@ -57,15 +74,17 @@ type gallery struct {
 	status *unison.Panel
 	// segments are the theme choices' rectangles in the header, for clicks.
 	segments map[string]geom.Rect
-	minus    geom.Rect
-	plus     geom.Rect
+	// rows are the sidebar's page rows as last drawn, for clicks.
+	rows  map[string]geom.Rect
+	minus geom.Rect
+	plus  geom.Rect
 }
 
 func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error) {
-	if _, ok := pages[page]; !ok {
+	if !hasPage(page) {
 		return nil, fmt.Errorf("no page %q; the pages are the ones listed without grey in the sidebar", page)
 	}
-	g := &gallery{ui: ui, page: page, segments: map[string]geom.Rect{}}
+	g := &gallery{ui: ui, segments: map[string]geom.Rect{}, rows: map[string]geom.Rect{}}
 	wnd, err := unison.NewWindow("kvit-ui gallery")
 	if err != nil {
 		return nil, err
@@ -105,16 +124,24 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 		return s, s, geom.NewSize(s.Width, unison.DefaultMaxSize)
 	})
 	g.side.DrawCallback = g.drawSidebar
+	g.side.MouseDownCallback = func(where geom.Point, _, _ int, _ mod.Modifiers) bool {
+		for name, r := range g.rows {
+			if where.In(r) && hasPage(name) {
+				g.setPage(name)
+				return true
+			}
+		}
+		return false
+	}
 	g.side.SetLayoutData(&unison.FlexLayoutData{VAlign: align.Fill, VGrab: true})
 	middle.AddChild(g.side)
 
 	g.body = unison.NewPanel()
-	g.body.SetSizer(func(hint geom.Size) (geom.Size, geom.Size, geom.Size) {
-		w := max(hint.Width, 400)
-		h := g.pageHeight(w)
-		return geom.NewSize(400, h), geom.NewSize(w, h), geom.NewSize(unison.DefaultMaxSize, h)
-	})
-	g.body.DrawCallback = g.drawBody
+	g.body.SetLayout(&unison.FlexLayout{Columns: 1})
+	g.body.SetBorder(scrollStrip{ui})
+	g.body.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
+		painter{gc, ui}.fill(g.body.ContentRect(true), ui.Theme.Tokens().WindowBackground)
+	}
 	g.scroll = unison.NewScrollPanel()
 	g.scroll.SetContent(g.body, behavior.Fill, behavior.Unmodified)
 	g.scroll.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
@@ -129,6 +156,7 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 	g.status.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
 	content.AddChild(g.status)
 
+	g.setPage(page)
 	wnd.KeyDownCallback = g.keyDown
 	ui.OnChanged(func() {
 		content.MarkForLayoutRecursively()
@@ -139,19 +167,32 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 	return g, nil
 }
 
-// pageHeight is the height the current page needs at a width.
-func (g *gallery) pageHeight(width float32) float32 {
-	m := g.ui.Interface
-	margin := float32(m.ViewMargin())
-	return pages[g.page](painter{nil, g.ui}, margin, margin, width-2*margin) + 2*margin
+// scrollStrip keeps the strip a vertical scroll bar is drawn in clear of the
+// page whether or not the bar is showing, as the Qt region does, so the page
+// does not move sideways when it grows past the fold.
+type scrollStrip struct{ ui *kvitui.UI }
+
+func (s scrollStrip) Insets() geom.Insets {
+	return geom.Insets{Right: float32(s.ui.Interface.SpaceWide())}
+}
+func (s scrollStrip) Draw(*unison.Canvas, geom.Rect) {}
+
+// setPage shows a page, rebuilt from scratch, scrolled to its top.
+func (g *gallery) setPage(name string) {
+	g.page = name
+	g.body.RemoveAllChildren()
+	pg := buildPage(g.ui, name)
+	pg.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
+	g.body.AddChild(pg)
+	g.body.MarkForLayoutRecursively()
+	g.scroll.SetPosition(0, 0)
+	g.wnd.MarkForRedraw()
 }
 
-func (g *gallery) drawBody(gc *unison.Canvas, r geom.Rect) {
-	p := painter{gc, g.ui}
-	b := g.body.ContentRect(false)
-	p.fill(b, g.ui.Theme.Tokens().WindowBackground)
-	margin := float32(g.ui.Interface.ViewMargin())
-	pages[g.page](p, margin, margin, b.Width-2*margin)
+// pageHeight is the height the current page needs at a width.
+func (g *gallery) pageHeight(width float32) float32 {
+	_, pref, _ := g.body.Sizes(geom.NewSize(width, 0))
+	return pref.Height
 }
 
 var themeLabels = []struct{ id, label string }{
@@ -277,8 +318,9 @@ func (g *gallery) drawSidebar(gc *unison.Canvas, r geom.Rect) {
 		y += h + float32(m.SpaceSnug())
 		for _, name := range gr.pages {
 			row := geom.NewRect(0, y, b.Width-float32(m.Hairline()), float32(m.RowHeightSlim()))
+			g.rows[name] = row
 			color := t.TextDisabled
-			if _, ok := pages[name]; ok {
+			if hasPage(name) {
 				color = t.TextPrimary
 			}
 			if name == g.page {
@@ -305,7 +347,7 @@ func (g *gallery) drawStatus(gc *unison.Canvas, r geom.Rect) {
 	p.fill(b, t.FooterBackground)
 	p.fill(geom.NewRect(0, 0, b.Width, float32(m.Hairline())), t.Border)
 	st := ui.Chrome(m.Caption(), text.Regular, t.TextMuted)
-	built := len(pages) - 1 // Foundations is not a component
+	built := len(catalog)
 	left := ui.Fonts.Layout(span(fmt.Sprintf("%s  ·  %d of 74 components built", g.page, built), st), text.Options{})
 	_, lh := left.Size()
 	left.Draw(gc, float32(m.Space()), (b.Height-lh)/2)

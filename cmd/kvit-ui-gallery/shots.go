@@ -7,7 +7,6 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
-	"sort"
 
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/kvit-s/kvit-ui/tokens"
@@ -54,19 +53,16 @@ func writeShots(dir, compare string) ([]string, error) {
 	if startErr != nil {
 		return nil, startErr
 	}
-	names := make([]string, 0, len(pages))
-	for n := range pages {
-		names = append(names, n)
-	}
-	sort.Strings(names)
 	var written []string
-	for _, page := range names {
+	for _, page := range pageNames() {
 		for _, theme := range tokens.BuiltInThemes() {
 			for _, size := range shotSizes {
 				// Make the window tall enough to show the whole page without
 				// scrolling, then capture it.
 				screen.Do(func() {
-					g.page = page
+					if g.page != page {
+						g.setPage(page)
+					}
 					ui.Theme.SetThemeID(theme)
 					ui.Interface.SetFontSize(size)
 					g.fit()

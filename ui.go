@@ -13,6 +13,7 @@ import (
 	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/thememode"
+	"golang.org/x/text/language"
 )
 
 // UI is one application's design values and fonts: the theme, the
@@ -26,7 +27,12 @@ type UI struct {
 	Fonts      *text.Fonts
 	Settings   *settings.Store      // nil when Options.SettingsPath is empty
 	Appearance *platform.Appearance // what the desktop says
-	onChange   []func()
+	// Locale is the language and region numbers are written for; see
+	// Number. language.Und groups no digits, as the C locale does.
+	Locale   language.Tag
+	onChange []func()
+	// ringWindows are the windows already drawing keyboard focus rings.
+	ringWindows map[*unison.Window]bool
 }
 
 // Options configure New.
@@ -37,9 +43,9 @@ type Options struct {
 	// FontCacheDir is where the index of system fonts is kept; "" uses the
 	// user cache directory.
 	FontCacheDir string
-	// IgnoreDesktop leaves the desktop's appearance out, so "system" is light
-	// and motion is on. Screenshots and tests want the same result on every
-	// machine.
+	// IgnoreDesktop leaves the desktop's appearance and locale out, so
+	// "system" is light, motion is on and numbers are written as in American
+	// English. Screenshots and tests want the same result on every machine.
 	IgnoreDesktop bool
 }
 
@@ -74,6 +80,9 @@ func New(opt Options) (*UI, error) {
 	}
 	if opt.IgnoreDesktop {
 		u.Appearance.Set(false, false, false)
+		u.Locale = language.AmericanEnglish
+	} else if tag, err := language.Parse(platform.Locale()); err == nil {
+		u.Locale = tag
 	}
 	u.Theme.SetAppearance(u.Appearance)
 	if opt.SettingsPath != "" {

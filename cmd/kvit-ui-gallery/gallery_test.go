@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/kvit-s/kvit-ui/tokens"
+	"github.com/richardwilkes/unison"
 )
 
 // TestShots writes the whole screenshot set headlessly, one image per page,
@@ -21,7 +23,7 @@ func TestShots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := len(pages) * len(tokens.BuiltInThemes()) * len(shotSizes); len(written) != want {
+	if want := len(pageNames()) * len(tokens.BuiltInThemes()) * len(shotSizes); len(written) != want {
 		t.Fatalf("wrote %d screenshots, want %d", len(written), want)
 	}
 	for _, name := range written {
@@ -48,6 +50,40 @@ func TestShots(t *testing.T) {
 		}
 		if len(seen) < 50 {
 			t.Errorf("%s has only %d colours: nothing was drawn", name, len(seen))
+		}
+	}
+}
+
+// A page built at one interface size and shown at another is laid out as if
+// it had been built at the second: every gap, padding and size follows the
+// interface size, none keeps the value it had when the page was built.
+func TestPagesFollowTheInterfaceSize(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var g *gallery
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: windowWidth, Height: windowHeight},
+		unison.StartupFinishedCallback(func() { g, _ = newGallery(ui, "Foundations", nil) }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Stop()
+	screen.Sync()
+	width := float32(windowWidth - ui.Interface.SidebarWidth())
+	for _, name := range pageNames() {
+		var builtAt12, builtAt24 float32
+		screen.Do(func() {
+			ui.Interface.SetFontSize(12)
+			g.setPage(name)
+			builtAt12 = g.pageHeight(width)
+			ui.Interface.SetFontSize(24)
+			g.setPage(name)
+			ui.Interface.SetFontSize(12)
+			builtAt24 = g.pageHeight(width)
+		})
+		if builtAt12 != builtAt24 {
+			t.Errorf("%s at 12 px is %.1f tall when built at 12 and %.1f when built at 24", name, builtAt12, builtAt24)
 		}
 	}
 }

@@ -2,6 +2,7 @@ package text_test
 
 import (
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -87,8 +88,12 @@ func TestLineHeightMultiplies(t *testing.T) {
 	f := sharedFonts(t)
 	_, h1 := f.Layout(plain("x", 20), text.Options{}).Size()
 	_, h2 := f.Layout(plain("x", 20), text.Options{LineHeight: 1.5}).Size()
-	if d := h2 - h1*1.5; d > 0.01 || d < -0.01 {
+	// Heights are whole pixels, so the product is rounded up to one.
+	if d := h2 - h1*1.5; d >= 1 || d < 0 {
 		t.Errorf("line height 1.5 gave %.2f against %.2f natural", h2, h1)
+	}
+	if h1 != float32(math.Trunc(float64(h1))) {
+		t.Errorf("a line is %.2f tall, not a whole number of pixels", h1)
 	}
 	if _, h := f.Layout(nil, text.Options{}).Size(); h <= 0 {
 		t.Error("empty text must still take a line")
@@ -259,5 +264,36 @@ func TestTheLastGlyphOfALineKeepsItsWidth(t *testing.T) {
 				t.Errorf("at width %.0f line %d is %.2f wide, its text alone %.2f", width, i, x1-x0, alone)
 			}
 		}
+	}
+}
+
+func TestElideCutsToTheWidthWithAnEllipsis(t *testing.T) {
+	f := sharedFonts(t)
+	long := "A destination whose full name does not fit here"
+	l := f.Layout(plain(long, 16), text.Options{MaxWidth: 120, Elide: true})
+	if w, _ := l.Size(); w > 120 {
+		t.Errorf("the elided text is %.1f wide, over 120", w)
+	}
+	if l.LineCount() != 1 {
+		t.Errorf("elided text took %d lines", l.LineCount())
+	}
+	short := f.Layout(plain("Fits", 16), text.Options{MaxWidth: 120, Elide: true})
+	if short.Len() != 4 {
+		t.Errorf("text that fits was changed to %d runes", short.Len())
+	}
+	if n := l.Len(); n >= len([]rune(long)) || n < 3 {
+		t.Errorf("the elided text has %d runes of %d", n, len([]rune(long)))
+	}
+}
+
+func TestTabularDigitsAreOneWidth(t *testing.T) {
+	f := sharedFonts(t)
+	st := text.Style{Size: 20, Color: black, Tabular: true}
+	w := func(s string) float32 {
+		w, _ := f.Layout([]text.Span{{Text: s, Style: st}}, text.Options{}).Size()
+		return w
+	}
+	if a, b := w("1111"), w("8888"); a != b {
+		t.Errorf("tabular 1111 is %.2f wide and 8888 %.2f", a, b)
 	}
 }

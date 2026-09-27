@@ -42,12 +42,36 @@ too. `git -C ~/kvit-ui log qt-port-start..` lists them.
 
 Taken from `agent/skills/kvit-ui/catalog.md` in `~/kvit-ui` at commit 0a0b210 (74 components), in the groups `README.md` there uses.
 
+The screenshot evidence below is `./build.sh --shots`, which writes each Go
+page under the Qt file name and stacks it above the Qt shot in
+`build/shots/compare`. "Matches" means the pair was compared by eye region by
+region, and positions agree to the pixel unless a difference is listed.
+
 ### Foundation (4)
 
-- [ ] `KvitLabel`
-- [ ] `KvitIcon`
-- [ ] `KvitIconButton`
-- [ ] `KvitLink`
+Each of the four themes was compared on at least one of these pages, at
+12 px, the only size the Qt set has. Two differences are
+expected and not defects: each code sample is the Go source of the specimen
+rather than QML, and the Go gallery has no filter field above its sidebar
+yet.
+
+- [x] `KvitLabel` (`Label`). Evidence: `TestLabelSizesByRoleAndElides`,
+  `TestTheLastGlyphOfALineKeepsItsWidth`, `TestPagesFollowTheInterfaceSize`;
+  `dark-KvitLabel.png` matches, every role line and the frame to the pixel.
+- [x] `KvitIcon` (`Icon`). Evidence: `TestAnUnknownIconIsMarked`;
+  `light-KvitIcon.png` matches except that the small search symbol is centred
+  on the row rather than at its top, because Go's `Row` centres what it
+  holds and Qt's `Row` does not.
+- [x] `KvitIconButton` (`IconButton`). Evidence:
+  `TestIconButtonActivatesAndDescribesItself`,
+  `TestTheFocusRingShowsForTheKeyboardOnly`; `dark-KvitIconButton.png` and
+  `sepia-KvitIconButton.png` match, including the ring on the button with
+  keyboard focus. Not yet done: the Qt button also shows its tooltip when it
+  gains keyboard focus, and the Go one shows it only on pointer hover.
+- [x] `KvitLink` (`Link`). Evidence: `TestLinkFollowsAndIsALink`;
+  `light-KvitLink.png` and `highContrast-KvitLink.png` match, including the
+  link cut short with "…" in a narrow column. The same tooltip gap as
+  `KvitIconButton` applies.
 
 ### Structure (8)
 
@@ -56,7 +80,12 @@ Taken from `agent/skills/kvit-ui/catalog.md` in `~/kvit-ui` at commit 0a0b210 (7
 - [ ] `KvitSidebarItem`
 - [ ] `KvitBreadcrumb`
 - [ ] `KvitRegion`
-- [ ] `KvitViewHead`
+- [ ] `KvitViewHead` (`ViewHead`): built and used for the head of every
+  gallery page, with kvit-cash's side padding. Evidence so far:
+  `TestTheViewHeadCountsInTheReadersLocale` (ported from
+  `test_components.cpp`), `TestTheViewHeadIsARowTallWithItsControlsAtTheRight`.
+  Not ticked until its own gallery page exists, which needs `KvitSearchField`
+  and `KvitButton` for its specimen.
 - [ ] `KvitStatusBar`
 - [ ] `KvitWindow`
 
@@ -149,8 +178,9 @@ Taken from `agent/skills/kvit-ui/catalog.md` in `~/kvit-ui` at commit 0a0b210 (7
   font's 1,530 glyphs, generated from the Qt catalogue by
   `tools/import-qt-icons`. Evidence: `icons/icons_test.go` (ported from
   `test_icons.cpp`).
-- [ ] An unknown icon name draws a marked placeholder (comes with
-  `KvitIcon`)
+- [x] An unknown icon name draws a marked placeholder: a hairline box and
+  "?" in the danger colour, and a warning in the log. Evidence:
+  `TestAnUnknownIconIsMarked`; `light-KvitIcon.png`.
 
 ## Checks the Qt library runs, and their Go equivalents
 
@@ -186,8 +216,8 @@ Taken from `agent/skills/kvit-ui/catalog.md` in `~/kvit-ui` at commit 0a0b210 (7
   control-size variants, about 300 images), compared with the Qt set. The
   mechanism exists: `./build.sh --shots` writes the set under the Qt file
   names and stacks each image above the Qt one from
-  `~/kvit-qt-reference/kvit-ui-0a0b210`. Only the foundations page has
-  shots so far.
+  `~/kvit-qt-reference/kvit-ui-0a0b210`. The foundations page and the four
+  Foundation components have shots so far.
 - [ ] `--catalog`: writes the agent skill's component catalogue
 
 ## Drawing a screen before building it
@@ -212,6 +242,7 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 - [ ] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses
 - [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it
 - [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen
-- [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline
+- [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
+  Done so far: `ViewHead.Padding`, the view head's own side margin.
 - [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed
 - [ ] `722906e` 2026-09-13: Name the shortest window the chrome holds

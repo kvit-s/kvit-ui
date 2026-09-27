@@ -3,10 +3,12 @@ package text
 import (
 	"math"
 	"sort"
+	"strings"
 	"unicode"
 
 	"github.com/go-text/typesetting/di"
 	gfont "github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
 	"github.com/go-text/typesetting/fontscan"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/shaping"
@@ -35,6 +37,9 @@ type Style struct {
 	Background Color // drawn behind the span's glyphs on its line; zero for none
 	Underline  bool
 	Strike     bool
+	// Tabular draws every digit the same width, so a column of figures lines
+	// up and a changing value does not shift the text beside it.
+	Tabular bool
 }
 
 // Span is text in one style.
@@ -54,6 +59,10 @@ type Options struct {
 	// KeepTrailingSpace keeps the width of spaces at the end of a wrapped
 	// line, which an editor wants so the caret can sit after them.
 	KeepTrailingSpace bool
+	// Elide keeps the text to one line no wider than MaxWidth, cutting it
+	// short with "…" when it does not fit. A label that grows past its column
+	// pushes whatever is beside it off the screen; one cut short is legible.
+	Elide bool
 }
 
 // Layout is text shaped and broken into lines, ready to draw and to answer
@@ -108,6 +117,9 @@ func aspectOf(s Style) gfont.Aspect {
 
 // Layout shapes the spans and breaks them into lines.
 func (f *Fonts) Layout(spans []Span, opt Options) *Layout {
+	if opt.Elide && opt.MaxWidth > 0 {
+		return f.elided(spans, opt)
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	l := &Layout{fonts: f}
@@ -142,6 +154,18 @@ func (f *Fonts) Layout(spans []Span, opt Options) *Layout {
 	}
 	l.height = y
 	return l
+}
+
+// lineBox is a line's height and the distance from its top to its baseline.
+// The natural height is rounded up to a whole pixel before the multiplier,
+// and the baseline to the nearest, as Qt's native text rendering does, so
+// lines stack at whole pixels and a block of text is as tall here as in the
+// Qt version.
+func lineBox(ascent, descent, lineMult float32) (height, baseline float32) {
+	natural := ascent + descent
+	height = float32(math.Ceil(math.Ceil(float64(natural)) * float64(lineMult)))
+	baseline = float32(math.Round(float64((height-natural)/2 + ascent)))
+	return height, baseline
 }
 
 // layoutParagraph shapes and wraps runes [ps, pe), adds its lines from y
@@ -187,6 +211,9 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 				Size:      fixed.Int26_6(st.Size * 64),
 				Language:  language.NewLanguage("en"),
 			}
+			if st.Tabular {
+				in.FontFeatures = []shaping.FontFeature{{Tag: tnum, Value: 1}}
+			}
 			for _, part := range seg.Split(in, scriptFontmap{f.fm}) {
 				out := shaper.Shape(part)
 				markInk(&out, para)
@@ -200,10 +227,9 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 		// force there, so a caret has somewhere to be.
 		st := l.styles[l.styleAt(ps)]
 		ascent, descent := l.emptyMetrics(st)
-		natural := ascent + descent
-		h := natural * lineMult
+		h, baseline := lineBox(ascent, descent, lineMult)
 		l.lines = append(l.lines, line{start: ps, end: ps, hardEnd: true, top: y, height: h,
-			baseline: y + (h-natural)/2 + ascent, stops: []stop{{ps, 0}}})
+			baseline: y + baseline, stops: []stop{{ps, 0}}})
 		return y + h
 	}
 	maxWidth := math.MaxInt32 >> 7
@@ -232,10 +258,10 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 			ln.runs = append(ln.runs, placedRun{out: o, base: ps, x: x, width: w, style: l.styleAt(ps + o.Runes.Offset)})
 			x += w
 		}
-		natural := ascent + descent
-		ln.height = natural * lineMult
+		h, baseline := lineBox(ascent, descent, lineMult)
+		ln.height = h
 		ln.top = y
-		ln.baseline = y + (ln.height-natural)/2 + ascent
+		ln.baseline = y + baseline
 		ln.width = x
 		ln.stops = l.stopsFor(&ln)
 		l.lines = append(l.lines, ln)
@@ -259,6 +285,55 @@ func markInk(out *shaping.Output, text []rune) {
 		}
 		g.Width = g.XAdvance
 	}
+}
+
+var tnum = ot.MustNewTag("tnum")
+
+// elided lays the spans out on one line no wider than opt.MaxWidth: as they
+// are when they fit, otherwise the longest start that fits with "…" after it,
+// the ellipsis in the style of the last character kept.
+func (f *Fonts) elided(spans []Span, opt Options) *Layout {
+	one := opt
+	one.Elide, one.MaxWidth = false, 0
+	var flat []Span
+	for _, sp := range spans {
+		// One line: line breaks become spaces.
+		flat = append(flat, Span{Text: strings.ReplaceAll(sp.Text, "\n", " "), Style: sp.Style})
+	}
+	full := f.Layout(flat, one)
+	if full.width <= opt.MaxWidth || full.Len() == 0 {
+		return full
+	}
+	// The longest prefix whose width plus the ellipsis's fits.
+	lastStyle := func(n int) Style { return full.styles[full.styleAt(max(0, n-1))] }
+	ellipsisWidth := func(st Style) float32 {
+		w, _ := f.Layout([]Span{{Text: "…", Style: st}}, one).Size()
+		return w
+	}
+	keep := 0
+	for _, s := range full.lines[0].stops {
+		if s.index > keep && s.x+ellipsisWidth(lastStyle(s.index)) <= opt.MaxWidth {
+			keep = s.index
+		}
+	}
+	// Do not end on a space before the ellipsis.
+	for keep > 0 && unicode.IsSpace(full.runes[keep-1]) {
+		keep--
+	}
+	var out []Span
+	for i, sp := range flat {
+		start := full.starts[i]
+		rs := []rune(sp.Text)
+		if start >= keep {
+			break
+		}
+		if start+len(rs) > keep {
+			rs = rs[:keep-start]
+		}
+		out = append(out, Span{Text: string(rs), Style: sp.Style})
+	}
+	out = append(out, Span{Text: "…", Style: lastStyle(keep)})
+	return f.Layout(out, one)
 }
 
 // emojiFamilies are the colour emoji fonts of the three platforms.
