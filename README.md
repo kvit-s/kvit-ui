@@ -15,6 +15,10 @@ Building needs Go 1.27; with an older Go installed, the `toolchain` line in
 ./build.sh --help        # every option
 ```
 
-**Status:** a skeleton. The gallery opens an empty window.
+**Status:** the foundations are in place: the four themes, the interface
+size and document typography with the Qt library's tests ported, settings
+shared with the Qt version, the icons, and a text package that shapes text
+(kerning, emoji sequences, other scripts). The gallery shows them on its
+foundations page. No components yet; `PARITY.md` lists what remains.
 
 **Licence:** MPL-2.0, as for the Qt version.

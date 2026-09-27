@@ -22,6 +22,37 @@ blog post. Append a dated entry there, newest last, when you:
 Give the command behind every number, and save screenshots under
 `~/kvit-shirei/migration-log/<date>/`.
 
+## What is where
+
+| Package | What it holds |
+|---|---|
+| `palette` | Colours and the colour science the design values are checked with: OKLab/OKLCH, perceptual distance, colour-vision simulation, WCAG contrast, chart-ramp rules |
+| `tokens` | `Theme` (four colour tables, overrides, reduced motion, following the desktop), `Interface` (everything derived from the 10–24 px interface size), `Typography` (document text). `tables_gen.go` is generated |
+| `settings` | The settings file (`ui.json`), in the Qt library's format and keys |
+| `platform` | What the desktop says about dark mode, high contrast and reduced motion |
+| `icons` | The embedded Phosphor font and its names. `catalog_gen.go` is generated |
+| `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas |
+| root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison; the components will live here |
+| `cmd/kvit-ui-gallery` | The gallery and its screenshot mode |
+| `tools/import-qt-*` | Generators reading the Qt library's sources; their tests fail when the Qt source has changed since the last run |
+
+The two generated files are rebuilt with:
+
+```sh
+go run ./tools/import-qt-theme ~/kvit-ui/src/tokens/theme.cpp > tokens/tables_gen.go
+go run ./tools/import-qt-icons ~/kvit-ui/src/qml/iconcatalog.cpp > icons/catalog_gen.go
+```
+
+**Draw text with the `text` package, never with unison's `Text` or
+`Label`.** unison's own text draws one glyph per character, without
+kerning, emoji sequences or right-to-left ordering.
+
+**The Qt gallery's screenshots are the reference for parity.** They are in
+`~/kvit-qt-reference/kvit-ui-0a0b210/`, outside every repository, because
+they cannot be made again once Qt is removed. `./build.sh --shots` stacks
+each Go screenshot above the Qt one with the same name, in
+`build/shots/compare/`.
+
 ## Building and checking
 
 ```sh
@@ -29,7 +60,8 @@ Give the command behind every number, and save screenshots under
 ./build.sh --test        # also gofmt check, go vet and the headless tests
 ./build.sh --cross       # also the gallery for Windows, macOS (both) and Linux
 ./build.sh --win         # the gallery for Windows onto D:, started on the Windows desktop
-./build.sh --win-smoke   # the same, closing after 3 s, with first-frame time and memory
+./build.sh --win-smoke   # the same, closing after 6 s, with first-frame time and memory
+./build.sh --shots       # the screenshot set, compared with the Qt one
 tools/check-all.sh       # ./build.sh --test in every Kvit Go repository
 ```
 

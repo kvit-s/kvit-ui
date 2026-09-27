@@ -14,17 +14,29 @@ too. `git -C ~/kvit-ui log qt-port-start..` lists them.
 
 ## Design values
 
-- [ ] `Theme`: the four colour tables (light, dark, sepia, high contrast),
+- [x] `Theme`: the four colour tables (light, dark, sepia, high contrast),
   switched while running, plus a `system` setting that follows the
-  desktop's light or dark preference
-- [ ] `Theme`: the reduced-motion setting and the motion scale
-- [ ] `Interface`: the interface size from 10 to 24 px, and the seven type
+  desktop's light or dark preference. Evidence: `tokens/theme_test.go`
+  (23 tests ported from `test_theme.cpp`); tables generated from the Qt
+  source by `tools/import-qt-theme`.
+- [x] `Theme`: the reduced-motion setting and the motion scale. Evidence:
+  `TestReducedMotionScale`, `TestReducedMotionFollowsTheSystem`,
+  `TestAnExistingMotionChoiceSurvivesTheUpgrade`.
+- [x] `Interface`: the interface size from 10 to 24 px, and the seven type
   roles, spacing scale, row heights, control heights, radii, hairline,
-  focus-ring width and three reflow breakpoints derived from it
-- [ ] `Interface.px(n)` for one-off measurements
-- [ ] `Typography`: document text (family, base size, line height,
-  paragraph spacing, maximum content width), set separately from the chrome
-- [ ] The theme and interface size saved between runs (`ui.json`)
+  focus-ring width and three reflow breakpoints derived from it. Evidence:
+  `tokens/interface_test.go` (ported from `test_interfacemetrics.cpp` and
+  `test_density.cpp`).
+- [x] `Interface.px(n)` for one-off measurements (`Interface.Px`).
+  Evidence: `TestDefaultReproducesTheOldLiterals`,
+  `TestNoDensityValueCollapsesAtTheSmallestSize`.
+- [x] `Typography`: document text (family, base size, line height,
+  paragraph spacing, maximum content width), set separately from the
+  chrome. Evidence: `TestTypographyScale`, `TestTypographyClampsAndSignals`,
+  `TestTheDocumentTypeScaleIsUntouched`.
+- [x] The theme and interface size saved between runs (`ui.json`), with the
+  Qt library's keys and file format, so both read one file. Evidence:
+  `settings/store_test.go`, `TestChoicesPersistAcrossRuns`.
 
 ## Components
 
@@ -133,40 +145,56 @@ Taken from `agent/skills/kvit-ui/catalog.md` in `~/kvit-ui` at commit 0a0b210 (7
 
 ## Icons
 
-- [ ] The 74 Phosphor icons, named by meaning; an unknown name draws a
-  marked placeholder and fails a test
+- [x] The Phosphor icons, named by meaning: 83 meaning names over the
+  font's 1,530 glyphs, generated from the Qt catalogue by
+  `tools/import-qt-icons`. Evidence: `icons/icons_test.go` (ported from
+  `test_icons.cpp`).
+- [ ] An unknown icon name draws a marked placeholder (comes with
+  `KvitIcon`)
 
 ## Checks the Qt library runs, and their Go equivalents
 
-- [ ] Colour tables and contrast floors, per theme
-- [ ] The type scale
-- [ ] The density and spacing scale
-- [ ] The three chart ramps in all four themes, checked in OKLab against that
+- [x] Colour tables and contrast floors, per theme
+  (`TestEveryTokenPairMeetsItsFloor`, `TestHighContrastMeetsStricterFloor`)
+- [x] The type scale (`TestTheScalesAreOrderedAtEverySize`,
+  `TestTypographyScale`)
+- [x] The density and spacing scale (`TestEveryValueScalesWithOneSetting`)
+- [x] The three chart ramps in all four themes, checked in OKLab against that
   theme's surfaces and every hue that already means something, under normal
-  vision and three colour-vision deficiencies
+  vision and three colour-vision deficiencies (`palette/palette_test.go`)
 - [ ] Every component opening in all four themes with no warning
 - [ ] `KvitTable`: 250,000 rows and twelve columns, scrolling smoothly and
   filtering in under 100 ms
 - [ ] Every gallery sample compiling
-- [ ] No colour literal, numeric font size or unnamed geometry value outside
-  the design values (in Qt: qmllint at full strength)
+- [x] No colour literal and no numeric font size outside the design values
+  (`rules_test.go`; in Qt, qmllint at full strength)
+- [ ] No unnamed geometry value outside the design values: not checked by a
+  test yet, since a literal offset cannot be told from ordinary arithmetic
+  by reading the source
 - [ ] Every interactive component giving screen readers a role and a name
-- [ ] Generated files matching their sources: the drawing stylesheet, the
-  icon catalogue and the agent skill's component catalogue
+- [x] Generated files matching their sources: the theme tables and the icon
+  catalogue (`tools/import-qt-*/main_test.go`)
+- [ ] The same for the drawing stylesheet and the agent skill's component
+  catalogue, which do not exist in Go yet
 
 ## Gallery
 
 - [ ] One page per component, with its states and a working sample
-- [ ] `--page`, `--theme`, `--interface-size`
-- [ ] `--shots`: the fixed screenshot set (71 components × 4 themes, plus
-  control-size variants, about 300 images), compared with the Qt set
+- [x] `--page`, `--theme`, `--interface-size`, and in the window Ctrl+1 to
+  Ctrl+4, Ctrl+plus and Ctrl+minus
+- [ ] `--shots`: the fixed screenshot set (74 components × 4 themes, plus
+  control-size variants, about 300 images), compared with the Qt set. The
+  mechanism exists: `./build.sh --shots` writes the set under the Qt file
+  names and stacks each image above the Qt one from
+  `~/kvit-qt-reference/kvit-ui-0a0b210`. Only the foundations page has
+  shots so far.
 - [ ] `--catalog`: writes the agent skill's component catalogue
 
 ## Drawing a screen before building it
 
 - [ ] `ux/tokens.css` generated from the Go design values
 - [ ] `ux/frame.css`, `ux/render.sh`, `visual-language.md` and
-  `PATTERN.md` carried over
+  `PATTERN.md` copied across
 
 ## Agent skills
 

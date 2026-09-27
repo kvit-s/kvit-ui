@@ -8,22 +8,27 @@
 #   ./build.sh --win         build the gallery for Windows onto D: and start it there
 #   ./build.sh --win-smoke   the same, but it closes itself after 6 s; prints when it
 #                            drew its first frame and how much memory Windows gave it
+#   ./build.sh --shots       write the gallery's screenshot set into build/shots, and
+#                            stack each image above the Qt gallery's of the same name
+#                            into build/shots/compare
 #   ./build.sh --run         start the gallery here (needs a display)
 #
 # Everything builds with cgo off. KVIT_WIN_DIR overrides where Windows builds go
-# (default /mnt/d/projects/kvit-ui-go).
+# (default /mnt/d/projects/kvit-ui-go); KVIT_QT_SHOTS where the Qt gallery's
+# screenshots are (default ~/kvit-qt-reference/kvit-ui-0a0b210).
 set -euo pipefail
 cd "$(dirname "$0")"
 export CGO_ENABLED=0
-test=0 cross=0 win=0 smoke=0 run=0
+test=0 cross=0 win=0 smoke=0 run=0 shots=0
 for a in "$@"; do
     case $a in
         --test) test=1 ;;
         --cross) cross=1 ;;
         --win) win=1 ;;
         --win-smoke) win=1 smoke=1 ;;
+        --shots) shots=1 ;;
         --run) run=1 ;;
-        -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown option: $a" >&2; exit 2 ;;
     esac
 done
@@ -71,6 +76,14 @@ if [ $win = 1 ]; then
             "Windows memory: working set {0:N0} MB, private working set {1:N0} MB, private bytes {2:N0} MB" -f ($p.WorkingSet64 / 1MB), ($c / 1MB), ($p.PrivateMemorySize64 / 1MB)' | tr -d '\r'
         wait $pid
     fi
+fi
+
+if [ $shots = 1 ]; then
+    qt=${KVIT_QT_SHOTS:-$HOME/kvit-qt-reference/kvit-ui-0a0b210}
+    rm -rf build/shots
+    compare=()
+    [ -d "$qt" ] && compare=(--compare "$qt")
+    build/kvit-ui-gallery --shots build/shots "${compare[@]}"
 fi
 
 if [ $run = 1 ]; then

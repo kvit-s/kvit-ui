@@ -6,45 +6,48 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/richardwilkes/unison"
+	"github.com/kvit-s/kvit-ui/tokens"
 )
 
-// TestGalleryOpens opens the gallery headlessly, checks that it draws, and
-// saves what it drew.
-func TestGalleryOpens(t *testing.T) {
-	var wnd *unison.Window
-	drawn := false
-	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: 1100, Height: 800},
-		unison.StartupFinishedCallback(func() {
-			var err error
-			if wnd, err = newGalleryWindow(func() { drawn = true }); err != nil {
-				t.Error(err)
+// TestShots writes the whole screenshot set headlessly, one image per page,
+// theme and shot size, and checks each is at least the window's size and is
+// not blank. KVIT_SHOTS keeps the images in a directory of your choosing.
+func TestShots(t *testing.T) {
+	dir := os.Getenv("KVIT_SHOTS")
+	if dir == "" {
+		dir = t.TempDir()
+	}
+	written, err := writeShots(dir, os.Getenv("KVIT_QT_SHOTS"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := len(pages) * len(tokens.BuiltInThemes()) * len(shotSizes); len(written) != want {
+		t.Fatalf("wrote %d screenshots, want %d", len(written), want)
+	}
+	for _, name := range written {
+		f, err := os.Open(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		img, err := png.Decode(f)
+		f.Close()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		b := img.Bounds()
+		if b.Dx() < windowWidth || b.Dy() < windowHeight {
+			t.Errorf("%s is %d × %d, smaller than the window", name, b.Dx(), b.Dy())
+		}
+		// Blank would be one colour throughout; count a sample of distinct ones.
+		seen := map[uint32]bool{}
+		for y := b.Min.Y; y < b.Max.Y; y += 7 {
+			for x := b.Min.X; x < b.Max.X; x += 7 {
+				r, g, bl, _ := img.At(x, y).RGBA()
+				seen[r>>8<<16|g>>8<<8|bl>>8] = true
 			}
-		}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(screen.Stop)
-	screen.Sync()
-	var title string
-	screen.Do(func() { title = wnd.Title() })
-	if title != "kvit-ui gallery" {
-		t.Errorf("window title %q", title)
-	}
-	if !drawn {
-		t.Error("the window never drew")
-	}
-	f, err := os.Create(filepath.Join(t.TempDir(), "gallery.png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = png.Encode(f, screen.Capture()); err != nil {
-		t.Error(err)
-	}
-	if err = f.Close(); err != nil {
-		t.Error(err)
-	}
-	for _, e := range screen.Errors() {
-		t.Error(e)
+		}
+		if len(seen) < 50 {
+			t.Errorf("%s has only %d colours: nothing was drawn", name, len(seen))
+		}
 	}
 }
