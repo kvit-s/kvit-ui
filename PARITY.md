@@ -144,8 +144,10 @@ yet.
   press on something inside that acts on its own not also opening the card.
   Unlike the Qt card, a pressable card takes the keyboard focus and opens on
   Return, Enter or Space.
-- [x] `KvitPanel` (`Panel`). Evidence: `TestAPanelDrawsTheRulesItIsAskedFor`;
-  `light-KvitPanel.png` matches.
+- [x] `KvitPanel` (`Panel`). Evidence: `TestAPanelDrawsTheRulesItIsAskedFor`,
+  `TestAPanelsRulesDrawOverWhatIsInIt`; `light-KvitPanel.png` matches,
+  apart from the sidebar's right-hand rule, which kvit-cash's `0263f2d`
+  (listed at the end) draws where the Qt shot has none.
 - [x] `KvitPane` (`Pane`, placed with `WithPane`). Evidence:
   `TestAPaneSlidesOverTheRightEdge`; `light-KvitPane.png` matches. kvit-cash's
   `closable` is `Closable`. Its floor, which stops a press or a wheel turn on
@@ -578,7 +580,7 @@ component draws it itself, cut off at its box.
 ## Changes that exist only in kvit-cash's copy of kvit-ui
 
 kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
-`722906e`) has 7 commits that `~/kvit-ui` lacks. The two split after `46a67c0`
+`0263f2d`) has 8 commits that `~/kvit-ui` lacks. The two split after `46a67c0`
 (2026-09-10). kvit-ui-go has to do what these commits do as well.
 
 - [x] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
@@ -618,6 +620,16 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
   the keyboard's row.
 - [x] `722906e` 2026-09-13: Name the shortest window the chrome holds.
   `Interface.HeightFloor`, and `Window`'s minimum height.
+- [x] `0263f2d` 2026-09-14: A panel's edges draw above what is put in the panel.
+  The panel draws its rules after its children (`DrawOverCallback`), so a
+  child reaching an edge, such as a region's scroll bar, whose strip is the
+  panel's own ground, no longer paints the rule out; `Header` and `Pane`
+  have the same order. A spill drawn by the sidebar goes under its rule, as
+  a Qt item's overflow goes under a rule at `z: 1`. Evidence:
+  `TestAPanelsRulesDrawOverWhatIsInIt`. In the screenshot set this is the
+  only change, on every page: the line down the gallery sidebar's right
+  side now runs the height of the component list, where the Qt shots
+  (taken before this commit) and the earlier Go shots left it out.
 
 ### Components that exist only in kvit-cash's copy
 

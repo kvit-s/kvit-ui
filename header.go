@@ -26,6 +26,7 @@ func NewHeader(ui *UI, wordmark string, navigation unison.Paneler, actions ...un
 	h.ui = ui
 	h.Self = h
 	h.DrawCallback = h.draw
+	h.DrawOverCallback = h.drawRules
 	h.RuleBottom = true
 	h.SetBorder(sides{ui, SizeViewMargin})
 	row := &spaced{FlexLayout: unison.FlexLayout{VAlign: align.Middle}, ui: ui, gap: SizeColumnGap, horizontal: true}

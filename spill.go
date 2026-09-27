@@ -19,9 +19,10 @@ type spiller interface {
 }
 
 // hostSpills makes a panel draw the spills of the components inside it, over
-// its children. The window does this for its body and its sidebar, so a spill
-// is drawn over the page it is on, and under the rail when the rail opens
-// over the page and under a popup.
+// its children and under anything the panel itself draws over them, such as
+// a Kvit panel's rules. The window does this for its body and its sidebar, so
+// a spill is drawn over the page it is on, and under the rail when the rail
+// opens over the page and under a popup.
 func (u *UI) hostSpills(host *unison.Panel) {
 	if u.spillHosts[host] {
 		return
@@ -32,10 +33,10 @@ func (u *UI) hostSpills(host *unison.Panel) {
 	u.spillHosts[host] = true
 	previous := host.DrawOverCallback
 	host.DrawOverCallback = func(gc *unison.Canvas, rect geom.Rect) {
+		u.drawSpills(gc, host, geom.Point{}, host.ContentRect(true))
 		if previous != nil {
 			previous(gc, rect)
 		}
-		u.drawSpills(gc, host, geom.Point{}, host.ContentRect(true))
 	}
 }
 

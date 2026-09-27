@@ -109,7 +109,7 @@ each Go screenshot above the Qt one with the same name, in
   the Kvit look drawn around it (`field.go`). **Menus are Kvit's** on
   Windows and Linux, drawn in the window's popup layer, and the system's
   own on macOS (owner's choice, 2026-09-27; `menu.go`).
-- **kvit-cash's copy of the Qt library is newer in places.** Its seven extra
+- **kvit-cash's copy of the Qt library is newer in places.** Its eight extra
   commits are listed at the end of `PARITY.md`; a component follows them,
   and its entry says where that makes it differ from the Qt screenshot.
 - **Every component gets a gallery page** in `cmd/kvit-ui-gallery`: a

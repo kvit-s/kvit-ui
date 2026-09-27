@@ -6,6 +6,7 @@ import (
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
+	"github.com/richardwilkes/unison/enums/align"
 	"github.com/richardwilkes/unison/enums/role"
 	"golang.org/x/text/language"
 )
@@ -57,6 +58,46 @@ func TestAPanelDrawsTheRulesItIsAskedFor(t *testing.T) {
 	}
 	if !is(mid, int(r.Bottom())-1, kvitui.Color(tk.PanelBackground)) {
 		t.Error("the bottom edge is not the panel's ground")
+	}
+}
+
+// The rules are drawn over what is put in the panel, so a child that reaches
+// an edge, as a region's scroll bar does in a sidebar, leaves the rule whole.
+func TestAPanelsRulesDrawOverWhatIsInIt(t *testing.T) {
+	var p *kvitui.Panel
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		p = kvitui.NewPanel(ui)
+		p.RuleTop, p.RuleBottom, p.RuleLeft, p.RuleRight = true, true, true, true
+		p.SetLayout(&unison.FlexLayout{Columns: 1, HAlign: align.Fill, VAlign: align.Fill})
+		p.SetLayoutData(&unison.FlexLayoutData{SizeHint: geom.NewSize(200, 80)})
+		// A child filling the panel with the panel's own ground, as a scroll
+		// bar's strip does.
+		fill := unison.NewPanel()
+		fill.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
+			gc.DrawRect(fill.ContentRect(true), kvitui.Color(ui.Theme.Tokens().PanelBackground).Paint(gc, geom.Rect{}, 0))
+		}
+		fill.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
+		p.AddChild(fill)
+		return []unison.Paneler{p}
+	})
+	var r geom.Rect
+	screen.Do(func() { r = p.RectToRoot(p.ContentRect(true)) })
+	img := screen.Capture()
+	rule := kvitui.Color(ui.Theme.Tokens().Border)
+	midX, midY := int(r.X+r.Width/2), int(r.Y+r.Height/2)
+	for _, edge := range []struct {
+		name string
+		x, y int
+	}{
+		{"top", midX, int(r.Y)},
+		{"bottom", midX, int(r.Bottom()) - 1},
+		{"left", int(r.X), midY},
+		{"right", int(r.Right()) - 1, midY},
+	} {
+		pr, pg, pb, _ := img.At(edge.x, edge.y).RGBA()
+		if uint32(rule.Red()) != pr>>8 || uint32(rule.Green()) != pg>>8 || uint32(rule.Blue()) != pb>>8 {
+			t.Errorf("the %s rule is painted out by the panel's child", edge.name)
+		}
 	}
 }
 

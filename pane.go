@@ -45,6 +45,7 @@ func NewPane(ui *UI, title string, content ...unison.Paneler) *Pane {
 	p.ui = ui
 	p.Self = p
 	p.DrawCallback = p.drawPane
+	p.DrawOverCallback = p.drawRules
 	p.RuleLeft = true
 	p.close = NewIconButton(ui, "close", "")
 	p.close.OnClick = func() {
