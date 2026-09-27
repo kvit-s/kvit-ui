@@ -79,6 +79,14 @@ type Options struct {
 	// lines are 18.2 px apart, where LineHeight's rule, which follows Qt's
 	// labels, puts them 23 px apart.
 	Pitch float32
+	// Grid, when above zero, puts each character at a multiple of this
+	// width from the start of its line, one cell per character, as a
+	// terminal places text: the font's own advances decide nothing, and
+	// ligatures, which would put two characters in one glyph, are not
+	// formed. A character is one rune here, so a caller keeps a character
+	// that takes two cells, or one with combining marks, out of a gridded
+	// layout and places it itself.
+	Grid float32
 }
 
 // Alignment is where a line sits across the width of its layout.
@@ -319,9 +327,15 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 			if st.Tabular {
 				in.FontFeatures = []shaping.FontFeature{{Tag: tnum, Value: 1}}
 			}
+			if opt.Grid > 0 {
+				in.FontFeatures = append(in.FontFeatures, noLigatures...)
+			}
 			for _, part := range seg.Split(in, scriptFontmap{f.fm}) {
 				out := shaper.Shape(part)
 				markInk(&out, para)
+				if opt.Grid > 0 {
+					onGrid(&out, opt.Grid)
+				}
 				outs = append(outs, out)
 			}
 			a = b
@@ -393,6 +407,35 @@ func markInk(out *shaping.Output, text []rune) {
 }
 
 var tnum = ot.MustNewTag("tnum")
+
+// noLigatures turns off the features that join characters into one glyph.
+var noLigatures = []shaping.FontFeature{
+	{Tag: ot.MustNewTag("liga"), Value: 0},
+	{Tag: ot.MustNewTag("clig"), Value: 0},
+	{Tag: ot.MustNewTag("calt"), Value: 0},
+}
+
+// onGrid makes every cluster advance by grid for each character in it, so
+// characters land on a terminal's cells whatever the font's own advances
+// are. The glyphs of a cluster keep their places relative to each other;
+// the last one takes up the difference.
+func onGrid(out *shaping.Output, grid float32) {
+	cell := fixed.Int26_6(grid * 64)
+	gs := out.Glyphs
+	var total fixed.Int26_6
+	for i := 0; i < len(gs); {
+		end := min(i+max(1, gs[i].GlyphCount), len(gs))
+		var natural fixed.Int26_6
+		for k := i; k < end; k++ {
+			natural += gs[k].XAdvance
+		}
+		want := cell * fixed.Int26_6(max(1, gs[i].RuneCount))
+		gs[end-1].XAdvance += want - natural
+		total += want
+		i = end
+	}
+	out.Advance = total
+}
 
 // elided lays the spans out on one line no wider than opt.MaxWidth: as they
 // are when they fit, otherwise the longest start that fits with "…" after it,

@@ -327,3 +327,23 @@ func TestAnIdentifierIsCutInTheMiddle(t *testing.T) {
 		t.Errorf("cut to %q", got)
 	}
 }
+
+// A gridded layout puts each character at a multiple of the grid, as a
+// terminal places text, whatever the font's own advances: in a proportional
+// font an i and an M are far apart in width, and on the grid they take a
+// cell each. The terminal draws with it.
+func TestGridPlacesEveryCharacterOnItsCell(t *testing.T) {
+	f := sharedFonts(t)
+	for _, family := range []string{text.SansSerif, text.Monospace} {
+		st := text.Style{Family: family, Size: 14, Color: black}
+		l := f.Layout([]text.Span{{Text: "iMi Mw", Style: st}}, text.Options{Grid: 9})
+		for i := 0; i <= 6; i++ {
+			if x, _, _ := l.CaretAt(i); x != float32(9*i) {
+				t.Errorf("%s: character %d starts at %.2f, not %d", family, i, x, 9*i)
+			}
+		}
+		if w, _ := l.Size(); w != 54 {
+			t.Errorf("%s: the line is %.2f wide, not six cells", family, w)
+		}
+	}
+}
