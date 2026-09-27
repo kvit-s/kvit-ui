@@ -2708,6 +2708,7 @@ One line of a menu, carrying its shortcut on the right — which is how a menu t
 | `Disabled` | `bool` | Disabled draws the line and does nothing when chosen. |
 | `Separator` | `bool` | Separator makes the line a divider instead, as goes before a destructive entry at the bottom of a menu. |
 | `OnSelect` | `func()` | OnSelect runs when the line is chosen. |
+| `Items` | `[]MenuItem` | Items make the line open a submenu of its own instead of acting: beside the line, when the pointer rests on it or on Right, Return or Space, and closed again by Left or Escape. |
 
 *Ordinary, disabled and destructive*
 
@@ -2719,6 +2720,23 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
             {Text: "Reconcile", Symbol: "check", Key: command(unison.KeyR)},
             {Text: "Split", Symbol: "split", Disabled: true},
             {Text: "Delete", Symbol: "trash", Danger: true},
+        })
+    })
+    return stage
+}
+```
+
+*Lines that open a submenu*
+
+```go
+func menuItemSubmenu(ui *kvitui.UI) unison.Paneler {
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(80), unison.NewPanel()))
+    // A line with items of its own opens them beside it, and draws a
+    // chevron where a shortcut would go.
+    whenShown(stage, func() {
+        ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
+            {Text: "Turn into", Symbol: "rename", Items: []kvitui.MenuItem{{Text: "Heading"}, {Text: "Quote"}}},
+            {Text: "Copy as", Symbol: "copy", Items: []kvitui.MenuItem{{Text: "Markdown"}, {Text: "Plain text"}}},
         })
     })
     return stage

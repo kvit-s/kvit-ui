@@ -478,3 +478,78 @@ func TestContextMenusOpenFromTheKeyboardAndThePointer(t *testing.T) {
 		t.Errorf("the Menu key on the header's second column opened %+v", menus)
 	}
 }
+
+// A line with items opens a submenu beside it: Right or Return goes in with
+// its first line lit, Left comes back out to the line, and choosing inside it
+// closes the whole menu and gives the focus back.
+func TestASubmenuOpensBesideItsLine(t *testing.T) {
+	var button *kvitui.Button
+	var chosen []string
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		button = kvitui.NewButton(ui, "Block")
+		return []unison.Paneler{kvitui.Left(button)}
+	})
+	pick := func(s string) func() { return func() { chosen = append(chosen, s) } }
+	screen.Do(func() {
+		button.Focus()
+		ui.ShowMenu(button, "Block", []kvitui.MenuItem{
+			{Text: "Duplicate", OnSelect: pick("duplicate")},
+			{Text: "Turn into", Items: []kvitui.MenuItem{
+				{Text: "Heading", OnSelect: pick("heading")},
+				{Text: "Quote", OnSelect: pick("quote")},
+			}},
+		})
+	})
+	waitFor(t, screen, "the menu to take the focus", func() bool { return !button.Focused() })
+	screen.KeyPress(unison.KeyDown, 0)
+	screen.KeyPress(unison.KeyDown, 0)
+	if n := focusedNode(screen, w); n == nil || n.Name != "Turn into" || !n.Expandable || n.Expanded {
+		t.Fatalf("the submenu's line is %+v", n)
+	}
+	screen.KeyPress(unison.KeyRight, 0)
+	if n := focusedNode(screen, w); n == nil || n.Name != "Heading" {
+		t.Errorf("Right went in to %+v", n)
+	}
+	if len(w.Popups()) != 2 {
+		t.Errorf("a submenu open shows %d popups, want 2", len(w.Popups()))
+	}
+	screen.KeyPress(unison.KeyLeft, 0)
+	if n := focusedNode(screen, w); n == nil || n.Name != "Turn into" || len(w.Popups()) != 1 {
+		t.Errorf("Left came back out to %+v with %d popups", n, len(w.Popups()))
+	}
+	screen.KeyPress(unison.KeyReturn, 0)
+	screen.KeyPress(unison.KeyDown, 0)
+	screen.KeyPress(unison.KeyReturn, 0)
+	screen.Do(func() {
+		if len(chosen) != 1 || chosen[0] != "quote" || len(w.Popups()) != 0 || !button.Focused() {
+			t.Errorf("choosing in the submenu chose %v, left %d popups, and the button focused: %v", chosen, len(w.Popups()), button.Focused())
+		}
+	})
+}
+
+// Resting the pointer on a line with items opens its submenu, and resting on
+// another line closes it again.
+func TestASubmenuFollowsThePointer(t *testing.T) {
+	var button *kvitui.Button
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		button = kvitui.NewButton(ui, "Block")
+		return []unison.Paneler{kvitui.Left(button)}
+	})
+	screen.Do(func() {
+		ui.ShowMenu(button, "Block", []kvitui.MenuItem{
+			{Text: "Duplicate"},
+			{Text: "Turn into", Items: []kvitui.MenuItem{{Text: "Heading"}}},
+		})
+	})
+	screen.Sync()
+	var menu unison.Paneler
+	screen.Do(func() { menu = w.Popups()[0].Panel })
+	m := ui.Interface
+	line := func(i int) geom.Point {
+		return screen.PanelPoint(menu, geom.NewPoint(40, float32(m.Hairline()+m.SpaceSnug()+i*m.RowHeightSlim()+m.RowHeightSlim()/2)))
+	}
+	screen.MouseMove(line(1), 0)
+	waitFor(t, screen, "the submenu to open under the pointer", func() bool { return len(w.Popups()) == 2 })
+	screen.MouseMove(line(0), 0)
+	waitFor(t, screen, "the submenu to close for another line", func() bool { return len(w.Popups()) == 1 })
+}

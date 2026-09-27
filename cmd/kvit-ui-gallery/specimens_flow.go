@@ -218,3 +218,16 @@ func dualListColumns(ui *kvitui.UI) unison.Paneler {
 	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(220), kvitui.NewDualList(ui,
 		columns("Payee", "Account", "Tags", "Note"), columns("Date", "Description", "Amount", "Balance"))))
 }
+
+func menuItemSubmenu(ui *kvitui.UI) unison.Paneler {
+	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(80), unison.NewPanel()))
+	// A line with items of its own opens them beside it, and draws a
+	// chevron where a shortcut would go.
+	whenShown(stage, func() {
+		ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
+			{Text: "Turn into", Symbol: "rename", Items: []kvitui.MenuItem{{Text: "Heading"}, {Text: "Quote"}}},
+			{Text: "Copy as", Symbol: "copy", Items: []kvitui.MenuItem{{Text: "Markdown"}, {Text: "Plain text"}}},
+		})
+	})
+	return stage
+}

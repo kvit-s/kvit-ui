@@ -390,7 +390,12 @@ component draws it itself, cut off at its box.
 - [x] `KvitMenuItem` (`MenuItem`). Evidence: the same tests;
   `light-KvitMenuItem.png` matches. It has the newer Qt item's
   `Explanation`, shown as the line's tooltip and told to a screen reader,
-  and its chosen entry drawn with a tick and in bold.
+  and its chosen entry drawn with a tick and in bold. Beyond the Qt item, a
+  line can hold `Items` of its own, a submenu opened beside it after the
+  pointer rests on it for 200 ms or by Right, Return or Space, and closed
+  by Left or Escape (`TestASubmenuOpensBesideItsLine`,
+  `TestASubmenuFollowsThePointer`), for the editor's "Turn into" and
+  "Copy as"; on macOS it is a native submenu.
 - [x] `KvitTree` (`Tree`, over a `TreeModel`, or `TreeNodes` written out).
   Evidence: `TestATreeOpensAndStepsWithTheArrows`; `light-KvitTree.png`
   matches. It draws only the rows in view and asks the model only about

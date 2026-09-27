@@ -565,6 +565,7 @@ var catalog = []entry{
 		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it.",
 		specimens: []specimen{
 			{caption: "Ordinary, disabled and destructive", build: menuItemForms},
+			{caption: "Lines that open a submenu", build: menuItemSubmenu},
 		},
 	},
 	{

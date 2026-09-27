@@ -2,6 +2,7 @@ package kvitui
 
 import (
 	"runtime"
+	"time"
 
 	"github.com/kvit-s/kvit-ui/icons"
 	"github.com/kvit-s/kvit-ui/text"
@@ -41,6 +42,11 @@ type MenuItem struct {
 	Separator bool
 	// OnSelect runs when the line is chosen.
 	OnSelect func()
+	// Items make the line open a submenu of its own instead of acting: beside
+	// the line, when the pointer rests on it or on Right, Return or Space, and
+	// closed again by Left or Escape. The line draws a chevron where a
+	// shortcut would go.
+	Items []MenuItem
 }
 
 // menuIDs numbers the lines of native menus, clear of the ids unison and an
@@ -75,11 +81,24 @@ func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, item
 // unison outside a Kvit window elsewhere.
 func (u *UI) nativeMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) func() {
 	f := unison.DefaultMenuFactory()
+	m := nativeMenu(f, title, items)
+	// No line is lit until the pointer or an arrow key reaches one, as the Qt
+	// menu opens.
+	m.Popup(owner.AsPanel().RectToRoot(part), -1)
+	return m.Dispose
+}
+
+// nativeMenu builds unison's menu of items, a submenu for a line with items.
+func nativeMenu(f unison.MenuFactory, title string, items []MenuItem) unison.Menu {
 	menuIDs++
 	m := f.NewMenu(menuIDs, title, nil)
 	for _, it := range items {
 		if it.Separator {
 			m.InsertSeparator(-1, true)
+			continue
+		}
+		if len(it.Items) > 0 {
+			m.InsertMenu(-1, nativeMenu(f, it.Text, it.Items))
 			continue
 		}
 		menuIDs++
@@ -96,10 +115,7 @@ func (u *UI) nativeMenuAt(owner unison.Paneler, part geom.Rect, title string, it
 		}
 		m.InsertItem(-1, mi)
 	}
-	// No line is lit until the pointer or an arrow key reaches one, as the Qt
-	// menu opens.
-	m.Popup(owner.AsPanel().RectToRoot(part), -1)
-	return m.Dispose
+	return m
 }
 
 // menu is the Kvit menu: a list of commands in the window's popup layer. It
@@ -114,6 +130,10 @@ type menu struct {
 	hide     func()
 	previous *unison.Panel
 	tip      partTip
+	parent   *menu // the menu this one opened from, for a submenu
+	sub      *menu // the submenu open beside a line, or nil
+	subLine  int   // the line the submenu belongs to
+	hoverGen int   // counts pointer moves, so a late submenu opening can tell it is stale
 }
 
 func newMenu(ui *UI, title string, items []MenuItem) *menu {
@@ -124,9 +144,17 @@ func newMenu(ui *UI, title string, items []MenuItem) *menu {
 	m.SetSizer(m.sizes)
 	m.DrawCallback = m.draw
 	m.KeyDownCallback = m.keyDown
-	m.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool { m.light(m.lineAt(where)); return true }
-	m.MouseDragCallback = func(where geom.Point, _ int, _ mod.Modifiers) bool { m.light(m.lineAt(where)); return true }
-	m.MouseExitCallback = func() bool { m.light(-1); return true }
+	m.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool { m.hover(m.lineAt(where)); return true }
+	m.MouseDragCallback = func(where geom.Point, _ int, _ mod.Modifiers) bool { m.hover(m.lineAt(where)); return true }
+	// The first move over the menu arrives as the pointer entering it.
+	m.MouseEnterCallback = m.MouseMoveCallback
+	m.MouseExitCallback = func() bool {
+		// The pointer leaving for the open submenu leaves its line lit.
+		if m.sub == nil {
+			m.light(-1)
+		}
+		return true
+	}
 	m.MouseDownCallback = func(where geom.Point, _, _ int, _ mod.Modifiers) bool {
 		m.pressed = true
 		m.light(m.lineAt(where))
@@ -136,7 +164,11 @@ func newMenu(ui *UI, title string, items []MenuItem) *menu {
 		if m.pressed {
 			m.pressed = false
 			if i := m.lineAt(where); i >= 0 {
-				m.choose(i)
+				if len(m.items[i].Items) > 0 {
+					m.openSub(i, false)
+				} else {
+					m.choose(i)
+				}
 			}
 		}
 		return true
@@ -204,6 +236,8 @@ func (m *menu) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 		if k := m.shortcut(it); k != nil {
 			kw, _ := k.Size()
 			need += kw
+		} else if len(it.Items) > 0 {
+			need += float32(i.IconSizeSmall())
 		}
 		w = max(w, float32(i.Px(180)), need)
 	}
@@ -245,6 +279,95 @@ func (m *menu) light(i int) {
 	m.tip.tooltip(i, m.items[i].Explanation, func() geom.Rect { return m.lineBox(i) })
 }
 
+// hover lights the line under the pointer, and after a moment's rest opens
+// its submenu, or closes the submenu of another line: the pause lets the
+// pointer cross a neighbouring line on its way into a submenu.
+func (m *menu) hover(i int) {
+	if i < 0 && m.sub != nil {
+		return
+	}
+	m.light(i)
+	m.hoverGen++
+	gen := m.hoverGen
+	unison.InvokeTaskAfter(func() {
+		if gen != m.hoverGen || m.hide == nil || m.lit != i || i < 0 {
+			return
+		}
+		switch {
+		case len(m.items[i].Items) > 0 && (m.sub == nil || m.subLine != i):
+			m.openSub(i, false)
+		case len(m.items[i].Items) == 0 && m.sub != nil:
+			m.sub.close()
+		}
+	}, 200*time.Millisecond)
+}
+
+// openSub opens a line's submenu beside the line, taking the keyboard, with
+// its first line lit when first is set, as Right and Return open it.
+func (m *menu) openSub(i int, first bool) {
+	if m.sub != nil {
+		if m.subLine == i {
+			if first {
+				m.sub.light(m.sub.step(-1, 1))
+			}
+			return
+		}
+		m.sub.close()
+	}
+	w := m.ui.windowOf(m)
+	if w == nil {
+		return
+	}
+	it := m.items[i]
+	sub := newMenu(m.ui, it.Text, it.Items)
+	sub.parent, sub.previous = m, m.AsPanel()
+	m.sub, m.subLine = sub, i
+	m.light(i)
+	line := func() geom.Rect { return partIn(m, m.lineBox(i)) }
+	outer := func() geom.Rect { return anchorIn(m) }
+	sub.hide = w.Show(&Popup{Panel: sub, Anchor: m, OnEscape: sub.close, OnPressOutside: sub.close,
+		Place: func(bounds geom.Rect, size geom.Size) geom.Rect {
+			// Beside the menu, its first line level with the line it came from,
+			// or on the other side where there is no room.
+			a, o := line(), outer()
+			x, y := o.Right(), a.Y-sub.frame()
+			if x+size.Width > bounds.Right() {
+				x = max(bounds.X, o.X-size.Width)
+			}
+			if y+size.Height > bounds.Bottom() {
+				y = max(bounds.Y, bounds.Bottom()-size.Height)
+			}
+			return geom.NewRect(x, y, size.Width, size.Height)
+		}})
+	if first {
+		sub.light(sub.step(-1, 1))
+	}
+	unison.InvokeTask(func() {
+		if sub.hide != nil {
+			sub.RequestFocus()
+		}
+	})
+	m.MarkForRedraw()
+}
+
+// root is the menu a chain of submenus opened from.
+func (m *menu) root() *menu {
+	for m.parent != nil {
+		m = m.parent
+	}
+	return m
+}
+
+// holdsFocus reports whether the menu or a submenu of it holds the focus.
+func (m *menu) holdsFocus() bool {
+	for q := m; q != nil; q = q.sub {
+		if q.Focused() {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *menu) open(owner unison.Paneler, part geom.Rect) {
 	w := m.ui.windowOf(owner)
 	if w == nil {
@@ -271,15 +394,23 @@ func (m *menu) open(owner unison.Paneler, part geom.Rect) {
 	})
 }
 
-// close takes the menu away, and gives the focus back to where it was.
+// close takes the menu and any submenu of it away, and gives the focus back
+// to where it was: a submenu's goes back to the menu it opened from.
 func (m *menu) close() {
 	if m.hide == nil {
 		return
 	}
+	focused := m.holdsFocus()
+	if m.sub != nil {
+		m.sub.close()
+	}
 	m.tip.clear()
-	focused := m.Focused()
 	m.hide()
 	m.hide = nil
+	if p := m.parent; p != nil && p.sub == m {
+		p.sub = nil
+		p.MarkForRedraw()
+	}
 	if focused && m.previous != nil && m.previous.Window() != nil {
 		m.previous.RequestFocus()
 	}
@@ -292,7 +423,12 @@ func (m *menu) choose(i int) {
 	if it.Separator || it.Disabled {
 		return
 	}
-	m.close()
+	if len(it.Items) > 0 {
+		m.openSub(i, true)
+		return
+	}
+	// A line in a submenu closes the whole chain.
+	m.root().close()
 	if it.OnSelect != nil {
 		it.OnSelect()
 	}
@@ -328,8 +464,18 @@ func (m *menu) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 		if m.lit >= 0 {
 			m.choose(m.lit)
 		}
-	case unison.KeyTab:
+	case unison.KeyRight:
+		if m.lit < 0 || len(m.items[m.lit].Items) == 0 {
+			return false
+		}
+		m.openSub(m.lit, true)
+	case unison.KeyLeft:
+		if m.parent == nil {
+			return false
+		}
 		m.close()
+	case unison.KeyTab:
+		m.root().close()
 	default:
 		return false
 	}
@@ -373,6 +519,12 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 			kw, kh := k.Size()
 			k.Draw(gc, right-kw, box.Y+(box.Height-kh)/2)
 			right -= kw + float32(i.SpaceLoose())
+		} else if len(it.Items) > 0 {
+			s := float32(i.IconSizeSmall())
+			if g, ok := icons.Glyph("chevron-right"); ok {
+				drawGlyph(gc, ui, g, s, t.TextMuted, geom.NewRect(right-s, box.Y+(box.Height-s)/2, s, s))
+			}
+			right -= s + float32(i.SpaceLoose())
 		}
 		x := box.X + float32(i.Px(30))
 		l := m.words(it, max(1, right-x))
@@ -405,6 +557,12 @@ func (m *menu) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 			if !it.Disabled {
 				v.Actions = v.Actions.With(accessibility.Press, accessibility.Focus)
 			}
+			if len(it.Items) > 0 {
+				v.Expandable, v.Expanded = true, m.sub != nil && m.subLine == i
+				if !it.Disabled {
+					v.Actions = v.Actions.With(accessibility.Expand, accessibility.Collapse)
+				}
+			}
 		})
 		if i == m.lit {
 			b.FocusChild(id)
@@ -427,8 +585,12 @@ func (m *menu) PerformAccessibilityAction(req accessibility.ActionRequest) bool 
 		return false
 	}
 	switch req.Action {
-	case accessibility.Press:
+	case accessibility.Press, accessibility.Expand:
 		m.choose(i)
+	case accessibility.Collapse:
+		if m.sub != nil && m.subLine == i {
+			m.sub.close()
+		}
 	case accessibility.Focus:
 		m.light(i)
 	default:
