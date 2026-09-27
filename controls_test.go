@@ -7,6 +7,7 @@ import (
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
+	"github.com/richardwilkes/unison/enums/check"
 	"github.com/richardwilkes/unison/enums/role"
 	"golang.org/x/text/language"
 )
@@ -50,5 +51,46 @@ func TestATabSaysWhatItHoldsAndWhetherItIsChosen(t *testing.T) {
 	screen.Sync()
 	if pressed != 2 {
 		t.Errorf("a click and a screen reader's press made %d presses", pressed)
+	}
+}
+
+func TestAButtonSaysWhatItDoesInEveryState(t *testing.T) {
+	var save, busy, mode, archive *kvitui.Button
+	pressed := 0
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		save = kvitui.NewButton(ui, "Save")
+		save.Form = kvitui.ButtonPrimary
+		save.OnClick = func() { pressed++ }
+		busy = kvitui.NewButton(ui, "Save")
+		busy.Busy = true
+		mode = kvitui.NewButton(ui, "Select region")
+		mode.Checkable = true
+		archive = kvitui.NewButton(ui, "Archive")
+		archive.SetEnabled(false)
+		archive.Explanation = "The branch has work that has not been pushed."
+		return []unison.Paneler{save, busy, mode, archive}
+	})
+	screen.Do(func() {
+		if h := save.FrameRect().Height; h != float32(ui.Interface.ControlHeight()) {
+			t.Errorf("a button is %.1f tall, want %d", h, ui.Interface.ControlHeight())
+		}
+	})
+	screen.Click(screen.PanelCenter(save))
+	screen.Do(func() { save.Focus() })
+	screen.KeyPress(unison.KeySpace, 0)
+	if pressed != 2 {
+		t.Errorf("a click and Space made %d presses", pressed)
+	}
+	// A busy button stays enabled and says what it is doing.
+	if n := screen.AccessibilityNodeFor(busy); n == nil || n.Name != "Working…" || n.Disabled {
+		t.Errorf("the busy button's node: %+v", n)
+	}
+	// A disabled button still gives its reason.
+	if n := screen.AccessibilityNodeFor(archive); n == nil || !n.Disabled || n.Description != archive.Explanation {
+		t.Errorf("the disabled button's node: %+v", n)
+	}
+	screen.Click(screen.PanelCenter(mode))
+	if n := screen.AccessibilityNodeFor(mode); n == nil || !n.HasCheck || n.Checked != check.On {
+		t.Errorf("a checkable button pressed once: %+v", n)
 	}
 }

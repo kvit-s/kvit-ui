@@ -3,6 +3,8 @@ package main
 // The Structure group's specimens.
 
 import (
+	"fmt"
+
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/richardwilkes/unison"
 )
@@ -73,4 +75,13 @@ func sidebarItemRail(ui *kvitui.UI) unison.Paneler {
 	counted := kvitui.NewSidebar(ui, backlog, kvitui.NewSidebarItem(ui, "Accounts", "bank"))
 	counted.Collapsed = true
 	return kvitui.Row(ui, kvitui.SizeColumnGap, plain, counted)
+}
+
+func regionScrolling(ui *kvitui.UI) unison.Paneler {
+	rows := make([]unison.Paneler, 12)
+	for i := range rows {
+		rows[i] = kvitui.NewSlimRow(ui, fmt.Sprintf("Row %d", i+1))
+	}
+	region := kvitui.NewRegion(ui, kvitui.Column(ui, kvitui.Px(0), rows...))
+	return kvitui.Sized(ui, kvitui.Px(480), kvitui.Px(140), region)
 }

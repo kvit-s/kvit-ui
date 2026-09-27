@@ -233,3 +233,19 @@ func ContrastRatio(a, b Color) float64 {
 	la, lb := RelativeLuminance(a), RelativeLuminance(b)
 	return (math.Max(la, lb) + 0.05) / (math.Min(la, lb) + 0.05)
 }
+
+// Darker divides the colour's HSV value by factor, as Qt's QColor::darker
+// does: 1.15 is Qt's pressed shade of a filled button.
+func (c Color) Darker(factor float64) Color {
+	if factor <= 0 {
+		return c
+	}
+	hi := max(c.R, c.G, c.B)
+	if hi == 0 {
+		return c
+	}
+	// Scaling all three channels keeps the hue and saturation and divides
+	// the value, which is the largest channel.
+	scale := (hi / factor) / hi
+	return Color{R: c.R * scale, G: c.G * scale, B: c.B * scale}
+}

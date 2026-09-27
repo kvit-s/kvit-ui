@@ -87,32 +87,43 @@ func Px(design int) Measure {
 // Width holds a panel to a width, as a Measure, and lets it take the height
 // it needs at that width.
 func Width(ui *UI, w Measure, child unison.Paneler) *unison.Panel {
+	return Sized(ui, w, nil, child)
+}
+
+// Sized holds a panel to a width and a height, as Measures; a nil height
+// lets it take the height it needs at that width.
+func Sized(ui *UI, w, h Measure, child unison.Paneler) *unison.Panel {
 	p := unison.NewPanel()
 	p.AddChild(child)
-	p.SetLayout(&fixedWidth{ui: ui, w: w})
+	p.SetLayout(&fixedSize{ui: ui, w: w, h: h})
 	return p
 }
 
-// fixedWidth is the layout Width uses: it reports the measured width and
-// lays its one child out to fill it. A panel's layout, when it has one, is
-// what unison asks for its size, so the width has to be a layout's answer.
-type fixedWidth struct {
-	ui *UI
-	w  Measure
+// fixedSize is the layout Width and Sized use: it reports the measured size
+// and lays its one child out to fill it. A panel's layout, when it has one,
+// is what unison asks for its size, so a fixed size has to be a layout's
+// answer.
+type fixedSize struct {
+	ui   *UI
+	w, h Measure
 }
 
-func (f *fixedWidth) LayoutSizes(target *unison.Panel, _ geom.Size) (minSize, prefSize, maxSize geom.Size) {
+func (f *fixedSize) LayoutSizes(target *unison.Panel, _ geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	width := float32(f.w.Of(f.ui))
 	var h float32
-	for _, c := range target.Children() {
-		_, pref, _ := c.Sizes(geom.NewSize(width, 0))
-		h = max(h, pref.Height)
+	if f.h != nil {
+		h = float32(f.h.Of(f.ui))
+	} else {
+		for _, c := range target.Children() {
+			_, pref, _ := c.Sizes(geom.NewSize(width, 0))
+			h = max(h, pref.Height)
+		}
 	}
 	size := geom.NewSize(width, h)
 	return size, size, size
 }
 
-func (f *fixedWidth) PerformLayout(target *unison.Panel) {
+func (f *fixedSize) PerformLayout(target *unison.Panel) {
 	r := target.ContentRect(false)
 	for _, c := range target.Children() {
 		c.SetFrameRect(r)
@@ -139,10 +150,18 @@ func (a *atLeast) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, pr
 	return minSize, prefSize, maxSize
 }
 
-// FullWidth makes a panel as wide as the column or frame it sits in, which
-// is what `width: parent.width` says in QML.
+// FullWidth makes a panel take the width the row, column or frame it sits in
+// has to spare, centred on the height, which is what `width: parent.width`
+// or `Layout.fillWidth: true` says in QML.
 func FullWidth[T unison.Paneler](p T) T {
-	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
+	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Middle, HGrab: true})
+	return p
+}
+
+// Centred puts a panel in the middle of the room it is given, which is what
+// `anchors.centerIn: parent` says in QML.
+func Centred[T unison.Paneler](p T) T {
+	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Middle, VAlign: align.Middle, HGrab: true, VGrab: true})
 	return p
 }
 

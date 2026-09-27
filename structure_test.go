@@ -1,10 +1,12 @@
 package kvitui_test
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/platform"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
@@ -231,4 +233,81 @@ func TestASidebarItemSaysWhereItGoesAndHowMuchIsThere(t *testing.T) {
 	if n := screen.AccessibilityNodeFor(rail); n == nil || n.Role != role.List || n.Name != "Navigation" {
 		t.Errorf("the sidebar's node: %+v", n)
 	}
+}
+
+func TestARegionScrollsBesideItsBarAndAnswersTheWheelAndKeys(t *testing.T) {
+	var region *kvitui.Region
+	var first, last *kvitui.ListRow
+	var rows []*kvitui.SlimRow
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		// The wheel eases in over a few frames; with motion reduced it
+		// arrives at once, which is what a test can measure.
+		ui.Theme.SetReducedMotion(true)
+		first = kvitui.NewListRow(ui, kvitui.NewLabel(ui, "First"))
+		first.Interactive = true
+		last = kvitui.NewListRow(ui, kvitui.NewLabel(ui, "Last"))
+		last.Interactive = true
+		parts := []unison.Paneler{first}
+		for i := range 12 {
+			r := kvitui.NewSlimRow(ui, "Row "+strconv.Itoa(i+1))
+			rows = append(rows, r)
+			parts = append(parts, r)
+		}
+		parts = append(parts, last)
+		region = kvitui.NewRegion(ui, kvitui.Column(ui, kvitui.Px(0), parts...))
+		region.SetLayoutData(&unison.FlexLayoutData{SizeHint: geom.NewSize(480, 140)})
+		return []unison.Paneler{region}
+	})
+	m := ui.Interface
+	screen.Do(func() {
+		if !region.Scrolls() {
+			t.Fatal("fourteen rows in 140 px do not scroll")
+		}
+		// The bar has a strip of its own at the right, and the rows stop at
+		// the padding before it.
+		box := region.FrameRect()
+		bar := region.Children()[1].FrameRect()
+		if bar.X != box.Width-float32(m.SpaceWide()) || bar.Width != float32(m.SpaceWide()) {
+			t.Errorf("the bar's strip is %v in a region %.1f wide", bar, box.Width)
+		}
+		want := box.Width - float32(m.SpaceWide()) - 2*float32(m.ViewMargin())
+		if w := rows[0].FrameRect().Width; w != want {
+			t.Errorf("a row is %.1f wide, want %.1f", w, want)
+		}
+	})
+	position := func() (y float32) {
+		screen.Do(func() { _, y = region.Position() })
+		return y
+	}
+	// One notch travels the desktop's lines per notch, of a slim row each.
+	screen.Wheel(screen.PanelCenter(region), geom.NewPoint(0, -1), 0)
+	screen.Sync()
+	if y, want := position(), float32(platform.WheelScrollLines()*m.RowHeightSlim()); y != want {
+		t.Errorf("a notch scrolled %.1f, want %.1f", y, want)
+	}
+	// Keys nothing inside wanted scroll the region.
+	screen.Do(func() { region.ScrollTo(0) })
+	screen.Click(screen.PanelCenter(first))
+	screen.KeyPress(unison.KeyEnd, 0)
+	var end float32
+	screen.Do(func() { end = region.Children()[1].Self.(*unison.ScrollBar).MaxValue() })
+	if y := position(); y != end || end <= 0 {
+		t.Errorf("End scrolled to %.1f, want the bottom, %.1f", y, end)
+	}
+	screen.KeyPress(unison.KeyHome, 0)
+	if y := position(); y != 0 {
+		t.Errorf("Home scrolled to %.1f", y)
+	}
+	// Tab to the last row, below the fold, brings it into view.
+	screen.KeyPress(unison.KeyTab, 0)
+	screen.Do(func() {
+		if !last.Focused() {
+			t.Fatal("Tab did not reach the last row")
+		}
+		_, y := region.Position()
+		box := region.RectFromRoot(last.RectToRoot(last.ContentRect(true)))
+		if box.Bottom() > region.FrameRect().Height {
+			t.Errorf("the focused row ends at %.1f, below the region (scrolled to %.1f)", box.Bottom(), y)
+		}
+	})
 }

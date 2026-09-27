@@ -135,3 +135,11 @@ func TestTheValidatorsRejectBrokenRamps(t *testing.T) {
 		t.Error("a six-step ramp passed as diverging")
 	}
 }
+
+func TestDarkerDividesTheValue(t *testing.T) {
+	c := palette.Color{R: 0.2, G: 0.4, B: 0.8}
+	d := c.Darker(2)
+	if d.B != 0.4 || d.R != 0.1 || d.G != 0.2 {
+		t.Errorf("darker by 2 of %v is %v", c, d)
+	}
+}

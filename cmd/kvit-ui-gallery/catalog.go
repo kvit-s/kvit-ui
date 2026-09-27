@@ -102,6 +102,32 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitRegion",
+		group:   "Structure",
+		summary: "A body that takes the height left over and scrolls what does not fit. The scroll bar sits beside the content rather than over it, so nothing is ever hidden behind it.",
+		specimens: []specimen{
+			{"Scrolling a column of rows", regionScrolling},
+		},
+	},
+	{
+		name:    "KvitRow",
+		group:   "Content",
+		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`.",
+		specimens: []specimen{
+			{"Pressable and static", rowPressableAndStatic},
+			{"Opened from the keyboard, without opening it twice", rowFromTheKeyboard},
+			{"The four heights, and the three states", rowHeights},
+		},
+	},
+	{
+		name:    "KvitSlimRow",
+		group:   "Content",
+		summary: "The row a reader sees most: a name, what it is, one phrase about it and one figure, right aligned, in that order on every screen.",
+		specimens: []specimen{
+			{"Measured and unmeasured", slimRowMeasured},
+		},
+	},
+	{
 		name:    "KvitPanel",
 		group:   "Content",
 		summary: "A region of the window with its own ground: a sidebar, a toolbar strip. Structural, where a card is content — which is why it has no radius.",
@@ -127,12 +153,39 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitFigure",
+		group:   "Quantities",
+		summary: "A measured value: tabular numerals, the unit in muted colour at the smaller role, and an em dash where nothing was measured rather than a zero. A balance nobody computed is not a balance of zero.",
+		specimens: []specimen{
+			{"Measured, unmeasured and bounded", figureForms},
+		},
+	},
+	{
+		name:    "KvitButton",
+		group:   "Controls",
+		summary: "A button with words on it, in three forms. One primary per screen region: it is the action the screen is for. `Danger` is separate from the form, because a destructive action can be any of the three. `Explanation` is one sentence saying what the words cannot — why it is disabled, or what pressing it opens — and it is read on a disabled button too.",
+		specimens: []specimen{
+			{"Text, icon plus text, and busy text in every form", buttonForms},
+			{"Destructive and disabled", buttonDanger},
+			{"A button that stays on, beside the same button off", buttonChecked},
+			{"Why a button cannot be pressed", buttonExplanations},
+		},
+	},
+	{
 		name:    "KvitTab",
 		group:   "Controls",
 		summary: "One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight — selection shown by colour alone is the most common place the rule gets broken. `Explanation` is one sentence saying what the view behind the tab shows, which two or three words cannot.",
 		specimens: []specimen{
 			{"Selected, counted and plain", tabForms},
 			{"Each tab saying what its view shows", tabExplanations},
+		},
+	},
+	{
+		name:    "KvitScrollBar",
+		group:   "Flow",
+		summary: "A scroll bar, occupying its own strip rather than floating over content. Thirty-two files in the estate have a private version; an overlay bar hides the right-hand column of a table and the last character of every elided label.",
+		specimens: []specimen{
+			{"Beside a scrolling column", scrollBarBesideColumn},
 		},
 	},
 }

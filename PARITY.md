@@ -95,7 +95,13 @@ yet.
   `TestTheBreadcrumbLinksBackAndCutsTheMiddle`; `light-KvitBreadcrumb.png`
   matches. The crumbs that can be followed are `Link`s, so unlike Qt's they
   can also be reached with Tab and followed with the keyboard.
-- [ ] `KvitRegion`
+- [x] `KvitRegion` (`Region`). Evidence:
+  `TestARegionScrollsBesideItsBarAndAnswersTheWheelAndKeys`;
+  `light-KvitRegion.png` matches, except that Qt's specimen rows are a fixed
+  460 px in a 438 px column and run under the bar, while Go's rows take the
+  column's width. It includes kvit-cash's keyboard scrolling, bringing the
+  focused control into view, and the wheel travelling the desktop's lines
+  per notch of one slim row each, eased over a few frames.
 - [ ] `KvitViewHead` (`ViewHead`): built and used for the head of every
   gallery page, with kvit-cash's side padding. Evidence so far:
   `TestTheViewHeadCountsInTheReadersLocale` (ported from
@@ -108,8 +114,14 @@ yet.
 ### Content (9)
 
 - [ ] `KvitSectionHeading`
-- [ ] `KvitRow`
-- [ ] `KvitSlimRow`
+- [x] `KvitRow` (`ListRow`, since `Row` is the Go layout helper). Evidence:
+  `TestAListRowActsOnlyWhenItSaysItDoes`; `dark-KvitRow.png` matches, with
+  one intended difference: rows that can be pressed carry kvit-cash's
+  chevron at their trailing edge, so their content ends 16 px sooner.
+- [x] `KvitSlimRow` (`SlimRow`). Evidence: `TestASlimRowSaysItsPartsInOrder`;
+  `dark-KvitSlimRow.png` matches. A slim row nobody presses is announced as
+  a named group rather than as text, because unison drops the children of a
+  text node and the figure would not be read.
 - [ ] `KvitCard`
 - [x] `KvitPanel` (`Panel`). Evidence: `TestAPanelDrawsTheRulesItIsAskedFor`;
   `light-KvitPanel.png` matches.
@@ -133,12 +145,18 @@ yet.
 
 ### Quantities (2)
 
-- [ ] `KvitFigure`
+- [x] `KvitFigure` (`Figure`). Evidence: `TestAFigureSaysWhatWasMeasured`;
+  `sepia-KvitFigure.png` matches.
 - [ ] `KvitBeforeAfter`
 
 ### Controls (9)
 
-- [ ] `KvitButton`
+- [x] `KvitButton` (`Button`). Evidence:
+  `TestAButtonSaysWhatItDoesInEveryState`; `light-KvitButton.png` matches
+  for the primary and ordinary forms. The quiet form has kvit-cash's chip
+  ground and faint border at rest, so it differs from the Qt shot. Its
+  explanation shows as a tooltip on pointer hover only, as with
+  `KvitIconButton`.
 - [ ] `KvitChipButton`
 - [ ] `KvitStepper`
 - [ ] `KvitField`
@@ -178,7 +196,10 @@ yet.
 
 ### Flow (17)
 
-- [ ] `KvitScrollBar`
+- [x] `KvitScrollBar` (`NewScrollBar`, unison's scroll bar drawn in the
+  Kvit colours in a strip of its own). Evidence: the region test;
+  `light-KvitScrollBar.png` matches, with the same row-width difference as
+  `KvitRegion`.
 - [ ] `KvitMenu`
 - [ ] `KvitMenuItem`
 - [ ] `KvitTree`
@@ -262,11 +283,16 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 `722906e`) has 7 commits that `~/kvit-ui` lacks. The two split after `46a67c0`
 (2026-09-10). kvit-ui-go has to do what these commits do as well.
 
-- [ ] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window
+- [ ] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
+  Done so far: the region's keyboard scrolling and bringing focus into view,
+  the slim row's kind capped at a quarter of the row, the row's chevron.
 - [ ] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses
-- [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it
+- [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
+  Done so far: the row's `OpensLabel`.
 - [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen
 - [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
-  Done so far: `ViewHead.Padding`, the view head's own side margin.
-- [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed
+  Done so far: `ViewHead.Padding`, the view head's own side margin, and the
+  region's wheel distance.
+- [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
+  Done so far: the quiet button's ground at rest.
 - [ ] `722906e` 2026-09-13: Name the shortest window the chrome holds

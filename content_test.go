@@ -58,3 +58,85 @@ func TestAPanelDrawsTheRulesItIsAskedFor(t *testing.T) {
 		t.Error("the bottom edge is not the panel's ground")
 	}
 }
+
+func TestAListRowActsOnlyWhenItSaysItDoes(t *testing.T) {
+	var opens, layout *kvitui.ListRow
+	var inside *kvitui.IconButton
+	opened, pressed := 0, 0
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		inside = kvitui.NewIconButton(ui, "pencil", "Edit")
+		inside.OnClick = func() { pressed++ }
+		opens = kvitui.NewListRow(ui, inside)
+		opens.Interactive, opens.Label, opens.OpensLabel = true, "Groceries", "Opens the transaction"
+		opens.OnActivate = func() { opened++ }
+		layout = kvitui.NewListRow(ui, kvitui.NewLabel(ui, "layout only"))
+		layout.Label = "Amount"
+		for _, r := range []*kvitui.ListRow{opens, layout} {
+			r.SetLayoutData(&unison.FlexLayoutData{SizeHint: geom.NewSize(300, 0)})
+		}
+		return []unison.Paneler{opens, layout}
+	})
+	n := screen.AccessibilityNodeFor(opens)
+	if n == nil || n.Role != role.ListItem || n.Name != "Groceries" || n.Description != "Opens the transaction" {
+		t.Fatalf("a row that opens something: %+v", n)
+	}
+	if n := screen.AccessibilityNodeFor(layout); n == nil || n.Role != role.Label || n.Name != "Amount" {
+		t.Errorf("a row that only lays things out: %+v", n)
+	}
+	// A click on a row that opens nothing does nothing; on one that opens
+	// something it opens it once.
+	screen.Click(screen.PanelPoint(layout, geom.NewPoint(5, 5)))
+	screen.Click(screen.PanelPoint(opens, geom.NewPoint(250, 10)))
+	if opened != 1 {
+		t.Errorf("clicks opened the row %d times", opened)
+	}
+	// Space on the button inside presses the button and leaves the row shut.
+	screen.Do(func() { inside.RequestFocus() })
+	screen.KeyPress(unison.KeySpace, 0)
+	if pressed != 1 || opened != 1 {
+		t.Errorf("Space on the button inside: pressed %d, opened %d", pressed, opened)
+	}
+	screen.Do(func() { opens.RequestFocus() })
+	screen.KeyPress(unison.KeyReturn, 0)
+	if opened != 2 {
+		t.Errorf("Return on the focused row opened it %d times in all", opened)
+	}
+	var focusable bool
+	screen.Do(func() { focusable = layout.Focusable() })
+	if focusable {
+		t.Error("a row that does nothing takes the focus")
+	}
+}
+
+func TestASlimRowSaysItsPartsInOrder(t *testing.T) {
+	var row *kvitui.SlimRow
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		row = kvitui.NewSlimRow(ui, "kvit-cash")
+		row.Kind, row.Phrase, row.Measured = "application", "not started", false
+		row.SetLayoutData(&unison.FlexLayoutData{SizeHint: geom.NewSize(500, 0)})
+		return []unison.Paneler{row}
+	})
+	if n := screen.AccessibilityNodeFor(row); n == nil || n.Name != "kvit-cash, application, not started" {
+		t.Errorf("the slim row's node: %+v", n)
+	}
+	// An unmeasured figure is still there to be read, as "not measured".
+	var figure *kvitui.Figure
+	screen.Do(func() {
+		var find func(p *unison.Panel)
+		find = func(p *unison.Panel) {
+			for _, c := range p.Children() {
+				if f, ok := c.Self.(*kvitui.Figure); ok {
+					figure = f
+				}
+				find(c)
+			}
+		}
+		find(row.AsPanel())
+	})
+	if figure == nil {
+		t.Fatal("the slim row has no figure")
+	}
+	if n := screen.AccessibilityNodeFor(figure); n == nil || n.Name != "not measured" {
+		t.Errorf("the unmeasured figure's node: %+v", n)
+	}
+}
