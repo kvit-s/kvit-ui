@@ -44,14 +44,7 @@ func NewLink(ui *UI, s string) *Link {
 	l.SetSizer(l.sizes)
 	l.DrawCallback = l.draw
 	l.UpdateCursorCallback = func(geom.Point) *unison.Cursor { return unison.PointingCursor() }
-	l.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
-		if l.Explanation != "" {
-			l.Tooltip = newTooltip(ui, "", l.Explanation)
-		} else {
-			l.Tooltip = nil
-		}
-		return l.RectToRoot(l.ContentRect(false))
-	}
+	l.tip = func() string { return l.Explanation }
 	return l
 }
 

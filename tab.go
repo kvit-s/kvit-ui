@@ -44,14 +44,7 @@ func NewTab(ui *UI, label string) *Tab {
 	t.ringRadius = func() float32 { return 0 }
 	t.SetSizer(t.sizes)
 	t.DrawCallback = t.draw
-	t.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
-		if t.Explanation != "" {
-			t.Tooltip = newTooltip(ui, "", t.Explanation)
-		} else {
-			t.Tooltip = nil
-		}
-		return t.RectToRoot(t.ContentRect(false))
-	}
+	t.tip = func() string { return t.Explanation }
 	return t
 }
 

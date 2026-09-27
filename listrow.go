@@ -117,14 +117,13 @@ func (r *ListRow) initListRow(ui *UI, content ...unison.Paneler) {
 	}})
 	r.DrawCallback = r.drawGround
 	r.DrawOverCallback = r.drawMarks
-	r.UpdateTooltipCallback = func(where geom.Point, _ geom.Rect) geom.Rect {
-		r.Tooltip = nil
-		strip := r.opensStrip()
-		if r.opens() && r.OpensLabel != "" && where.In(strip) {
-			r.Tooltip = newTooltip(ui, r.OpensLabel, "")
+	r.tip = func() string {
+		if r.opens() {
+			return r.OpensLabel
 		}
-		return r.RectToRoot(strip)
+		return ""
 	}
+	r.tipArea = r.opensStrip
 }
 
 func (r *ListRow) opens() bool { return r.Interactive && !r.NoOpensMark }

@@ -59,6 +59,7 @@ func NewDisclosure(ui *UI, title string, content ...unison.Paneler) *Disclosure 
 	d.trigger = t
 	d.body = unison.NewPanel()
 	d.body.SetLayout(&unison.FlexLayout{Columns: 1})
+	ui.clipSpills(d.body)
 	for _, p := range content {
 		if p.AsPanel().LayoutData() == nil {
 			p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})

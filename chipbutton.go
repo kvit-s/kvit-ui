@@ -68,13 +68,7 @@ func NewChipButton(ui *UI, words string) *ChipButton {
 		}
 		return unison.PointingCursor()
 	}
-	c.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
-		c.Tooltip = nil
-		if say := c.tooltip(); say != "" {
-			c.Tooltip = newTooltip(ui, say, "")
-		}
-		return c.RectToRoot(c.ContentRect(true))
-	}
+	c.tip = c.tooltip
 	return c
 }
 

@@ -26,6 +26,9 @@ type Check struct {
 	Partial bool
 	// OnChange runs after a press, with the new state.
 	OnChange func(checked bool)
+	// Name is what a screen reader calls a box with no words beside it, such
+	// as the one on each row of a table; the words unless set.
+	Name string
 
 	box *unison.Panel
 }
@@ -67,19 +70,24 @@ func (c *Check) label() *text.Layout {
 	return ui.Fonts.Layout([]text.Span{{Text: c.Text, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}}, text.Options{})
 }
 
+// checkPadding is the space on each side of a check box, the padding Qt
+// Quick's own style gives its CheckBox, which KvitCheck keeps. It is six
+// pixels at every interface size, as the style's is.
+const checkPadding = 6
+
 type checkLayout struct{ c *Check }
 
 func (l checkLayout) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	m := l.c.ui.Interface
 	w, h := l.c.label().Size()
-	size := geom.NewSize(float32(m.Px(16)+m.SpaceNear())+w, max(float32(m.ControlHeight()), h))
+	size := geom.NewSize(float32(2*checkPadding+m.Px(16)+m.SpaceNear())+w, max(float32(m.ControlHeight()), h))
 	return size, size, geom.NewSize(unison.DefaultMaxSize, size.Height)
 }
 
 func (l checkLayout) PerformLayout(target *unison.Panel) {
 	s := float32(l.c.ui.Interface.Px(16))
 	r := target.ContentRect(false)
-	l.c.box.SetFrameRect(geom.NewRect(r.X, r.Y+(r.Height-s)/2, s, s))
+	l.c.box.SetFrameRect(geom.NewRect(r.X+checkPadding, r.Y+(r.Height-s)/2, s, s))
 }
 
 func (c *Check) drawBox(gc *unison.Canvas, _ geom.Rect) {
@@ -118,7 +126,7 @@ func (c *Check) drawLabel(gc *unison.Canvas, _ geom.Rect) {
 	r := c.ContentRect(false)
 	l := c.label()
 	_, h := l.Size()
-	l.Draw(gc, r.X+float32(m.Px(16)+m.SpaceNear()), r.Y+(r.Height-h)/2)
+	l.Draw(gc, r.X+float32(checkPadding+m.Px(16)+m.SpaceNear()), r.Y+(r.Height-h)/2)
 }
 
 // ProvideAccessibility describes the box as a check box in one of three
@@ -129,6 +137,9 @@ func (c *Check) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 		n.Role = role.CheckBox
 	}
 	n.Name = c.Text
+	if c.Name != "" {
+		n.Name = c.Name
+	}
 	n.HasCheck = true
 	switch {
 	case c.Partial:

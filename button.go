@@ -72,14 +72,7 @@ func NewButton(ui *UI, label string) *Button {
 	b.initControl(ui, b.click, unison.KeySpace)
 	b.SetSizer(b.sizes)
 	b.DrawCallback = b.draw
-	b.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
-		if b.Explanation != "" {
-			b.Tooltip = newTooltip(ui, "", b.Explanation)
-		} else {
-			b.Tooltip = nil
-		}
-		return b.RectToRoot(b.ContentRect(false))
-	}
+	b.tip = func() string { return b.Explanation }
 	return b
 }
 

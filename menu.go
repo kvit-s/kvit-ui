@@ -32,6 +32,12 @@ var menuIDs = 0x40000000
 // the window on Windows and Linux in the Kvit colours and type, and a native
 // menu on macOS, and in both it answers the arrow keys, Return and Escape.
 func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) {
+	u.ShowMenuAt(anchor, anchor.AsPanel().ContentRect(true), title, items)
+}
+
+// ShowMenuAt opens a menu of items under one part of owner, given in owner's
+// own coordinates, such as one column of a table's header.
+func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) {
 	f := unison.DefaultMenuFactory()
 	menuIDs++
 	m := f.NewMenu(menuIDs, title, nil)
@@ -54,8 +60,7 @@ func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) {
 		}
 		m.InsertItem(-1, mi)
 	}
-	p := anchor.AsPanel()
-	m.Popup(p.RectToRoot(p.ContentRect(true)), 0)
+	m.Popup(owner.AsPanel().RectToRoot(part), 0)
 }
 
 // applyMenuTheme draws unison's menus in the Kvit colours and type: the popup

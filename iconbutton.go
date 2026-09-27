@@ -66,13 +66,11 @@ func NewIconButton(ui *UI, symbol, label string) *IconButton {
 		return size, size, size
 	})
 	b.DrawCallback = b.draw
-	b.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
-		if b.TooltipEnabled && b.Label != "" {
-			b.Tooltip = newTooltip(ui, b.Label, b.Explanation)
-		} else {
-			b.Tooltip = nil
+	b.tip = func() string {
+		if !b.TooltipEnabled || b.Label == "" {
+			return ""
 		}
-		return b.RectToRoot(b.ContentRect(false))
+		return joinLines(b.Label, b.Explanation)
 	}
 	return b
 }

@@ -81,6 +81,18 @@ each Go screenshot above the Qt one with the same name, in
   fixed size must be a layout (`Width`, `Sized`, `Height`, `AtLeast`); and a
   flex layout told to fill stretches a child past its maximum size, so a
   child that must keep its width says so (`Left`, or the wrappers above).
+  A flex layout also gives a hidden child its room and its gap, so an
+  optional part is taken out of the children (`showOnly`) rather than
+  hidden.
+- **Drawing past the box.** unison clips each panel's drawing to its box,
+  where a Qt item may draw outside it. A component that has to, as a
+  trend's axis values and a gauge's pace tick do, implements `drawSpill`
+  and draws it itself only when `UI.spillHosted` says nothing above it
+  will (`spill.go`).
+- **Many parts, one panel.** A component that draws many similar parts,
+  such as a table's cells, draws them with detached components as stamps
+  (`stampAt` in `cell.go`) rather than a panel per part, and shows a
+  tooltip or hover card for the part under the pointer with `partTip`.
 - **Screen readers:** unison folds the children of a text node (`Label`,
   `Heading`, `SpinButton`, `TextField` and the other roles
   `role.Enum.IsText` lists) into its name and leaves them out of the tree. A

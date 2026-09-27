@@ -167,7 +167,21 @@ func (f *fixedSize) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, 
 func (f *fixedSize) PerformLayout(target *unison.Panel) {
 	r := target.ContentRect(false)
 	for _, c := range target.Children() {
-		c.SetFrameRect(r)
+		// A child that asks to be centred, as Centred asks, keeps its own
+		// size in the middle; any other fills.
+		box := r
+		if d, ok := c.LayoutData().(*unison.FlexLayoutData); ok {
+			_, pref, _ := c.Sizes(geom.NewSize(r.Width, 0))
+			if d.HAlign == align.Middle {
+				box.Width = min(pref.Width, r.Width)
+				box.X = r.X + (r.Width-box.Width)/2
+			}
+			if d.VAlign == align.Middle {
+				box.Height = min(pref.Height, r.Height)
+				box.Y = r.Y + (r.Height-box.Height)/2
+			}
+		}
+		c.SetFrameRect(box)
 	}
 }
 
@@ -199,6 +213,33 @@ func FullWidth[T unison.Paneler](p T) T {
 	return p
 }
 
+// At puts a panel at a point inside a panel the width of the container and
+// the given height, as `x:` and `y:` do in QML.
+func At(ui *UI, x, y, height Measure, child unison.Paneler) *unison.Panel {
+	p := unison.NewPanel()
+	p.AddChild(child)
+	p.SetLayout(atPoint{ui, x, y, height})
+	return p
+}
+
+type atPoint struct {
+	ui      *UI
+	x, y, h Measure
+}
+
+func (a atPoint) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	h := orZero(a.ui, a.h)
+	return geom.NewSize(0, h), geom.NewSize(hint.Width, h), geom.NewSize(unison.DefaultMaxSize, h)
+}
+
+func (a atPoint) PerformLayout(target *unison.Panel) {
+	r := target.ContentRect(false)
+	for _, c := range target.Children() {
+		_, p, _ := c.Sizes(geom.Size{})
+		c.SetFrameRect(geom.NewRect(r.X+orZero(a.ui, a.x), r.Y+orZero(a.ui, a.y), p.Width, p.Height))
+	}
+}
+
 // Left keeps a panel at its own width at the start of the row or column it
 // sits in, where a column would otherwise stretch it across.
 func Left[T unison.Paneler](p T) T {
@@ -216,6 +257,31 @@ func Centred[T unison.Paneler](p T) T {
 // syncing runs sync before every size question and every layout, so a
 // component whose child panels follow its fields picks up a field changed
 // since the last layout.
+// showOnly makes a panel's children the parts that are not hidden, in the
+// order given, changing nothing when they already are. unison's flex layout
+// gives a hidden child its room and its gap, so an optional part is taken
+// out rather than hidden.
+func showOnly(p *unison.Panel, parts ...unison.Paneler) {
+	want := make([]*unison.Panel, 0, len(parts))
+	for _, c := range parts {
+		if !c.AsPanel().Hidden {
+			want = append(want, c.AsPanel())
+		}
+	}
+	have := p.Children()
+	same := len(have) == len(want)
+	for i := 0; same && i < len(want); i++ {
+		same = have[i] == want[i]
+	}
+	if same {
+		return
+	}
+	p.RemoveAllChildren()
+	for _, c := range want {
+		p.AddChild(c)
+	}
+}
+
 type syncing struct {
 	unison.Layout
 	sync func()

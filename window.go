@@ -8,6 +8,7 @@ import (
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/align"
 	"github.com/richardwilkes/unison/enums/mod"
+	"github.com/richardwilkes/unison/enums/role"
 )
 
 // Window is the application shell: a window with a header, an optional
@@ -40,10 +41,13 @@ type Window struct {
 	OnKeyDown func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool
 
 	header, sidebar, body, status unison.Paneler
-	panel                         *Panel // the sidebar's ground, ruled on its right
+	panel                         *Panel        // the sidebar's ground, ruled on its right
+	stage                         *unison.Panel // holds the body, and draws what spills out of its components
 	railHovered, railFocused      bool
 	drawnWidth                    float32 // the sidebar's width as drawn, moving towards its target
 	easing                        bool
+	popups                        []*Popup // shown above everything, the last on top
+	scrim                         *scrim   // behind the topmost modal popup
 }
 
 // NewWindow returns a shell window, the design width wide and 960 design
@@ -70,6 +74,11 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 		// hands out when the window opens is not the reader's doing.
 		w.setRail(w.railHovered, inside && (ui.keyTurn || w.railFocused))
 	}
+	ui.hostSpills(w.panel.AsPanel())
+	w.stage = unison.NewPanel()
+	w.stage.SetLayout(&unison.FlexLayout{Columns: 1, HAlign: align.Fill, VAlign: align.Fill})
+	w.stage.Accessibility.Role = role.None
+	ui.hostSpills(w.stage)
 	content := uw.Content()
 	content.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
 		painterFor(gc, ui).fill(content.ContentRect(true), ui.Theme.Tokens().WindowBackground)
@@ -82,8 +91,19 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 	}
 	w.watchPointer()
 	uw.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		if w.popupKeys(key) {
+			return true
+		}
 		return w.OnKeyDown != nil && w.OnKeyDown(key, mods, repeat)
 	}
+	uw.MouseDownCallback = func(where geom.Point, _, _ int, _ mod.Modifiers) bool {
+		return w.popupPress(uw.Content().PointFromRoot(where))
+	}
+	if ui.windows == nil {
+		ui.windows = map[*unison.Window]*Window{}
+	}
+	ui.windows[uw] = w
+	uw.WillCloseCallback = func() { delete(ui.windows, uw) }
 	ui.watchWindow(uw)
 	m := ui.Interface
 	uw.SetContentRect(geom.NewRect(0, 0, float32(m.WidthDrawn()), float32(m.Px(960))))
@@ -111,6 +131,7 @@ func (w *Window) rebuild() {
 	content := w.Content()
 	content.RemoveAllChildren()
 	w.panel.RemoveAllChildren()
+	w.stage.RemoveAllChildren()
 	if w.header != nil {
 		content.AddChild(w.header)
 	}
@@ -120,11 +141,14 @@ func (w *Window) rebuild() {
 		content.AddChild(w.panel)
 	}
 	if w.body != nil {
-		content.AddChild(w.body)
+		w.body.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
+		w.stage.AddChild(w.body)
+		content.AddChild(w.stage)
 	}
 	if w.status != nil {
 		content.AddChild(w.status)
 	}
+	w.addPopups(content)
 	content.MarkForLayoutAndRedraw()
 }
 
@@ -283,6 +307,7 @@ func (l windowLayout) PerformLayout(target *unison.Panel) {
 	}
 	if w.body != nil {
 		left := r.X + w.sidebarRest()
-		w.body.AsPanel().SetFrameRect(geom.NewRect(left, top, r.Right()-left, bottom-top))
+		w.stage.SetFrameRect(geom.NewRect(left, top, r.Right()-left, bottom-top))
 	}
+	w.layoutPopups(r)
 }

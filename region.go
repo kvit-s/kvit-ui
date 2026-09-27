@@ -1,11 +1,6 @@
 package kvitui
 
 import (
-	"math"
-	"runtime"
-	"time"
-
-	"github.com/kvit-s/kvit-ui/platform"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/align"
@@ -35,12 +30,11 @@ type Region struct {
 	// sideways too.
 	Horizontal bool
 
-	scroll       *unison.ScrollPanel
-	holder       *unison.Panel
-	vbar, hbar   *unison.ScrollBar
-	sideways     bool // whether the content was set up to scroll sideways
-	owedX, owedY float32
-	paying       bool
+	scroll     *unison.ScrollPanel
+	holder     *unison.Panel
+	vbar, hbar *unison.ScrollBar
+	sideways   bool // whether the content was set up to scroll sideways
+	ease       wheelScroll
 }
 
 // NewRegion returns a region scrolling content, with the view margin around
@@ -62,6 +56,8 @@ func NewRegion(ui *UI, content unison.Paneler) *Region {
 		own.Hidden = true
 		own.MinimumThickness = 0
 	}
+	r.ease = wheelScroll{ui: ui, at: r.scroll.Position, moveTo: r.scroll.SetPosition,
+		travel: func() (x, y float32) { return r.scroll.Bar(true).MaxValue(), r.scroll.Bar(false).MaxValue() }}
 	r.scroll.MouseWheelCallback = r.wheel
 	r.scroll.KeyDownCallback = r.keyDown
 	r.vbar = NewScrollBar(ui, false)
@@ -117,68 +113,8 @@ func (r *Region) ScrollTo(y float32) {
 // view is the height of the part of the content that shows.
 func (r *Region) view() float32 { return r.scroll.Bar(false).Extent() }
 
-// wheel moves the view the distance the wheel was turned: a notch is the
-// desktop's lines per notch, of one slim row each, eased in over a few frames.
-// Distance a finer wheel reports in smaller steps is added up rather than
-// replaced, so turning twice as far travels twice as far however the turn
-// arrives. A region with nothing to scroll leaves the wheel to whatever
-// scrolling area it sits in.
-func (r *Region) wheel(_, delta geom.Point, _ mod.Modifiers) bool {
-	v, h := r.scroll.Bar(false), r.scroll.Bar(true)
-	if v.Max() <= v.Extent() && h.Max() <= h.Extent() {
-		return false
-	}
-	if runtime.GOOS == "darwin" {
-		// A Mac's trackpad and wheel report distance already, and unison
-		// scales it to pixels; those move the view at once.
-		return r.scroll.DefaultMouseWheel(geom.Point{}, delta, 0)
-	}
-	notch := float32(platform.WheelScrollLines() * r.ui.Interface.RowHeightSlim())
-	x, y := r.scroll.Position()
-	// What is owed past either end is dropped as it is asked for, so a long
-	// spin against the bottom does not build a debt that has to be spun off.
-	r.owedY = clampOwed(r.owedY-delta.Y*notch, y, v.MaxValue())
-	r.owedX = clampOwed(r.owedX-delta.X*notch, x, h.MaxValue())
-	r.pay()
-	return true
-}
-
-func clampOwed(owed, at, travel float32) float32 { return max(-at, min(travel-at, owed)) }
-
-// pay moves the view a share of what the wheel is owed, once a frame, until
-// it is paid. The share comes from the frame's length, so the motion is the
-// same at any refresh rate, and it is all paid at once when motion is
-// reduced.
-func (r *Region) pay() {
-	if r.paying {
-		return
-	}
-	const frame = 16 * time.Millisecond
-	settle := 35 * r.ui.Theme.MotionScale()
-	share := float32(1)
-	if settle > 0 {
-		share = float32(1 - math.Exp(-float64(frame.Milliseconds())/settle))
-	}
-	step := func(owed float32) float32 {
-		move := owed * share
-		if d := owed - move; d < 0.5 && d > -0.5 {
-			move = owed
-		}
-		return move
-	}
-	dx, dy := step(r.owedX), step(r.owedY)
-	r.owedX -= dx
-	r.owedY -= dy
-	x, y := r.scroll.Position()
-	r.scroll.SetPosition(x+dx, y+dy)
-	if r.owedX != 0 || r.owedY != 0 {
-		r.paying = true
-		unison.InvokeTaskAfter(func() {
-			r.paying = false
-			r.pay()
-		}, frame)
-	}
-}
+// wheel moves the view the distance the wheel was turned; see wheelScroll.
+func (r *Region) wheel(_, delta geom.Point, _ mod.Modifiers) bool { return r.ease.wheel(delta) }
 
 // keyDown scrolls for the keys nothing inside the region wanted: a key goes
 // to the focused panel first and comes here only if it was not used, so a

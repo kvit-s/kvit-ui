@@ -30,6 +30,9 @@ type Label struct {
 	Ink Ink
 	// Wrap lets the text run onto further lines instead of being cut short.
 	Wrap bool
+	// LineHeight multiplies the lines' height, for a paragraph read in a
+	// popover; 0 is 1.
+	LineHeight float32
 }
 
 // NewLabel returns a label in the body role.
@@ -61,7 +64,7 @@ func (l *Label) style() text.Style {
 }
 
 func (l *Label) layout(width float32) *text.Layout {
-	opt := text.Options{MaxWidth: width}
+	opt := text.Options{MaxWidth: width, LineHeight: l.LineHeight}
 	if !l.Wrap {
 		opt.Elide = width > 0
 	}

@@ -420,7 +420,7 @@ func TestTheWindowCollapsesItsSidebarAndOpensTheRailOverTheBody(t *testing.T) {
 			if got := side.Parent().FrameRect().Width; got != float32(sidebar) {
 				t.Errorf("%s: the sidebar is %.1f wide, want %d", when, got, sidebar)
 			}
-			if got := body.FrameRect().X; got != float32(bodyLeft) {
+			if got := body.RectToRoot(body.ContentRect(true)).X; got != float32(bodyLeft) {
 				t.Errorf("%s: the body starts at %.1f, want %d", when, got, bodyLeft)
 			}
 		})

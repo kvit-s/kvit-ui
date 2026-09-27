@@ -130,13 +130,11 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem {
 	it.DrawCallback = it.draw
 	// In the rail the label is gone, and the tooltip is the only thing that
 	// says where the item goes.
-	it.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
+	it.tip = func() string {
 		if it.Collapsed {
-			it.Tooltip = newTooltip(ui, it.Text, "")
-		} else {
-			it.Tooltip = nil
+			return it.Text
 		}
-		return it.RectToRoot(it.ContentRect(false))
+		return ""
 	}
 	return it
 }

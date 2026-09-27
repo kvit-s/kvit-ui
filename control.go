@@ -2,6 +2,7 @@ package kvitui
 
 import (
 	"slices"
+	"time"
 
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
@@ -9,6 +10,7 @@ import (
 	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/paintstyle"
 	"github.com/richardwilkes/unison/enums/pathop"
+	"github.com/richardwilkes/unison/enums/role"
 )
 
 // TypeRole names one of the interface's seven type roles: what a run of
@@ -64,6 +66,14 @@ type control struct {
 	keys          []unison.KeyCode // the keys that activate the control
 	ringRadius    func() float32   // the corner radius of the shape the ring surrounds
 	noRing        bool             // shows keyboard focus its own way instead of a ring
+	// tip gives the tooltip's words, "" for none: shown beside the control
+	// on pointer hover and on keyboard focus.
+	tip func() string
+	// tipArea, when set, is the part of the control the pointer has to be
+	// over for the tooltip, as a row's trailing chevron is.
+	tipArea func() geom.Rect
+	tipGen  int    // counts tooltip changes, so a late show can tell it is stale
+	tipHide func() // takes the tooltip away while one is shown
 }
 
 // initControl wires the callbacks. activate runs on a click, on one of keys,
@@ -80,21 +90,41 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 			ui.watchWindow(w)
 		}
 	}
-	c.MouseEnterCallback = func(geom.Point, mod.Modifiers) bool {
+	c.MouseEnterCallback = func(where geom.Point, _ mod.Modifiers) bool {
 		c.hovered = true
 		c.MarkForRedraw()
+		c.pointerAt(where)
+		return false
+	}
+	c.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool {
+		c.pointerAt(where)
 		return false
 	}
 	c.MouseExitCallback = func() bool {
 		c.hovered = false
 		c.MarkForRedraw()
+		if !c.KeyboardFocus() {
+			c.hideTip()
+		}
 		return false
+	}
+	// Outside a Kvit window there is no layer to show a tooltip in, and
+	// unison shows its own on pointer hover instead.
+	c.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
+		c.Tooltip = nil
+		if c.tip != nil && ui.windowOf(c) == nil {
+			if say := c.tip(); say != "" {
+				c.Tooltip = newTooltip(ui, say, "")
+			}
+		}
+		return c.RectToRoot(c.ContentRect(true))
 	}
 	c.MouseDownCallback = func(_ geom.Point, button, _ int, _ mod.Modifiers) bool {
 		if !c.Enabled() || button != unison.ButtonLeft {
 			return false
 		}
 		c.pressed = true
+		c.hideTip()
 		// The focus arrives after this returns; the marker says where it came
 		// from until then. A click also ends any keyboard focus shown.
 		c.pointerFocus = true
@@ -131,6 +161,9 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 		c.keyboardFocus = !c.pointerFocus && (c.askedFocus || ui.keyTurn)
 		c.pointerFocus, c.askedFocus = false, false
 		c.MarkForRedraw()
+		if c.keyboardFocus {
+			c.showTipSoon()
+		}
 		if w := c.Window(); w != nil {
 			ui.watchWindow(w)
 			w.MarkForRedraw()
@@ -138,10 +171,73 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 	}
 	c.LostFocusCallback = func() {
 		c.keyboardFocus = false
+		if !c.hovered {
+			c.hideTip()
+		}
 		c.MarkForRedraw()
 		if w := c.Window(); w != nil {
 			w.MarkForRedraw()
 		}
+	}
+}
+
+// pointerAt shows the tooltip after the pointer rests, where the pointer is
+// over the part that has one.
+func (c *control) pointerAt(where geom.Point) {
+	if c.tip == nil {
+		return
+	}
+	if c.tipArea != nil && !where.In(c.tipArea()) {
+		if !c.KeyboardFocus() {
+			c.hideTip()
+		}
+		return
+	}
+	if c.tipHide == nil {
+		c.showTipSoon()
+	}
+}
+
+// showTipSoon shows the tooltip after a pause, unless something changes
+// before then.
+func (c *control) showTipSoon() {
+	if c.tip == nil || c.ui.windowOf(c) == nil {
+		return
+	}
+	c.tipGen++
+	gen := c.tipGen
+	unison.InvokeTaskAfter(func() {
+		if gen == c.tipGen && c.tipHide == nil {
+			c.showTip()
+		}
+	}, 500*time.Millisecond)
+}
+
+// showTip puts the tooltip beside the control, for long enough to read: at
+// least three seconds, and longer for more words. A tooltip that vanishes
+// while somebody is reading it is worse than none.
+func (c *control) showTip() {
+	w := c.ui.windowOf(c)
+	say := c.tip()
+	if w == nil || say == "" {
+		return
+	}
+	hide := w.Show(&Popup{Panel: newTooltip(c.ui, say, ""), Place: PlaceBeside(c.ui, c), Anchor: c})
+	c.tipHide = hide
+	gen := c.tipGen
+	unison.InvokeTaskAfter(func() {
+		if gen == c.tipGen {
+			c.hideTip()
+		}
+	}, time.Duration(max(3000, len([]rune(say))*60))*time.Millisecond)
+}
+
+// hideTip takes the tooltip away, and cancels one about to show.
+func (c *control) hideTip() {
+	c.tipGen++
+	if c.tipHide != nil {
+		c.tipHide()
+		c.tipHide = nil
 	}
 }
 
@@ -270,6 +366,21 @@ func (u *UI) watchWindow(w *unison.Window) {
 	}
 }
 
+// joinLines joins the non-empty parts, one to a line.
+func joinLines(parts ...string) string {
+	out := ""
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		if out != "" {
+			out += "\n"
+		}
+		out += p
+	}
+	return out
+}
+
 // newTooltip is the Kvit tooltip: the label, and the explanation on a line
 // of its own after it, in the small role on the popup ground. unison shows a
 // panel's tooltip on pointer hover after a delay.
@@ -288,6 +399,9 @@ func newTooltip(ui *UI, label, explanation string) *unison.Panel {
 	pad := float32(m.SpaceNear())
 	w, h := l.Size()
 	p := unison.NewPanel()
+	// Named by its words, as the tooltip it is, for a screen reader that
+	// reads what appears.
+	p.Accessibility.Role, p.Accessibility.Name = role.Tooltip, body
 	size := geom.NewSize(w+2*pad, h+2*pad)
 	p.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) { return size, size, size })
 	p.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {

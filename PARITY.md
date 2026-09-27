@@ -68,12 +68,11 @@ yet.
   `TestIconButtonActivatesAndDescribesItself`,
   `TestTheFocusRingShowsForTheKeyboardOnly`; `dark-KvitIconButton.png` and
   `sepia-KvitIconButton.png` match, including the ring on the button with
-  keyboard focus. Not yet done: the Qt button also shows its tooltip when it
-  gains keyboard focus, and the Go one shows it only on pointer hover.
+  keyboard focus. Its tooltip shows on pointer hover and on keyboard focus
+  (`TestATooltipShowsForTheKeyboardBesideItsControl`).
 - [x] `KvitLink` (`Link`). Evidence: `TestLinkFollowsAndIsALink`;
   `light-KvitLink.png` and `highContrast-KvitLink.png` match, including the
-  link cut short with "…" in a narrow column. The same tooltip gap as
-  `KvitIconButton` applies.
+  link cut short with "…" in a narrow column.
 
 ### Structure (8)
 
@@ -89,8 +88,8 @@ yet.
 - [x] `KvitSidebarItem` (`SidebarItem`). Evidence: the same test;
   `light-KvitSidebarItem.png` matches for the expanded items, and its rail
   specimen differs from Qt for the reason given under `KvitSidebar`. The
-  tooltip in the rail shows on pointer hover after unison's own delay
-  rather than Qt's 400 ms.
+  tooltip in the rail shows after the half-second every Kvit tooltip waits,
+  where Qt's waits 400 ms.
 - [x] `KvitBreadcrumb` (`Breadcrumb`). Evidence:
   `TestTheBreadcrumbLinksBackAndCutsTheMiddle`; `light-KvitBreadcrumb.png`
   matches. The crumbs that can be followed are `Link`s, so unlike Qt's they
@@ -200,15 +199,13 @@ yet.
 - [x] `KvitButton` (`Button`). Evidence:
   `TestAButtonSaysWhatItDoesInEveryState`; `light-KvitButton.png` matches
   for the primary and ordinary forms. The quiet form has kvit-cash's chip
-  ground and faint border at rest, so it differs from the Qt shot. Its
-  explanation shows as a tooltip on pointer hover only, as with
-  `KvitIconButton`.
+  ground and faint border at rest, so it differs from the Qt shot.
 - [x] `KvitChipButton` (`ChipButton`). Evidence:
   `TestAnUnavailableChipStaysReachableAndDoesNothing`;
   `light-KvitChipButton.png` matches. It has both versions' additions: the
   Qt library's `explanation` and `current`, and kvit-cash's quick-filter
   state (`Selectable`, `Selected`), a control's height and filled with the
-  accent when on. The tooltip shows on pointer hover only, as elsewhere.
+  accent when on.
 - [x] `KvitStepper` (`Stepper`). Evidence: `TestAStepperStaysInItsRange`;
   `light-KvitStepper.png`, and the gallery's own header. unison reads a spin
   button as text and leaves out its children, so the minus and plus reach a
@@ -231,7 +228,9 @@ yet.
   `dark-KvitSearchField.png` matches, with kvit-cash's clear button a
   control's height square.
 - [x] `KvitCheck` (`Check`). Evidence: `TestACheckHasThreeStates`;
-  `dark-KvitCheck.png` matches. A disabled box that is checked draws its
+  `dark-KvitCheck.png` matches, with the 6 px of padding on each side that
+  Qt Quick's style gives a CheckBox and KvitCheck keeps; it is 6 px at
+  every interface size, as the style's is. A disabled box that is checked draws its
   mark in the disabled text colour; the Qt one draws it in the colour made
   for the accent fill, which a disabled box does not have, so it vanishes.
 - [x] `KvitSelect` (`Select`). Evidence:
@@ -240,33 +239,130 @@ yet.
   owner chose for menus; Up and Down change the choice without opening it.
 - [x] `KvitTab` (`Tab`). Evidence:
   `TestATabSaysWhatItHoldsAndWhetherItIsChosen`; `dark-KvitTab.png`,
-  `dark-24px-KvitTab.png` and `light-10px-KvitTab.png` match. The Qt tab also
-  shows its explanation as a tooltip when it gains keyboard focus; the Go
-  one shows it only on pointer hover so far, as with `KvitIconButton`.
+  `dark-24px-KvitTab.png` and `light-10px-KvitTab.png` match.
 
 ### Feedback (7)
 
-- [ ] `KvitTooltip`
-- [ ] `KvitPopover`
-- [ ] `KvitHint`
-- [ ] `KvitHoverCard`
-- [ ] `KvitToast`
-- [ ] `KvitNotice`
-- [ ] `KvitDialog`
+Everything that floats is shown in a layer the Kvit `Window` keeps above its
+content (`Window.Show`), as the Qt pop-ups are drawn inside their window.
+Menus are the exception: they are unison's, by the owner's choice.
+
+- [x] `KvitTooltip` (every control's tooltip, and `UI.ShowTooltip`).
+  Evidence: `TestATooltipShowsForTheKeyboardBesideItsControl`;
+  `light-KvitTooltip.png` differs on purpose: the tooltip is placed as
+  kvit-cash's copy places it, beside the control, then inside it, then
+  below, then above, where the older Qt shot centres it above. It shows on
+  pointer hover and on keyboard focus after half a second, and stays at
+  least three seconds. A screen reader is given it as a tooltip named by
+  its words. Outside a Kvit window unison's own hover tooltip is the
+  fallback.
+- [x] `KvitPopover` (`Popover`). Evidence:
+  `TestAPopoverClosesOnEscapeAndGivesTheFocusBack`; `light-KvitPopover.png`
+  matches. Escape and a press outside close it, and the focus goes back to
+  where it was unless the reader has put it elsewhere, as the newer Qt
+  popover does.
+- [x] `KvitHint` (`Hint`). Evidence: the popover test;
+  `light-KvitHint.png` matches.
+- [x] `KvitHoverCard` (`HoverCard`). Evidence: `light-KvitHoverCard.png`
+  matches. A screen reader passes over it.
+- [x] `KvitToast` (`Toast`). Evidence:
+  `TestAToastWithoutAnActionGoesAndOneWithAnActionStays`;
+  `light-KvitToast.png` matches, the Undo in kvit-cash's quiet form. It is
+  announced to a screen reader when shown.
+- [x] `KvitNotice` (`Notice`). Evidence:
+  `TestANoticeSaysItsConditionAndIsDismissedOnlyWhenItCanBe`;
+  `light-KvitNotice.png` matches. It has kvit-cash's `ActionHint`.
+- [x] `KvitDialog` (`Dialog`). Evidence: `TestADialogHasToBeAnsweredFirst`;
+  `light-KvitDialog.png` matches. It has kvit-cash's close control in the
+  title row and leaves out a button with no words, and a dialog with no
+  buttons has no row for them.
 
 ### Data (11)
 
-- [ ] `KvitBar`
-- [ ] `KvitStackedBar`
-- [ ] `KvitSpark`
-- [ ] `KvitTrend`
-- [ ] `KvitDistribution`
-- [ ] `KvitGauge`
-- [ ] `KvitDelta`
-- [ ] `KvitStatTile`
-- [ ] `KvitFigureBlock`
-- [ ] `KvitCell`
-- [ ] `KvitTable`
+A Qt item may draw past its own box, and several charts do: a trend's top
+and bottom axis values are centred on gridlines at its edges, and a gauge's
+pace tick stands out of the bar. unison clips each panel's drawing to its
+box, so a component can hand the part outside to the panel above it that
+draws overflow (`spill.go`). The window does this for its body and its
+sidebar: it draws each component's overflow after the page, under the rail
+and under anything floating, clipped where a Qt item would be clipped, at a
+scroll area's view and at a disclosure's body. Outside a Kvit window the
+component draws it itself, cut off at its box.
+
+- [x] `KvitBar` (`Bar`). Evidence: `TestChartsSayWhatTheyShow`;
+  `light-KvitBar.png` matches.
+- [x] `KvitStackedBar` (`StackedBar`). Evidence:
+  `TestChartsSayWhatTheyShow`; `light-KvitStackedBar.png` matches.
+- [x] `KvitSpark` (`Spark`). Evidence: `TestChartsSayWhatTheyShow`;
+  `light-KvitSpark.png` matches.
+- [x] `KvitTrend` (`Trend`). Evidence: `TestATrendSaysWhenItIsEmpty`;
+  `light-KvitTrend.png` and `dark-24px-KvitTrend.png` match, including the
+  axis values half a line outside the trend's box and the bottom gridline
+  on the pixel row below it, which are drawn as overflow. The values are
+  rounded half away from zero, as JavaScript's `toFixed` rounds them, so a
+  scale of 0 to 1 is labelled 1, 1, 0 in both.
+- [x] `KvitDistribution` (`Distribution`). Evidence:
+  `TestChartsSayWhatTheyShow`; `light-KvitDistribution.png` matches.
+- [x] `KvitGauge` (`Gauge`). Evidence: `TestChartsSayWhatTheyShow`,
+  `TestAGaugesPaceTickStandsOutOfTheBar`; `light-KvitGauge.png` matches,
+  the pace tick drawn as overflow.
+- [x] `KvitDelta` (`Delta`). Evidence: `TestChartsSayWhatTheyShow`;
+  `light-KvitDelta.png` matches.
+- [x] `KvitStatTile` (`StatTile`). Evidence: `TestChartsSayWhatTheyShow`;
+  `light-KvitStatTile.png` matches. unison's flex layout gives a hidden
+  child its room and its gap, so the tile takes out a part it does not have
+  rather than hiding it.
+- [x] `KvitFigureBlock` (`FigureBlock`). Evidence:
+  `TestChartsSayWhatTheyShow`; `light-KvitFigureBlock.png` matches.
+- [x] `KvitCell` (`Cell`, with `CellKind` and `CellValue`). Evidence:
+  `TestACellSaysWhatItHolds`, `TestAnAmountShowsWhatIsBehindItInAHoverCard`;
+  `light-KvitCell.png` matches, except that a figure's unit sits one pixel
+  lower, as it does on the `KvitFigure` page. It has kvit-cash's `leads`
+  (the row's name in the link colour) and the hover card behind an amount.
+  A date given as a date is drawn as 2006-01-02, which is what the C locale
+  writes and what the Qt shots show; the Qt cell writes a date in the
+  reader's locale, and Go has no locale date formats to do that with, so a
+  model that wants another form passes the date as text. unison reads a
+  cell as text and leaves out its children, so a Marks cell is a group of
+  its marks, each named, and a Check cell leaves the naming to its box.
+- [x] `KvitTable` (`Table`, over a `TableModel`, with `BenchmarkTableModel`).
+  Evidence: `TestTheHeaderSortsAndResizesFromTheKeyboard`,
+  `TestTheKeyboardWalksTheRowsAndTicksTheirBoxes`,
+  `TestTickingABoxDoesNotAlsoOpenTheRow`,
+  `TestACellCutShortIsShownWholeUnderThePointer`,
+  `TestTheEmptyStateFollowsTheRowCount`, the two measurements under "Checks
+  the Qt library runs"; `light-KvitTable.png` and `dark-24px-KvitTable.png`
+  match, except that the header is a slim row tall, as kvit-cash's commit
+  f4cb189 makes it, so the rows sit 6 px lower, and the second table has
+  kvit-cash's strip of row marks down its right edge. The table draws only
+  the cells in view, each with the component that draws that kind
+  elsewhere, placed and drawn without being added to the panel tree, as
+  unison's own table draws its cells; it holds no panel per cell or per row.
+  It has everything in kvit-cash's copy: the header as one stop in the tab
+  order with a cursor; sorting, resizing (a drag on an edge, or Ctrl+Left
+  and Ctrl+Right) and moving (a drag, or the menu) columns, hiding and
+  showing them; the column menu; a Check column with a box for every row
+  shown in its header; the strip of row marks and its tooltip; the row's
+  name in the link colour; one press opening a row; the ring round the
+  keyboard's row; the full value of a cut-short cell under the pointer and
+  under the keyboard; and the wheel distance. Differences, each on purpose:
+  - The ring round the keyboard's row shows once the keyboard has been used
+    in the rows, by Tab, `FocusRow` or a key, and not after a mouse press,
+    which is the rule every Go control follows; the Qt ring shows whenever
+    the table holds the focus.
+  - Ctrl+C puts the selected rows on the clipboard. The Qt key handler
+    calls `copySelection()` and drops the text it returns, so nothing is
+    copied. The Go copy is in the column order shown, as the Qt comment
+    says it should be, where the Qt code orders it by model column, and
+    leaves out the column of boxes.
+  - Moving a column moves it past the next column shown. The Qt table moves
+    it one place in the full order, hidden columns included, so moving it
+    past a hidden column changes nothing on the screen.
+  - Widths the reader sets are kept in design pixels (`Widths`), so they
+    follow the interface size; the column order (`Order`) and hidden set
+    are public for an application to save with its view.
+  - The model is told nothing about editing: the Qt table declares
+    `editable` and never reads it.
 
 ### Flow (17)
 
@@ -321,8 +417,17 @@ yet.
   theme's surfaces and every hue that already means something, under normal
   vision and three colour-vision deficiencies (`palette/palette_test.go`)
 - [ ] Every component opening in all four themes with no warning
-- [ ] `KvitTable`: 250,000 rows and twelve columns, scrolling smoothly and
-  filtering in under 100 ms
+- [x] `KvitTable`: 250,000 rows and twelve columns, scrolling smoothly and
+  filtering in under 100 ms. Evidence:
+  `TestFilteringAQuarterMillionRowsStaysUnderTheBudget` (about 5 ms to
+  filter to nothing and to 20,832 matches, against 100 ms) and
+  `TestATableDrawsAPageOfAQuarterMillionRowsInsideAFrame`, which draws a
+  1200 by 700 table forty pages down from the middle of 250,000 rows and
+  requires the middle page to fit a 60 Hz frame (median 1.4 ms, worst
+  2.8 ms, against 16 ms), and a page to ask the model for no more cells than
+  are on screen (253). The time is the table's drawing into an offscreen
+  canvas, without the canvas's setup and readback, as the Qt check times its
+  page layout without the window grab.
 - [ ] Every gallery sample compiling
 - [x] No colour literal and no numeric font size outside the design values
   (`rules_test.go`; in Qt, qmllint at full strength)
@@ -337,7 +442,7 @@ yet.
 
 ## Gallery
 
-- [ ] One page per component, with its states and a working sample: 41 of
+- [ ] One page per component, with its states and a working sample: 58 of
   74 so far, each listed in the sidebar; the rest are listed faint.
 - [x] The gallery is built from the library's own components, as the Qt
   gallery is: `Window`, a `Header` holding `Segmented` and `Stepper`, a
@@ -380,19 +485,27 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
   search field's clear button at a control's height, the segmented control
   at a tab's height, the status bar's
   overflow link hidden when nothing is hidden, the card's chevron, the empty
-  state's action reachable by the keyboard, and the pane's floor (not needed
-  in unison).
-- [ ] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses
+  state's action reachable by the keyboard, the pane's floor (not needed
+  in unison), the tooltip kept inside the window and beside its control,
+  and in the table the hover card behind an amount, the strip of row marks,
+  and the column menu's entries for moving, widening and narrowing.
+- [x] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses.
+  Evidence: `light-KvitTable.png`, the header a slim row tall and its box
+  and menu button a control's height.
 - [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
-  Done so far: the row's and the card's `OpensLabel`, the pane's `closable`.
+  Done so far: the row's, the card's and the table's `OpensLabel`, the
+  pane's `closable`, the dialog's buttons left out when they have no words.
 - [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
   Done so far: the rail opening on hover and for the keyboard, the segmented
-  control's filled choice, the chip button's quick-filter state.
+  control's filled choice, the chip button's quick-filter state, the
+  dialog's close control in its title row.
 - [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
   Done so far: `ViewHead.Padding`, the view head's own side margin, and the
-  region's wheel distance.
+  region's and the table's wheel distance.
 - [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
   Done so far: the quiet button's ground at rest, the field's shortcut, one
-  press acting on one thing in a card.
+  press acting on one thing in a card, the tooltip's placement, the
+  notice's action hint, and in the table the row's name in the link colour
+  (`OpensColumn`) and the ring round the keyboard's row.
 - [x] `722906e` 2026-09-13: Name the shortest window the chrome holds.
   `Interface.HeightFloor`, and `Window`'s minimum height.

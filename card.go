@@ -44,6 +44,11 @@ type Card struct {
 func NewCard(ui *UI, content ...unison.Paneler) *Card {
 	c := &Card{Padding: SizeSpaceLoose}
 	c.Self = c
+	c.initCard(ui, content...)
+	return c
+}
+
+func (c *Card) initCard(ui *UI, content ...unison.Paneler) {
 	c.initControl(ui, func() {
 		if c.Interactive && c.OnActivate != nil {
 			c.OnActivate()
@@ -66,15 +71,13 @@ func NewCard(ui *UI, content ...unison.Paneler) *Card {
 	c.SetBorder(cardInsets{c})
 	c.SetLayout(syncing{Layout: &unison.FlexLayout{Columns: 1}, sync: func() { c.SetFocusable(c.Interactive) }})
 	c.DrawCallback = c.draw
-	c.UpdateTooltipCallback = func(where geom.Point, _ geom.Rect) geom.Rect {
-		c.Tooltip = nil
-		strip := c.opensStrip()
-		if c.opens() && c.OpensLabel != "" && where.In(strip) {
-			c.Tooltip = newTooltip(ui, c.OpensLabel, "")
+	c.tip = func() string {
+		if c.opens() {
+			return c.OpensLabel
 		}
-		return c.RectToRoot(strip)
+		return ""
 	}
-	return c
+	c.tipArea = c.opensStrip
 }
 
 func (c *Card) opens() bool { return c.Interactive && !c.NoOpensMark }

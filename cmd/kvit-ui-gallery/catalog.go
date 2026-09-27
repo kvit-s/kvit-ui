@@ -370,6 +370,155 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitTooltip",
+		group:   "Feedback",
+		summary: "A short label next to a control after a pause. Never the only place a control's meaning lives — a control explained only by its tooltip is unusable on a keyboard, a screen reader and a touch screen.",
+		specimens: []specimen{
+			{caption: "On a button", build: tooltipOnButton},
+		},
+	},
+	{
+		name:    "KvitPopover",
+		group:   "Feedback",
+		summary: "A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card.",
+		specimens: []specimen{
+			{caption: "Open, holding a form", build: popoverWithForm},
+		},
+	},
+	{
+		name:    "KvitHint",
+		group:   "Feedback",
+		summary: "An information-icon trigger for an explanation too long for a tooltip. Click or keyboard activation keeps its KvitPopover open for reading, and Escape or an outside click dismisses it.",
+		specimens: []specimen{
+			{caption: "Open for a longer explanation", build: hintOpen},
+		},
+	},
+	{
+		name:    "KvitHoverCard",
+		group:   "Feedback",
+		summary: "More about the thing under the pointer. Read-only, always: a surface that appears on hover is unreachable by keyboard and by touch, so nothing inside one may be the only route to an action.",
+		specimens: []specimen{
+			{caption: "Showing what a row could not fit", build: hoverCardRow},
+		},
+	},
+	{
+		name:    "KvitToast",
+		group:   "Feedback",
+		summary: "A message that appears, says one thing and goes away. For confirming what already happened. A toast with an action stays until dismissed — an undo that times out mid-read is an undo the reader cannot use.",
+		specimens: []specimen{
+			{caption: "Four tones, and one with an undo", build: toastTones},
+		},
+	},
+	{
+		name:    "KvitNotice",
+		group:   "Feedback",
+		summary: "A message that stays: a condition that is still true, where a toast is an acknowledgement of something that finished. Dismissible only when dismissing it is meaningful.",
+		specimens: []specimen{
+			{caption: "A warning that can be dismissed, and an error that cannot", build: noticeForms},
+		},
+	},
+	{
+		name:    "KvitDialog",
+		group:   "Feedback",
+		summary: "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape.",
+		specimens: []specimen{
+			{caption: "A destructive confirmation", build: dialogDestructive},
+		},
+	},
+	{
+		name:    "KvitBar",
+		group:   "Data",
+		summary: "One quantity against a stated scale. A bar with no value draws a tick rather than a zero-width fill; a bounded figure is hatched, and the hatch survives grayscale; and the scale is required, because a bar drawn against its own list rescales invisibly.",
+		specimens: []specimen{
+			{caption: "Measured, bounded and unmeasured", build: barForms},
+		},
+	},
+	{
+		name:    "KvitStackedBar",
+		group:   "Data",
+		summary: "Several quantities adding to one total. The two-pixel gap is the reason this is a component: adjacent fills that touch read as one fill with a colour change in it.",
+		specimens: []specimen{
+			{caption: "A four-way breakdown", build: stackedBarBreakdown},
+		},
+	},
+	{
+		name:    "KvitSpark",
+		group:   "Data",
+		summary: "The shape of a series, small enough to sit in a row. A period that was never measured is a baseline tick rather than a zero-height bar: a missing week and a quiet week are different facts.",
+		specimens: []specimen{
+			{caption: "With a hole in the middle", build: sparkWithHole},
+		},
+	},
+	{
+		name:    "KvitTrend",
+		group:   "Data",
+		summary: "A series with a value axis and a hover crosshair — read for values, where a spark is read for shape. A gap in the data draws as a gap: interpolating over a hole asserts values nobody measured. A second series is dashed as well as differently coloured, and both are named in the key and in the crosshair.",
+		specimens: []specimen{
+			{caption: "A series, and the empty state", build: trendAndEmpty},
+			{caption: "Two series, with an annotation drawn over the plot", build: trendTwoSeries},
+		},
+	},
+	{
+		name:    "KvitDistribution",
+		group:   "Data",
+		summary: "How a set of values is spread. An average of four days and an average made of one twenty-day outlier are the same number and different situations.",
+		specimens: []specimen{
+			{caption: "Two rows on one scale", build: distributionRows},
+		},
+	},
+	{
+		name:    "KvitGauge",
+		group:   "Data",
+		summary: "How much of an allowance is used, with the target marked and a pace mark saying where an even rate would have reached. Sixty percent spent is fine on day eighteen and a problem on day six.",
+		specimens: []specimen{
+			{caption: "Ahead of pace, behind it, and over", build: gaugePace},
+		},
+	},
+	{
+		name:    "KvitDelta",
+		group:   "Data",
+		summary: "How much something changed and in which direction, with an arrow as well as a colour. Whether up is good is the caller's to say: a rise in spending and a rise in savings are the same arrow and opposite colours.",
+		specimens: []specimen{
+			{caption: "Up, down and unchanged", build: deltaDirections},
+		},
+	},
+	{
+		name:    "KvitStatTile",
+		group:   "Data",
+		summary: "A card carrying one figure, what it is, how it changed and its recent shape — the shape of six of kvit-cash's seven dashboard widgets. The order is fixed so a row of tiles can be scanned one part at a time.",
+		specimens: []specimen{
+			{caption: "A dashboard row", build: statTileRow},
+		},
+	},
+	{
+		name:    "KvitFigureBlock",
+		group:   "Data",
+		summary: "A figure with its name under it: one number a reader is meant to take away. The number is above and larger, because a row of these is read across the numbers.",
+		specimens: []specimen{
+			{caption: "A row of three", build: figureBlockRow},
+		},
+	},
+	{
+		name:    "KvitCell",
+		group:   "Data",
+		summary: "One cell of a table, drawn according to what kind of value its column holds. The kind comes from the column, so every cell in it aligns the same way and says the same thing about a missing value. A cell formats nothing: Money and Figure are given the string they draw.",
+		specimens: []specimen{
+			{caption: "The six kinds a column of values can be", build: cellKinds},
+			{caption: "Several states at once, and a row the reader picks", build: cellStatesAndPick},
+			{caption: "A value the column cut short", build: cellCutShort},
+		},
+	},
+	{
+		name:    "KvitTable",
+		group:   "Data",
+		summary: "A dense, configurable table over a model. Columns sort, resize, move and open a menu from their own header, by keyboard as well as pointer; a row opens its record on one press; and a Check column draws a box per row with a box in its header for every row shown. The model says what each column is and answers each cell with its value, its unit, its marks, whether its box is ticked and the whole of a value the column cut short, which the cell then discloses on hover and under the keyboard cursor. Holds smooth scrolling and sub-100 ms filtering at 250,000 rows with twelve columns of value.",
+		specimens: []specimen{
+			{caption: "Two hundred and fifty thousand rows", build: tableQuarterMillion},
+			{caption: "Sorting, a column menu and a column of boxes", build: tableSortingAndBoxes},
+			{caption: "Nothing to show", build: tableEmpty},
+		},
+	},
+	{
 		name:    "KvitScrollBar",
 		group:   "Flow",
 		summary: "A scroll bar, occupying its own strip rather than floating over content. Thirty-two files in the estate have a private version; an overlay bar hides the right-hand column of a table and the last character of every elided label.",
