@@ -2043,7 +2043,7 @@ func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog
 | `OnAccept` | `func()` | OnAccept and OnReject run when the dialog is answered. |
 | `OnReject` | `func()` | OnAccept and OnReject run when the dialog is answered. |
 
-Methods: `Open`.
+Methods: `Accept`, `Open`.
 
 *A destructive confirmation*
 
