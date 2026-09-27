@@ -190,3 +190,9 @@ func (m *Interface) FocusRingWidth() int { return m.Px(2) }
 func (m *Interface) WidthFloor() int  { return m.Px(880) }
 func (m *Interface) WidthLaptop() int { return m.Px(1100) }
 func (m *Interface) WidthDrawn() int  { return m.Px(1440) }
+
+// HeightFloor is the shortest window the chrome holds: a header, a status
+// bar and enough body for a list to be a list. It is the window's minimum
+// height, named because a check of what a surface does at the smallest
+// window has to know what that is (kvit-cash's copy of kvit-ui, 722906e).
+func (m *Interface) HeightFloor() int { return m.Px(600) }

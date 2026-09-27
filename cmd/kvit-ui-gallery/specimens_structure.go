@@ -93,3 +93,98 @@ func viewHeadWithControls(ui *kvitui.UI) unison.Paneler {
 	head.Subtitle = "Everything since the account was opened"
 	return kvitui.FullWidth(head)
 }
+
+func statusBarWorking(ui *kvitui.UI) unison.Paneler {
+	bar := kvitui.NewStatusBar(ui)
+	bar.Activity = "Reindexing 4 of 26 projects"
+	bar.Facts = []string{"1,284 notes", "last synced 14:02"}
+	return kvitui.FullWidth(bar)
+}
+
+func statusBarGroups(ui *kvitui.UI) unison.Paneler {
+	// Each fact is a control: it takes tab focus, says its own name to a
+	// screen reader and answers Return and Space. The bar keeps none of the
+	// caller's state: it is handed words and hands back which one was
+	// pressed.
+	bar := kvitui.NewStatusBar(ui)
+	bar.Activity = "Indexing 4 of 26 working copies"
+	bar.Groups = []kvitui.StatusGroup{
+		{Label: "Waiting on you", Facts: []kvitui.StatusFact{
+			{Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
+		{Label: "Running", Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot"}}},
+	}
+	bar.OnFact = func(group, fact int) {
+		bar.Activity = fmt.Sprintf("Pressed fact %d of group %d", fact, group)
+		bar.MarkForLayoutAndRedraw()
+	}
+	return kvitui.FullWidth(bar)
+}
+
+func statusBarNarrow(ui *kvitui.UI) unison.Paneler {
+	// The same two groups in a bar too narrow for them. The groups that fit
+	// are drawn left to right; the rest are behind the count of what is not
+	// there, which is a link: Tab reaches it, Return opens the menu, and the
+	// arrow keys move through it. Nothing is dropped, and nothing is silent
+	// about it.
+	narrow := kvitui.NewStatusBar(ui)
+	narrow.Activity = "Indexing"
+	narrow.Groups = []kvitui.StatusGroup{
+		{Label: "Waiting on you", Facts: []kvitui.StatusFact{
+			{Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
+		{Label: "Running", Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot"}}},
+	}
+	// The resting height is unchanged: a bar holding only text is as tall as
+	// the text, and only a control in the slot at the end makes it grow.
+	plain := kvitui.NewStatusBar(ui)
+	plain.Facts = []string{"1,284 notes", "last synced 14:02"}
+	return kvitui.Column(ui, kvitui.SizeColumnGap,
+		kvitui.Width(ui, kvitui.Px(420), narrow), kvitui.Width(ui, kvitui.Px(320), plain))
+}
+
+func statusBarGroupsFirst(ui *kvitui.UI) unison.Paneler {
+	// A bar whose left end is the work rather than a sentence about it: what
+	// is waiting and what is running, each item something to press, with
+	// the standing facts at the right. GroupsFirst is the whole of the
+	// difference.
+	bar := kvitui.NewStatusBar(ui)
+	bar.GroupsFirst = true
+	bar.Activity = "Fetching origin"
+	bar.Groups = []kvitui.StatusGroup{
+		{Label: "Waiting on you", Facts: []kvitui.StatusFact{
+			{Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
+		{Label: "Running", Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot"}}},
+	}
+	bar.Facts = []string{"7 changes", "main, 2 ahead"}
+	return kvitui.FullWidth(bar)
+}
+
+func windowShell(ui *kvitui.UI) unison.Paneler {
+	// Source only: a window has no place inside another window, so this is
+	// the one page that shows a sample without drawing it. The gallery's
+	// tests build and run it like every other sample.
+	window, err := kvitui.NewWindow(ui, "kvit-cash")
+	if err != nil {
+		return nil
+	}
+	accounts := kvitui.NewTab(ui, "Accounts")
+	accounts.Selected = true
+	window.SetHeader(kvitui.NewHeader(ui, "kvit",
+		kvitui.Row(ui, kvitui.SizeSpace, accounts, kvitui.NewTab(ui, "Budget"))))
+
+	// The window says when it is narrow, and a Sidebar in it is drawn as a
+	// rail when it is.
+	everyday := kvitui.NewSidebarItem(ui, "Everyday", "wallet")
+	everyday.Selected = true
+	window.SetSidebar(kvitui.NewSidebar(ui, everyday,
+		kvitui.NewSidebarItem(ui, "Savings", "bank"), kvitui.NewSidebarItem(ui, "Budget", "chart-line")))
+
+	window.SetBody(kvitui.NewRegion(ui, kvitui.Column(ui, kvitui.Px(0),
+		kvitui.NewSlimRow(ui, "Checking"), kvitui.NewSlimRow(ui, "Joint checking"), kvitui.NewSlimRow(ui, "Emergency fund"))))
+
+	status := kvitui.NewStatusBar(ui)
+	status.Activity = "Matching 4 of 26 statements"
+	status.Facts = []string{"1,284 transactions", "last synced 14:02"}
+	window.SetStatusBar(status)
+	window.ToFront()
+	return nil
+}

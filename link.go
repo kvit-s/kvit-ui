@@ -113,7 +113,9 @@ func (l *Link) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 		n.Role = role.Link
 	}
 	n.Name = l.Text
-	n.Description = l.Explanation
+	if l.Explanation != "" {
+		n.Description = l.Explanation
+	}
 	if l.Enabled() {
 		n.Actions = n.Actions.With(accessibility.Press)
 	}

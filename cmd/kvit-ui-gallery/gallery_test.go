@@ -97,3 +97,39 @@ func TestPagesFollowTheInterfaceSize(t *testing.T) {
 		}
 	}
 }
+
+// A sample the gallery only shows is still run, as the Qt gallery test runs
+// the window's sample, so it cannot drift from what compiles and works.
+func TestTheSourceOnlySamplesRun(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ran int
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: 1600, Height: 1000},
+		unison.StartupFinishedCallback(func() {
+			for _, e := range catalog {
+				for _, s := range e.specimens {
+					if s.sourceOnly {
+						before := len(unison.Windows())
+						s.build(ui)
+						if len(unison.Windows()) <= before {
+							t.Errorf("%s: %q opened no window", e.name, s.caption)
+						}
+						ran++
+					}
+				}
+			}
+		}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Stop()
+	screen.Sync()
+	if ran == 0 {
+		t.Error("no source-only sample was run")
+	}
+	for _, e := range screen.Errors() {
+		t.Error(e)
+	}
+}

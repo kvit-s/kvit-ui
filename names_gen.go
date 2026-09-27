@@ -82,6 +82,7 @@ var (
 	SizeHairline         Measure = (*tokens.Interface).Hairline
 	SizeHeaderHeight     Measure = (*tokens.Interface).HeaderHeight
 	SizeHeadline         Measure = (*tokens.Interface).Headline
+	SizeHeightFloor      Measure = (*tokens.Interface).HeightFloor
 	SizeIconSize         Measure = (*tokens.Interface).IconSize
 	SizeIconSizeSmall    Measure = (*tokens.Interface).IconSizeSmall
 	SizePaneWidth        Measure = (*tokens.Interface).PaneWidth

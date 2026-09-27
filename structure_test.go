@@ -311,3 +311,186 @@ func TestARegionScrollsBesideItsBarAndAnswersTheWheelAndKeys(t *testing.T) {
 		}
 	})
 }
+
+func TestAStatusBarKeepsWhatDoesNotFitBehindACount(t *testing.T) {
+	groups := []kvitui.StatusGroup{
+		{Label: "Waiting on you", Facts: []kvitui.StatusFact{{Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
+		{Label: "Running", Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot"}}},
+	}
+	var wide, narrow, plain *kvitui.StatusBar
+	var pressed [][2]int
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		wide = kvitui.NewStatusBar(ui)
+		wide.Activity, wide.Groups = "Indexing 4 of 26 working copies", groups
+		wide.OnFact = func(g, f int) { pressed = append(pressed, [2]int{g, f}) }
+		narrow = kvitui.NewStatusBar(ui)
+		narrow.Activity, narrow.Groups = "Indexing", groups
+		plain = kvitui.NewStatusBar(ui)
+		plain.Facts = []string{"1,284 notes", "last synced 14:02"}
+		return []unison.Paneler{
+			kvitui.Column(ui, kvitui.SizeSpace, kvitui.Width(ui, kvitui.Px(700), wide),
+				kvitui.Width(ui, kvitui.Px(420), narrow), kvitui.Width(ui, kvitui.Px(320), plain)),
+		}
+	})
+	var overflow *kvitui.Link
+	screen.Do(func() {
+		if wide.Shown() != 2 || narrow.Shown() != 1 {
+			t.Errorf("the wide bar shows %d groups and the narrow one %d", wide.Shown(), narrow.Shown())
+		}
+		if h := plain.FrameRect().Height; h != float32(ui.Interface.StatusBarHeight()) {
+			t.Errorf("a bar of plain facts is %.1f tall, want %d", h, ui.Interface.StatusBarHeight())
+		}
+		for _, c := range narrow.Children() {
+			if l, ok := c.Self.(*kvitui.Link); ok && l.Symbol == "more" {
+				overflow = l
+			}
+		}
+	})
+	if overflow == nil {
+		t.Fatal("the narrow bar has no overflow link")
+	}
+	if n := screen.AccessibilityNodeFor(overflow); n == nil || n.Name != "1 more" || n.Description != "Running" {
+		t.Errorf("the overflow link's node: %+v", n)
+	}
+	// A fact on the bar is a link that reports which fact it is.
+	var conflict *kvitui.Link
+	screen.Do(func() {
+		var find func(p *unison.Panel)
+		find = func(p *unison.Panel) {
+			for _, c := range p.Children() {
+				if l, ok := c.Self.(*kvitui.Link); ok && l.Text == "1 conflict" {
+					conflict = l
+				}
+				find(c)
+			}
+		}
+		find(wide.AsPanel())
+	})
+	if conflict == nil {
+		t.Fatal("the wide bar has no link for the conflict")
+	}
+	screen.Click(screen.PanelCenter(conflict))
+	if len(pressed) != 1 || pressed[0] != [2]int{0, 1} {
+		t.Errorf("pressing the conflict reported %v", pressed)
+	}
+}
+
+func TestTheWindowCollapsesItsSidebarAndOpensTheRailOverTheBody(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ui.Theme.SetReducedMotion(true) // the sidebar's width then changes at once
+	var w *kvitui.Window
+	var side *kvitui.Sidebar
+	var body *kvitui.Region
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: 1600, Height: 1000},
+		unison.StartupFinishedCallback(func() {
+			if w, err = kvitui.NewWindow(ui, "shell"); err != nil {
+				t.Error(err)
+				return
+			}
+			side = kvitui.NewSidebar(ui, kvitui.NewSidebarItem(ui, "Everyday", "wallet"), kvitui.NewSidebarItem(ui, "Savings", "bank"))
+			body = kvitui.NewRegion(ui, kvitui.NewSlimRow(ui, "Checking"))
+			w.SetHeader(kvitui.NewHeader(ui, "kvit", nil))
+			w.SetSidebar(side)
+			w.SetBody(body)
+			w.SetStatusBar(kvitui.NewStatusBar(ui))
+			w.ToFront()
+		}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(screen.Stop)
+	screen.Sync()
+	m := ui.Interface
+	resize := func(width float32) {
+		screen.Do(func() {
+			w.SetContentRect(geom.NewRect(0, 0, width, 900))
+			w.Content().MarkForLayoutRecursively()
+			w.ValidateLayout()
+		})
+		screen.Sync()
+	}
+	check := func(when string, collapsed bool, sidebar, bodyLeft int) {
+		screen.Do(func() {
+			if side.Collapsed != collapsed {
+				t.Errorf("%s: the sidebar's Collapsed is %v", when, side.Collapsed)
+			}
+			if got := side.Parent().FrameRect().Width; got != float32(sidebar) {
+				t.Errorf("%s: the sidebar is %.1f wide, want %d", when, got, sidebar)
+			}
+			if got := body.FrameRect().X; got != float32(bodyLeft) {
+				t.Errorf("%s: the body starts at %.1f, want %d", when, got, bodyLeft)
+			}
+		})
+	}
+	resize(float32(m.WidthDrawn()))
+	check("wide", false, m.SidebarWidth(), m.SidebarWidth())
+	resize(float32(m.WidthLaptop() - 100))
+	check("narrow", true, m.RailWidth(), m.RailWidth())
+	// The pointer on the rail opens it over the body, which stays put.
+	screen.MouseMove(geom.NewPoint(float32(m.RailWidth())/2, 200), 0)
+	screen.Sync()
+	check("rail under the pointer", false, m.SidebarWidth(), m.RailWidth())
+	screen.MouseMove(geom.NewPoint(600, 200), 0)
+	screen.Sync()
+	check("pointer gone", true, m.RailWidth(), m.RailWidth())
+	// The keyboard inside the rail opens it as well: Tab moves between its
+	// items. The focus the window handed its first item when it opened did
+	// not open it, as the narrow check above shows.
+	screen.KeyPress(unison.KeyTab, 0)
+	check("keyboard in the rail", false, m.SidebarWidth(), m.RailWidth())
+	// Never smaller than the floor.
+	screen.Do(func() { w.SetContentRect(geom.NewRect(0, 0, 400, 300)) })
+	screen.Sync()
+	screen.Do(func() {
+		if r := w.ContentRect(); r.Width < float32(m.WidthFloor()) || r.Height < float32(m.HeightFloor()) {
+			t.Errorf("the window was made %v, below the floor", r.Size)
+		}
+	})
+}
+
+func TestTheStatusBarMenuHoldsWhatDidNotFit(t *testing.T) {
+	var bar *kvitui.StatusBar
+	var pressed [][2]int
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		bar = kvitui.NewStatusBar(ui)
+		bar.Activity = "Indexing"
+		bar.Groups = []kvitui.StatusGroup{
+			{Label: "Waiting on you", Facts: []kvitui.StatusFact{{Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
+			{Label: "Running", Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot"}}},
+		}
+		bar.OnFact = func(g, f int) { pressed = append(pressed, [2]int{g, f}) }
+		return []unison.Paneler{kvitui.Width(ui, kvitui.Px(420), bar)}
+	})
+	var more *kvitui.Link
+	screen.Do(func() {
+		for _, c := range bar.Children() {
+			if l, ok := c.Self.(*kvitui.Link); ok && l.Symbol == "more" && !l.Hidden {
+				more = l
+			}
+		}
+	})
+	if more == nil {
+		t.Fatal("no overflow link")
+	}
+	screen.Click(screen.PanelCenter(more))
+	screen.Sync()
+	var w *unison.Window
+	screen.Do(func() { w = bar.Window() })
+	var entry *accessibility.Node
+	for _, n := range screen.AccessibilityTree(w).Nodes {
+		if n.Role == role.MenuItem && n.Name == "Running — 2 agents" {
+			entry = n
+		}
+	}
+	if entry == nil {
+		t.Fatal("the menu has no entry for the hidden fact")
+	}
+	screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: entry.ID, Action: accessibility.Press})
+	screen.Sync()
+	if len(pressed) != 1 || pressed[0] != [2]int{1, 0} {
+		t.Errorf("choosing the entry reported %v", pressed)
+	}
+}

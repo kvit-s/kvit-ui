@@ -19,6 +19,10 @@ func buildComponentPage(ui *kvitui.UI, e entry) *unison.Panel {
 	for _, s := range e.specimens {
 		caption := kvitui.NewLabel(ui, s.caption)
 		caption.Role, caption.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+		if s.sourceOnly {
+			parts = append(parts, kvitui.Column(ui, kvitui.SizeSpaceNear, caption, codeBlock(ui, sourceOf(s.build))))
+			continue
+		}
 		parts = append(parts, kvitui.Column(ui, kvitui.SizeSpaceNear, caption, specimenFrame(ui, s.build(ui)), codeBlock(ui, sourceOf(s.build))))
 	}
 	page := kvitui.Column(ui, kvitui.SizeSpaceLoose, parts...)
@@ -31,9 +35,9 @@ func buildComponentPage(ui *kvitui.UI, e entry) *unison.Panel {
 func specimenFrame(ui *kvitui.UI, content unison.Paneler) *unison.Panel {
 	f := unison.NewPanel()
 	f.SetLayout(&unison.FlexLayout{Columns: 1})
-	// At the top left unless the specimen asked for more, as a full-width
-	// header does.
-	if content.AsPanel().LayoutData() == nil {
+	// At the top left unless the specimen asked for the frame's width, as a
+	// full-width header does.
+	if ld, ok := content.AsPanel().LayoutData().(*unison.FlexLayoutData); !ok || ld.HAlign != align.Fill {
 		content.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Start, VAlign: align.Start})
 	}
 	f.AddChild(content)

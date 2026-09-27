@@ -19,6 +19,10 @@ import (
 type specimen struct {
 	caption string
 	build   func(ui *kvitui.UI) unison.Paneler
+	// sourceOnly shows the code without drawing it, for the one thing a page
+	// cannot draw: a window, which has no place inside another window. The
+	// gallery's tests still build and run it.
+	sourceOnly bool
 }
 
 // entry is one component's page.
@@ -36,8 +40,8 @@ var catalog = []entry{
 		group:   "Foundation",
 		summary: "A run of chrome text at one of the seven type roles. Every other component uses it, which is what keeps the chrome family, the colour and the eliding rule in one place.",
 		specimens: []specimen{
-			{"The seven roles", labelRoles},
-			{"Monospace and tabular numerals", labelMonoAndTabular},
+			{caption: "The seven roles", build: labelRoles},
+			{caption: "Monospace and tabular numerals", build: labelMonoAndTabular},
 		},
 	},
 	{
@@ -45,8 +49,8 @@ var catalog = []entry{
 		group:   "Foundation",
 		summary: "A symbol asked for by what it means rather than by what it looks like. The font is embedded in the library, so nothing has to be added to an application.",
 		specimens: []specimen{
-			{"At the sizes the chrome uses", iconSizes},
-			{"An unrecognised name is visible, not blank", iconUnknown},
+			{caption: "At the sizes the chrome uses", build: iconSizes},
+			{caption: "An unrecognised name is visible, not blank", build: iconUnknown},
 		},
 	},
 	{
@@ -54,9 +58,9 @@ var catalog = []entry{
 		group:   "Foundation",
 		summary: "A button whose whole label is a symbol. A real button, so it takes tab focus and a screen reader is told it is there; `Label` fills both the accessible name and the tooltip shown on pointer hover, and `Explanation` is the second sentence beside it. `Dense` draws the symbol at the 13 every symbol beside words in this library is drawn at, rather than at 18.",
 		specimens: []specimen{
-			{"Quiet, ordinary and checked", iconButtonForms},
-			{"Two symbol sizes", iconButtonSizes},
-			{"A second sentence, where the name is not enough", iconButtonExplanation},
+			{caption: "Quiet, ordinary and checked", build: iconButtonForms},
+			{caption: "Two symbol sizes", build: iconButtonSizes},
+			{caption: "A second sentence, where the name is not enough", build: iconButtonExplanation},
 		},
 	},
 	{
@@ -64,8 +68,8 @@ var catalog = []entry{
 		group:   "Foundation",
 		summary: "An inline destination or action with link semantics, natural width and optional symbol. Hover and keyboard focus both add accent and an underline; no chevron, button ground or border is invented. `Explanation` says in a sentence where following it goes, shown as the tooltip and announced as the accessible description.",
 		specimens: []specimen{
-			{"Plain, symbolic and keyboard-focused", linkForms},
-			{"Elided in a narrow column", linkElided},
+			{caption: "Plain, symbolic and keyboard-focused", build: linkForms},
+			{caption: "Elided in a narrow column", build: linkElided},
 		},
 	},
 	{
@@ -73,7 +77,7 @@ var catalog = []entry{
 		group:   "Structure",
 		summary: "The strip across the top of the window: the wordmark, navigation in the middle, actions on the right, in that fixed order on every screen.",
 		specimens: []specimen{
-			{"With navigation and actions", headerWithNavigation},
+			{caption: "With navigation and actions", build: headerWithNavigation},
 		},
 	},
 	{
@@ -81,7 +85,7 @@ var catalog = []entry{
 		group:   "Structure",
 		summary: "The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone.",
 		specimens: []specimen{
-			{"Expanded and collapsed", sidebarExpandedAndCollapsed},
+			{caption: "Expanded and collapsed", build: sidebarExpandedAndCollapsed},
 		},
 	},
 	{
@@ -89,8 +93,8 @@ var catalog = []entry{
 		group:   "Structure",
 		summary: "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number.",
 		specimens: []specimen{
-			{"Selected, hovered and counted", sidebarItemStates},
-			{"The rail, with and without its counts", sidebarItemRail},
+			{caption: "Selected, hovered and counted", build: sidebarItemStates},
+			{caption: "The rail, with and without its counts", build: sidebarItemRail},
 		},
 	},
 	{
@@ -98,7 +102,7 @@ var catalog = []entry{
 		group:   "Structure",
 		summary: "Where the reader is and the way back. The last crumb is the current place and is deliberately not a link; a long trail elides from the middle, keeping the section and the current place.",
 		specimens: []specimen{
-			{"A short trail and a long one", breadcrumbTrails},
+			{caption: "A short trail and a long one", build: breadcrumbTrails},
 		},
 	},
 	{
@@ -106,7 +110,7 @@ var catalog = []entry{
 		group:   "Structure",
 		summary: "A body that takes the height left over and scrolls what does not fit. The scroll bar sits beside the content rather than over it, so nothing is ever hidden behind it.",
 		specimens: []specimen{
-			{"Scrolling a column of rows", regionScrolling},
+			{caption: "Scrolling a column of rows", build: regionScrolling},
 		},
 	},
 	{
@@ -114,7 +118,26 @@ var catalog = []entry{
 		group:   "Structure",
 		summary: "The strip at the top of a view: what the view is, how much is in it, and the controls that act on all of it.",
 		specimens: []specimen{
-			{"Title, count and controls", viewHeadWithControls},
+			{caption: "Title, count and controls", build: viewHeadWithControls},
+		},
+	},
+	{
+		name:    "KvitStatusBar",
+		group:   "Structure",
+		summary: "The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `GroupsFirst` puts the groups before the activity, for a bar whose left end is the list of what is waiting.",
+		specimens: []specimen{
+			{caption: "Working, with two facts", build: statusBarWorking},
+			{caption: "Grouped facts that open what they name", build: statusBarGroups},
+			{caption: "Narrow: what does not fit is in the menu, not gone", build: statusBarNarrow},
+			{caption: "Groups first, for a bar whose left end is the work", build: statusBarGroupsFirst},
+		},
+	},
+	{
+		name:    "KvitWindow",
+		group:   "Structure",
+		summary: "The application shell: header, optional sidebar, body and status bar, with the sidebar collapsing to its rail below the laptop breakpoint and opening over the body while the pointer rests on it. Not shown here because it is a window; see the code sample.",
+		specimens: []specimen{
+			{caption: "The whole shell", build: windowShell, sourceOnly: true},
 		},
 	},
 	{
@@ -122,9 +145,9 @@ var catalog = []entry{
 		group:   "Content",
 		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`.",
 		specimens: []specimen{
-			{"Pressable and static", rowPressableAndStatic},
-			{"Opened from the keyboard, without opening it twice", rowFromTheKeyboard},
-			{"The four heights, and the three states", rowHeights},
+			{caption: "Pressable and static", build: rowPressableAndStatic},
+			{caption: "Opened from the keyboard, without opening it twice", build: rowFromTheKeyboard},
+			{caption: "The four heights, and the three states", build: rowHeights},
 		},
 	},
 	{
@@ -132,7 +155,7 @@ var catalog = []entry{
 		group:   "Content",
 		summary: "The row a reader sees most: a name, what it is, one phrase about it and one figure, right aligned, in that order on every screen.",
 		specimens: []specimen{
-			{"Measured and unmeasured", slimRowMeasured},
+			{caption: "Measured and unmeasured", build: slimRowMeasured},
 		},
 	},
 	{
@@ -140,7 +163,7 @@ var catalog = []entry{
 		group:   "Content",
 		summary: "A region of the window with its own ground: a sidebar, a toolbar strip. Structural, where a card is content — which is why it has no radius.",
 		specimens: []specimen{
-			{"With rules on two edges", panelWithRules},
+			{caption: "With rules on two edges", build: panelWithRules},
 		},
 	},
 	{
@@ -148,7 +171,7 @@ var catalog = []entry{
 		group:   "Content",
 		summary: "A rule between two things. One design pixel, in the decorative border token rather than the control-boundary one.",
 		specimens: []specimen{
-			{"Horizontal and vertical", dividerBothWays},
+			{caption: "Horizontal and vertical", build: dividerBothWays},
 		},
 	},
 	{
@@ -156,8 +179,8 @@ var catalog = []entry{
 		group:   "Marks",
 		summary: "A count attached to something else. Caps rather than growing wide, and hides at zero — a badge showing nought says look here about nothing. The number is drawn and announced with the reader's own digit grouping, and the noun beside it comes from the caller in two slots, a singular and a plural.",
 		specimens: []specimen{
-			{"Counts, capped, and hidden at zero", badgeCounts},
-			{"What the count counts", badgeNouns},
+			{caption: "Counts, capped, and hidden at zero", build: badgeCounts},
+			{caption: "What the count counts", build: badgeNouns},
 		},
 	},
 	{
@@ -165,7 +188,7 @@ var catalog = []entry{
 		group:   "Quantities",
 		summary: "A measured value: tabular numerals, the unit in muted colour at the smaller role, and an em dash where nothing was measured rather than a zero. A balance nobody computed is not a balance of zero.",
 		specimens: []specimen{
-			{"Measured, unmeasured and bounded", figureForms},
+			{caption: "Measured, unmeasured and bounded", build: figureForms},
 		},
 	},
 	{
@@ -173,10 +196,10 @@ var catalog = []entry{
 		group:   "Controls",
 		summary: "A button with words on it, in three forms. One primary per screen region: it is the action the screen is for. `Danger` is separate from the form, because a destructive action can be any of the three. `Explanation` is one sentence saying what the words cannot — why it is disabled, or what pressing it opens — and it is read on a disabled button too.",
 		specimens: []specimen{
-			{"Text, icon plus text, and busy text in every form", buttonForms},
-			{"Destructive and disabled", buttonDanger},
-			{"A button that stays on, beside the same button off", buttonChecked},
-			{"Why a button cannot be pressed", buttonExplanations},
+			{caption: "Text, icon plus text, and busy text in every form", build: buttonForms},
+			{caption: "Destructive and disabled", build: buttonDanger},
+			{caption: "A button that stays on, beside the same button off", build: buttonChecked},
+			{caption: "Why a button cannot be pressed", build: buttonExplanations},
 		},
 	},
 	{
@@ -184,7 +207,7 @@ var catalog = []entry{
 		group:   "Controls",
 		summary: "A single line of text. The outline is the control-boundary token, so its edges are visible. An error is a message and a border together, never a border alone.",
 		specimens: []specimen{
-			{"Resting, filled and in error", fieldStates},
+			{caption: "Resting, filled and in error", build: fieldStates},
 		},
 	},
 	{
@@ -192,7 +215,7 @@ var catalog = []entry{
 		group:   "Controls",
 		summary: "A field that filters something. Escape clears rather than reverting, and it announces its result count — filtering is the one interaction whose whole outcome happens somewhere else on the screen.",
 		specimens: []specimen{
-			{"Empty and filtering", searchFieldStates},
+			{caption: "Empty and filtering", build: searchFieldStates},
 		},
 	},
 	{
@@ -200,8 +223,8 @@ var catalog = []entry{
 		group:   "Controls",
 		summary: "One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight — selection shown by colour alone is the most common place the rule gets broken. `Explanation` is one sentence saying what the view behind the tab shows, which two or three words cannot.",
 		specimens: []specimen{
-			{"Selected, counted and plain", tabForms},
-			{"Each tab saying what its view shows", tabExplanations},
+			{caption: "Selected, counted and plain", build: tabForms},
+			{caption: "Each tab saying what its view shows", build: tabExplanations},
 		},
 	},
 	{
@@ -209,7 +232,7 @@ var catalog = []entry{
 		group:   "Flow",
 		summary: "A scroll bar, occupying its own strip rather than floating over content. Thirty-two files in the estate have a private version; an overlay bar hides the right-hand column of a table and the last character of every elided label.",
 		specimens: []specimen{
-			{"Beside a scrolling column", scrollBarBesideColumn},
+			{caption: "Beside a scrolling column", build: scrollBarBesideColumn},
 		},
 	},
 }

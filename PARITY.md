@@ -107,8 +107,19 @@ yet.
   `test_components.cpp`), `TestTheViewHeadIsARowTallWithItsControlsAtTheRight`;
   `light-KvitViewHead.png` matches except for kvit-cash's side padding, which
   insets the title and the controls by the view margin.
-- [ ] `KvitStatusBar`
-- [ ] `KvitWindow`
+- [x] `KvitStatusBar` (`StatusBar`). Evidence:
+  `TestAStatusBarKeepsWhatDoesNotFitBehindACount`,
+  `TestTheStatusBarMenuHoldsWhatDidNotFit`; `light-KvitStatusBar.png`
+  matches, the overflow link 6 px to the left of Qt's. The overflow menu is
+  unison's menu (see `KvitMenu`), and the overflow link is hidden, not drawn
+  at no width, when nothing is hidden (kvit-cash).
+- [x] `KvitWindow` (`Window`). Evidence:
+  `TestTheWindowCollapsesItsSidebarAndOpensTheRailOverTheBody`,
+  `TestTheSourceOnlySamplesRun`; `dark-KvitWindow.png` matches (the page
+  shows the sample's code only, as in Qt). It includes kvit-cash's rail that
+  opens over the body under the pointer or the keyboard, and its height
+  floor. The rail opens for focus moved by a key, not for the focus unison
+  gives the first control when the window becomes active.
 
 ### Content (9)
 
@@ -209,8 +220,13 @@ yet.
   Kvit colours in a strip of its own). Evidence: the region test;
   `light-KvitScrollBar.png` matches, with the same row-width difference as
   `KvitRegion`.
-- [ ] `KvitMenu`
-- [ ] `KvitMenuItem`
+- [ ] `KvitMenu`, as `UI.ShowMenu`: unison's menu, drawn in the Kvit colours
+  and type on Windows and Linux and native on macOS, as the owner chose on
+  2026-09-26. It has text, a shortcut, a check and separators, and answers
+  the arrow keys, Return and Escape. Not ticked: it cannot show the Qt
+  menu's symbols, explanations or danger colour, and its minimum width is
+  not the Qt menu's 200 px.
+- [ ] `KvitMenuItem`: the `MenuItem` lines of `ShowMenu`, with the same gaps.
 - [ ] `KvitTree`
 - [ ] `KvitSwitch`
 - [ ] `KvitRadioGroup`
@@ -295,14 +311,17 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 - [ ] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
   Done so far: the region's keyboard scrolling and bringing focus into view,
   the slim row's kind capped at a quarter of the row, the row's chevron, the
-  search field's clear button at a control's height.
+  search field's clear button at a control's height, the status bar's
+  overflow link hidden when nothing is hidden.
 - [ ] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses
 - [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
   Done so far: the row's `OpensLabel`.
-- [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen
+- [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
+  Done so far: the rail opening on hover and for the keyboard.
 - [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
   Done so far: `ViewHead.Padding`, the view head's own side margin, and the
   region's wheel distance.
 - [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
   Done so far: the quiet button's ground at rest, the field's shortcut.
-- [ ] `722906e` 2026-09-13: Name the shortest window the chrome holds
+- [x] `722906e` 2026-09-13: Name the shortest window the chrome holds.
+  `Interface.HeightFloor`, and `Window`'s minimum height.

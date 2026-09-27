@@ -137,6 +137,7 @@ func (u *UI) applyColors() {
 	set(unison.ThemeTooltip, t.PopupBackground)
 	set(unison.ThemeError, t.Danger)
 	set(unison.ThemeWarning, t.Warning)
+	u.applyMenuTheme()
 	switch u.Theme.ResolvedTheme() {
 	case tokens.Dark, tokens.HighContrast:
 		unison.SetThemeMode(thememode.Dark)

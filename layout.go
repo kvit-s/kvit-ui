@@ -96,6 +96,9 @@ func Sized(ui *UI, w, h Measure, child unison.Paneler) *unison.Panel {
 	p := unison.NewPanel()
 	p.AddChild(child)
 	p.SetLayout(&fixedSize{ui: ui, w: w, h: h})
+	// A column or row that fills its children would stretch this past the
+	// width it holds, so it asks to be left at its own size.
+	p.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Start, VAlign: align.Middle})
 	return p
 }
 
