@@ -409,7 +409,7 @@ func NewRegion(ui *UI, content unison.Paneler) *Region
 | `Padding` | `Measure` | Padding is the space inside the scrolled area, around the content; the view margin unless set, which is what a body directly inside a window wants. |
 | `Horizontal` | `bool` | Horizontal lets the content be wider than the region and scroll sideways too. |
 
-Methods: `Position`, `ScrollTo`, `Scrolls`.
+Methods: `Position`, `ScrollTo`, `Scrolls`, `ViewHeight`.
 
 *Scrolling a column of rows*
 
@@ -1797,6 +1797,7 @@ func NewSelect(ui *UI, label string, options ...Option) *Select
 | `Label` | `string` | Label names the choice for a screen reader. |
 | `Options` | `[]Option` | Options are the choices. |
 | `Current` | `string` | Current is the Value of the chosen option. |
+| `Placeholder` | `string` | Placeholder is what the select says while no option is chosen. |
 | `OnChoose` | `func(value string)` | OnChoose runs after an option is chosen, with its value. |
 
 Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
@@ -2906,8 +2907,9 @@ func NewSplitView(ui *UI, panes ...unison.Paneler) *SplitView
 |---|---|---|
 | `Vertical` | `bool` | Vertical stacks the regions top to bottom rather than side by side. |
 | `Fill` | `int` | Fill is the region that takes the room the others leave; the last unless set. |
+| `OnResize` | `func(pane, design int)` | OnResize runs after the reader resized a region, by dragging a handle or with its arrow keys, with the region and its new size in design pixels, so an application can remember it. |
 
-Methods: `SetSize`.
+Methods: `DesignSize`, `SetSize`.
 
 *Two panes*
 
@@ -2970,6 +2972,7 @@ func NewTypeAhead(ui *UI, label string, allowNew bool, source ...Suggestion) *Ty
 | `AllowNew` | `bool` | AllowNew offers to make what was typed when nothing matches it exactly. |
 | `MaximumSuggestions` | `int` | MaximumSuggestions caps the matches shown; 8 unless set. |
 | `OnChoose` | `func(value string)` | OnChoose runs with the value chosen, or the words typed when a new one is made. |
+| `Rank` | `func(typed string, source []Suggestion) []Suggestion` | Rank, when set, chooses the matches for what is typed and puts them in order, best first, for a list whose order is its own, such as notes ranked by how well their names match; the list still shows at most MaximumSuggestions of them. |
 
 Methods: `Matches`, `SetText`, `SetTrailing`.
 

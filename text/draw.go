@@ -53,7 +53,7 @@ func (l *Layout) Draw(gc *unison.Canvas, x, y float32) {
 		}
 		for _, r := range ln.runs {
 			st := l.styles[r.style]
-			origin := geom.NewPoint(x+r.x, y+ln.baseline)
+			origin := geom.NewPoint(x+r.x, y+ln.baseline-st.Rise)
 			paint := st.Color.Unison().Paint(gc, geom.Rect{}, paintstyle.Fill)
 			if len(r.out.Glyphs) > 0 {
 				if cf := l.fonts.font(r.out.Face, toF(r.out.Size)); cf != nil {

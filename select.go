@@ -23,6 +23,8 @@ type Select struct {
 	Options []Option
 	// Current is the Value of the chosen option.
 	Current string
+	// Placeholder is what the select says while no option is chosen.
+	Placeholder string
 	// OnChoose runs after an option is chosen, with its value.
 	OnChoose func(value string)
 }
@@ -91,7 +93,7 @@ func (s *Select) step(by int) bool {
 func (s *Select) open() {
 	var items []MenuItem
 	for _, o := range s.Options {
-		items = append(items, MenuItem{Text: o.Label, Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
+		items = append(items, MenuItem{Text: PlainMenuText(o.Label), Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
 	}
 	s.ui.ShowMenu(s, s.Label, items)
 }
@@ -101,7 +103,7 @@ func (s *Select) shown() string {
 	if i := s.index(); i >= 0 {
 		return s.Options[i].Label
 	}
-	return ""
+	return s.Placeholder
 }
 
 func (s *Select) draw(gc *unison.Canvas, _ geom.Rect) {

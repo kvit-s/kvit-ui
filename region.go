@@ -113,6 +113,9 @@ func (r *Region) ScrollTo(y float32) {
 // view is the height of the part of the content that shows.
 func (r *Region) view() float32 { return r.scroll.Bar(false).Extent() }
 
+// ViewHeight is the height of the part of the content in view.
+func (r *Region) ViewHeight() float32 { return r.view() }
+
 // wheel moves the view the distance the wheel was turned; see wheelScroll.
 func (r *Region) wheel(_, delta geom.Point, _ mod.Modifiers) bool { return r.ease.wheel(delta) }
 

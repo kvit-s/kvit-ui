@@ -2,7 +2,9 @@ package kvitui
 
 import (
 	"runtime"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/kvit-s/kvit-ui/icons"
 	"github.com/kvit-s/kvit-ui/text"
@@ -16,7 +18,11 @@ import (
 
 // MenuItem is one line of a menu opened with ShowMenu.
 type MenuItem struct {
-	// Text is what the line says.
+	// Text is what the line says. An "&" before a letter makes it the line's
+	// access key, as in the Qt library's menus: "Open &Folder…" is drawn
+	// with the F underlined and chosen by typing F while the menu is open.
+	// "&&" is an ampersand. macOS, which has no access keys, draws the words
+	// without the marker.
 	Text string
 	// Key is the shortcut shown at the right of the line, which is how a menu
 	// teaches that there is a faster way; the zero value shows none.
@@ -48,6 +54,29 @@ type MenuItem struct {
 	// shortcut would go.
 	Items []MenuItem
 }
+
+// AccessText splits a menu line's words at the access key: "Open &Folder…"
+// is "Open Folder…" with the key F at rune 5. key is 0 and at -1 for words
+// without one.
+func AccessText(s string) (plain string, key rune, at int) {
+	at = -1
+	var b []rune
+	rs := []rune(s)
+	for i := 0; i < len(rs); i++ {
+		if rs[i] == '&' && i+1 < len(rs) {
+			i++
+			if rs[i] != '&' && key == 0 {
+				key, at = unicode.ToLower(rs[i]), len(b)
+			}
+		}
+		b = append(b, rs[i])
+	}
+	return string(b), key, at
+}
+
+// PlainMenuText escapes the ampersands of words that are not a menu line's
+// own, such as a name read from disk, so none is taken for an access key.
+func PlainMenuText(s string) string { return strings.ReplaceAll(s, "&", "&&") }
 
 // menuIDs numbers the lines of native menus, clear of the ids unison and an
 // application's menu bar use.
@@ -97,13 +126,14 @@ func nativeMenu(f unison.MenuFactory, title string, items []MenuItem) unison.Men
 			m.InsertSeparator(-1, true)
 			continue
 		}
+		words, _, _ := AccessText(it.Text)
 		if len(it.Items) > 0 {
-			m.InsertMenu(-1, nativeMenu(f, it.Text, it.Items))
+			m.InsertMenu(-1, nativeMenu(f, words, it.Items))
 			continue
 		}
 		menuIDs++
 		it := it
-		mi := f.NewItem(menuIDs, it.Text, it.Key,
+		mi := f.NewItem(menuIDs, words, it.Key,
 			func(unison.MenuItem) bool { return !it.Disabled },
 			func(unison.MenuItem) {
 				if it.OnSelect != nil {
@@ -208,8 +238,16 @@ func (m *menu) words(it MenuItem, width float32) *text.Layout {
 	if it.Checked {
 		weight = text.Bold
 	}
-	return ui.Fonts.Layout([]text.Span{{Text: it.Text, Style: ui.Chrome(ui.Size(RoleBody), weight, ink)}},
-		text.Options{MaxWidth: width, Elide: width > 0})
+	st := ui.Chrome(ui.Size(RoleBody), weight, ink)
+	words, _, at := AccessText(it.Text)
+	spans := []text.Span{{Text: words, Style: st}}
+	if at >= 0 {
+		rs := []rune(words)
+		key := st
+		key.Underline = true
+		spans = []text.Span{{Text: string(rs[:at]), Style: st}, {Text: string(rs[at : at+1]), Style: key}, {Text: string(rs[at+1:]), Style: st}}
+	}
+	return ui.Fonts.Layout(spans, text.Options{MaxWidth: width, Elide: width > 0})
 }
 
 func (m *menu) shortcut(it MenuItem) *text.Layout {
@@ -319,7 +357,8 @@ func (m *menu) openSub(i int, first bool) {
 		return
 	}
 	it := m.items[i]
-	sub := newMenu(m.ui, it.Text, it.Items)
+	subTitle, _, _ := AccessText(it.Text)
+	sub := newMenu(m.ui, subTitle, it.Items)
 	sub.parent, sub.previous = m, m.AsPanel()
 	m.sub, m.subLine = sub, i
 	m.light(i)
@@ -477,8 +516,49 @@ func (m *menu) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 	case unison.KeyTab:
 		m.root().close()
 	default:
+		return m.accessKey(key)
+	}
+	return true
+}
+
+// accessKey chooses the line whose access key was typed, or with several
+// lines sharing it, lights the next of them.
+func (m *menu) accessKey(key unison.KeyCode) bool {
+	var typed rune
+	switch {
+	case key >= unison.KeyA && key <= unison.KeyZ:
+		typed = rune('a' + int(key-unison.KeyA))
+	case key >= unison.Key0 && key <= unison.Key9:
+		typed = rune('0' + int(key-unison.Key0))
+	default:
 		return false
 	}
+	var hits []int
+	for i, it := range m.items {
+		if _, k, _ := AccessText(it.Text); k == typed && !it.Disabled && !it.Separator {
+			hits = append(hits, i)
+		}
+	}
+	switch len(hits) {
+	case 0:
+		return false
+	case 1:
+		m.light(hits[0])
+		if len(m.items[hits[0]].Items) > 0 {
+			m.openSub(hits[0], true)
+		} else {
+			m.choose(hits[0])
+		}
+		return true
+	}
+	next := hits[0]
+	for _, h := range hits {
+		if h > m.lit {
+			next = h
+			break
+		}
+	}
+	m.light(next)
 	return true
 }
 
@@ -546,7 +626,7 @@ func (m *menu) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 		box := m.lineBox(i)
 		id := b.AddVirtualChild(i, func(v *accessibility.Node) {
 			v.Role = role.MenuItem
-			v.Name = it.Text
+			v.Name, _, _ = AccessText(it.Text)
 			v.Description = joinWords(it.Explanation, shortcutWords(it.Key))
 			v.Bounds = box
 			v.Disabled = it.Disabled

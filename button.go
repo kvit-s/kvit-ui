@@ -28,6 +28,11 @@ const (
 	// drawn as pressable at rest rather than only once the pointer is on it,
 	// as kvit-cash's copy of the Qt library draws it.
 	ButtonQuiet
+	// ButtonFlat has no ground and no outline at rest, only the hover tint
+	// under the pointer and the selection tint while pressed or checked, for
+	// a toolbar of many buttons told apart by their words, as Kvit's
+	// toolbar draws them (Toolbar.qml, BarBackground).
+	ButtonFlat
 )
 
 // Button is a button with words on it. Danger is separate from the form,
@@ -167,7 +172,7 @@ func (b *Button) draw(gc *unison.Canvas, _ geom.Rect) {
 	if ground != nil {
 		p.round(r, radius, *ground)
 	}
-	if !primary {
+	if !primary && (b.Form != ButtonFlat || b.Checked) {
 		edge := t.BorderStrong
 		switch {
 		case !b.Enabled():

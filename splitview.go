@@ -23,6 +23,10 @@ type SplitView struct {
 	// Fill is the region that takes the room the others leave; the last
 	// unless set.
 	Fill int
+	// OnResize runs after the reader resized a region, by dragging a handle
+	// or with its arrow keys, with the region and its new size in design
+	// pixels, so an application can remember it.
+	OnResize func(pane, design int)
 
 	panes   []unison.Paneler
 	sizes   []Measure // each region's size along the split; nil takes its own
@@ -181,7 +185,16 @@ func (h *splitHandle) resizeTo(from, pixels float32) {
 		}
 	}
 	size := max(0, min(room, from+sign*pixels))
-	s.SetSize(pane, Px(int(math.Round(float64(size)/s.ui.Interface.Scale()))))
+	design := int(math.Round(float64(size) / s.ui.Interface.Scale()))
+	s.SetSize(pane, Px(design))
+	if s.OnResize != nil {
+		s.OnResize(pane, design)
+	}
+}
+
+// DesignSize is a region's size along the split in design pixels.
+func (s *SplitView) DesignSize(pane int) int {
+	return int(math.Round(float64(s.natural(pane)) / s.ui.Interface.Scale()))
 }
 
 func (h *splitHandle) mouseDown(where geom.Point, button, _ int, _ mod.Modifiers) bool {

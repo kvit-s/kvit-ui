@@ -40,6 +40,10 @@ type Style struct {
 	// Tabular draws every digit the same width, so a column of figures lines
 	// up and a changing value does not shift the text beside it.
 	Tabular bool
+	// Rise draws the span's glyphs this many pixels above the line's
+	// baseline, or below it when negative, for superscript and subscript. It
+	// does not change the line's height.
+	Rise float32
 }
 
 // Span is text in one style.

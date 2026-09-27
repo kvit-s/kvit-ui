@@ -186,7 +186,7 @@ func (s *StatusBar) hidden() (items []MenuItem, groups []string) {
 			if g.Label != "" {
 				label = g.Label + " — " + f.Text
 			}
-			items = append(items, MenuItem{Text: label, OnSelect: func() { s.activate(gi, fi) }})
+			items = append(items, MenuItem{Text: PlainMenuText(label), OnSelect: func() { s.activate(gi, fi) }})
 		}
 	}
 	return items, groups

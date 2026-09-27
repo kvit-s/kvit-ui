@@ -49,6 +49,11 @@ type TypeAhead struct {
 	// OnChoose runs with the value chosen, or the words typed when a new one
 	// is made.
 	OnChoose func(value string)
+	// Rank, when set, chooses the matches for what is typed and puts them in
+	// order, best first, for a list whose order is its own, such as notes
+	// ranked by how well their names match; the list still shows at most
+	// MaximumSuggestions of them.
+	Rank func(typed string, source []Suggestion) []Suggestion
 
 	trailing unison.Paneler
 	cursor   int  // the list's cursor
@@ -126,7 +131,8 @@ func (a *TypeAhead) SetTrailing(p unison.Paneler) {
 }
 
 // Matches are the suggestions whose words hold what is typed, ignoring case,
-// in the order of the source, at most MaximumSuggestions of them.
+// in the order of the source, or as Rank has them, at most
+// MaximumSuggestions of them.
 func (a *TypeAhead) Matches() []Suggestion {
 	needle := strings.ToLower(strings.TrimSpace(a.Text()))
 	if needle == "" {
@@ -135,6 +141,10 @@ func (a *TypeAhead) Matches() []Suggestion {
 	limit := a.MaximumSuggestions
 	if limit <= 0 {
 		limit = 8
+	}
+	if a.Rank != nil {
+		found := a.Rank(strings.TrimSpace(a.Text()), a.Source)
+		return found[:min(len(found), limit)]
 	}
 	var found []Suggestion
 	for _, s := range a.Source {
