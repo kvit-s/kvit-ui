@@ -8,6 +8,7 @@ import (
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
 	"github.com/richardwilkes/unison/enums/check"
+	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
@@ -379,5 +380,101 @@ func TestASpotlightClosesOnEscape(t *testing.T) {
 	screen.KeyPress(unison.KeyEscape, 0)
 	if dismissed != 1 || spot.Opened() {
 		t.Errorf("Escape dismissed %d times and left it open: %v", dismissed, spot.Opened())
+	}
+}
+
+// A menu opens with no line lit, the arrow keys move over the lines that can
+// be chosen, Return chooses, and the focus goes back where it was.
+func TestAMenuIsWorkedFromTheKeyboard(t *testing.T) {
+	var button *kvitui.Button
+	var chosen []string
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		button = kvitui.NewButton(ui, "Actions")
+		return []unison.Paneler{kvitui.Left(button)}
+	})
+	pick := func(s string) func() { return func() { chosen = append(chosen, s) } }
+	screen.Do(func() {
+		button.Focus()
+		ui.ShowMenu(button, "Actions", []kvitui.MenuItem{
+			{Text: "Open", Symbol: "file", OnSelect: pick("open")},
+			{Text: "Split", Disabled: true, OnSelect: pick("split")},
+			{Separator: true},
+			{Text: "Delete", Symbol: "trash", Danger: true, Explanation: "Moves it to the bin.", OnSelect: pick("delete")},
+		})
+	})
+	waitFor(t, screen, "the menu to take the focus", func() bool { return !button.Focused() })
+	menu := nodes(screen, w, role.Menu)
+	if len(menu) != 1 || menu[0].Name != "Actions" || len(menu[0].Children) != 3 {
+		t.Fatalf("the menu's node is %+v", menu)
+	}
+	// Down lights Open; Down again skips the disabled line and the divider.
+	screen.KeyPress(unison.KeyDown, 0)
+	screen.KeyPress(unison.KeyDown, 0)
+	if n := focusedNode(screen, w); n == nil || n.Role != role.MenuItem || n.Name != "Delete" || n.Description != "Moves it to the bin." {
+		t.Errorf("Down twice reached %+v", n)
+	}
+	screen.KeyPress(unison.KeyReturn, 0)
+	screen.Do(func() {
+		if len(chosen) != 1 || chosen[0] != "delete" || len(w.Popups()) != 0 || !button.Focused() {
+			t.Errorf("Return chose %v, left %d popups, and the button focused: %v", chosen, len(w.Popups()), button.Focused())
+		}
+	})
+}
+
+// The Menu key, Shift+F10 and a right-click open a context menu: a field's
+// editing commands, and a table header's column menu.
+func TestContextMenusOpenFromTheKeyboardAndThePointer(t *testing.T) {
+	var field *kvitui.Field
+	var table *kvitui.Table
+	screen, _, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		field = kvitui.NewField(ui)
+		field.Label = "Payee"
+		table = kvitui.NewTable(ui, kvitui.NewBenchmarkTableModel(40))
+		return []unison.Paneler{kvitui.Left(field), kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(200), table))}
+	})
+	items := func() []string {
+		var out []string
+		for _, n := range nodes(screen, w, role.MenuItem) {
+			out = append(out, n.Name)
+		}
+		return out
+	}
+	screen.Click(screen.PanelCenter(field.Edit()))
+	screen.KeyPress(unison.KeyMenu, 0)
+	if got := items(); len(got) != 4 {
+		t.Errorf("the Menu key in a field opened %v", got)
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	screen.KeyPress(unison.KeyF10, mod.Shift)
+	if got := items(); len(got) != 4 {
+		t.Errorf("Shift+F10 in a field opened %v", got)
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	if len(w.Popups()) != 0 {
+		t.Fatal("Escape left the menu open")
+	}
+	// A right-click on the table's header opens the column's menu.
+	screen.ClickWith(screen.PanelPoint(table, geom.NewPoint(20, 10)), unison.ButtonRight, 0)
+	found := false
+	for _, n := range items() {
+		found = found || n == "Hide this column"
+	}
+	if !found {
+		t.Errorf("a right-click on the header opened %v", items())
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	// The Menu key on the header opens the menu of the column its cursor is
+	// on, under that column.
+	for range 4 {
+		if n := focusedNode(screen, w); n != nil && n.Role == role.ColumnHeader {
+			break
+		}
+		screen.KeyPress(unison.KeyTab, 0)
+	}
+	screen.KeyPress(unison.KeyRight, 0)
+	screen.KeyPress(unison.KeyMenu, 0)
+	menus := nodes(screen, w, role.Menu)
+	if len(menus) != 1 || menus[0].Name != "Reference" {
+		t.Errorf("the Menu key on the header's second column opened %+v", menus)
 	}
 }

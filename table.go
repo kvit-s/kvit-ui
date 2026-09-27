@@ -668,6 +668,16 @@ func newTableHeader(t *Table) *tableHeader {
 		h.MarkForRedraw()
 		return false
 	}
+	// A right-click, the Menu key and Shift+F10 open a column's menu under
+	// the column: under the pointer for a click, under the cursor for a key.
+	setContextOpener(h, func(where geom.Point) bool {
+		col := h.columnAt(where)
+		if col < 0 {
+			return false
+		}
+		t.columnMenu(col)
+		return true
+	})
 	h.MouseDownCallback = h.mouseDown
 	h.MouseDragCallback = h.mouseDrag
 	h.MouseUpCallback = h.mouseUp
@@ -711,6 +721,16 @@ func (h *tableHeader) edgeAt(where geom.Point) int {
 		}
 	}
 	return -1
+}
+
+// ContextMenuAnchor is where the Menu key opens a column's menu: in the
+// column the cursor is on.
+func (h *tableHeader) ContextMenuAnchor() geom.Point {
+	if p, ok := h.t.placeOf(h.t.cursor); ok {
+		b := h.columnBox(p)
+		return geom.NewPoint(b.X+b.Width/2, b.Bottom())
+	}
+	return geom.Point{}
 }
 
 // buttonBox is where a column's menu button is.
@@ -832,10 +852,6 @@ func (h *tableHeader) mouseDown(where geom.Point, button, _ int, _ mod.Modifiers
 	t := h.t
 	h.tip.clear()
 	col := h.columnAt(where)
-	if button == unison.ButtonRight {
-		t.columnMenu(col)
-		return true
-	}
 	if button != unison.ButtonLeft {
 		return false
 	}
@@ -914,9 +930,9 @@ func (h *tableHeader) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bo
 			return true
 		}
 	}
-	// Alt+Down is the chord every desktop uses to open a control's list,
-	// and the Menu key is the key for it.
-	if (mods.OptionDown() && key == unison.KeyDown) || key == unison.KeyMenu {
+	// Alt+Down is the chord every desktop uses to open a control's list; the
+	// window opens the same menu for the Menu key and Shift+F10.
+	if mods.OptionDown() && key == unison.KeyDown {
 		t.columnMenu(col)
 		return true
 	}

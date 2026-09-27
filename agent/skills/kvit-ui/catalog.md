@@ -2659,19 +2659,19 @@ func scrollBarBesideColumn(ui *kvitui.UI) unison.Paneler {
 
 ### KvitMenu
 
-A list of commands, opened with UI.ShowMenu. It is unison's menu in the Kvit colours and type, as the owner chose: it answers the arrow keys, Return and Escape, and teaches each shortcut by showing it beside its command.
+A list of commands. Eighteen private versions in the estate, and what they mostly get wrong is the same two things: no keyboard route in, and no separator before the destructive item. Opened by a button, a right-click, the Menu key or Shift+F10; drawn by Kvit on Windows and Linux and by the system on macOS.
 
 ```go
 func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) (closeMenu func())
 ```
 
-ShowMenu opens a menu of items under anchor.
+ShowMenu opens a menu of items under anchor, and returns the function that closes it.
 
 ```go
 func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) (closeMenu func())
 ```
 
-ShowMenuAt opens a menu of items under one part of owner, given in owner's own coordinates, such as one column of a table's header, and returns the function that closes it.
+ShowMenuAt opens a menu of items with its top left corner at the bottom left of one part of owner, given in owner's own coordinates, such as one column of a table's header or the point a right-click landed on, and returns the function that closes it.
 
 *Opened, with shortcuts and a destructive item*
 
@@ -2682,11 +2682,11 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
     // opens its menu.
     whenShown(stage, func() {
         ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-            {Text: "Open", Key: command(unison.KeyO)},
-            {Text: "Duplicate", Key: command(unison.KeyD)},
-            {Text: "Archive"},
+            {Text: "Open", Symbol: "file", Key: command(unison.KeyO)},
+            {Text: "Duplicate", Symbol: "copy", Key: command(unison.KeyD)},
+            {Text: "Archive", Symbol: "archive"},
             {Separator: true},
-            {Text: "Delete"},
+            {Text: "Delete", Symbol: "trash", Danger: true},
         })
     })
     return stage
@@ -2701,7 +2701,10 @@ One line of a menu, carrying its shortcut on the right — which is how a menu t
 |---|---|---|
 | `Text` | `string` | Text is what the line says. |
 | `Key` | `unison.KeyBinding` | Key is the shortcut shown at the right of the line, which is how a menu teaches that there is a faster way; the zero value shows none. |
-| `Checked` | `bool` | Checked marks the entry in use. |
+| `Symbol` | `string` | Symbol is an optional meaning name drawn before the words. |
+| `Explanation` | `string` | Explanation is one sentence saying what choosing the line does, for a line whose words cannot say it: shown as its tooltip and told to a screen reader, never in place of the words. |
+| `Danger` | `bool` | Danger draws a destructive line in the danger colour. |
+| `Checked` | `bool` | Checked marks the entry in use, with a tick in place of its symbol and its words in bold, so it still stands out in grey. |
 | `Disabled` | `bool` | Disabled draws the line and does nothing when chosen. |
 | `Separator` | `bool` | Separator makes the line a divider instead, as goes before a destructive entry at the bottom of a menu. |
 | `OnSelect` | `func()` | OnSelect runs when the line is chosen. |
@@ -2713,9 +2716,9 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
     stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(110), unison.NewPanel()))
     whenShown(stage, func() {
         ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-            {Text: "Reconcile", Key: command(unison.KeyR)},
-            {Text: "Split", Disabled: true},
-            {Text: "Delete"},
+            {Text: "Reconcile", Symbol: "check", Key: command(unison.KeyR)},
+            {Text: "Split", Symbol: "split", Disabled: true},
+            {Text: "Delete", Symbol: "trash", Danger: true},
         })
     })
     return stage

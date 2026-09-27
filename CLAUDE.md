@@ -105,9 +105,10 @@ each Go screenshot above the Qt one with the same name, in
   `Heading`, `SpinButton`, `TextField` and the other roles
   `role.Enum.IsText` lists) into its name and leaves them out of the tree. A
   component that holds a control must not take one of those roles.
-- **Two parts are unison's, by the owner's choice (2026-09-26):** text entry
-  is unison's field with the Kvit look drawn around it (`field.go`), and
-  menus are unison's menus in the Kvit colours (`menu.go`).
+- **Text entry is unison's field, by the owner's choice (2026-09-26),** with
+  the Kvit look drawn around it (`field.go`). **Menus are Kvit's** on
+  Windows and Linux, drawn in the window's popup layer, and the system's
+  own on macOS (owner's choice, 2026-09-27; `menu.go`).
 - **kvit-cash's copy of the Qt library is newer in places.** Its seven extra
   commits are listed at the end of `PARITY.md`; a component follows them,
   and its entry says where that makes it differ from the Qt screenshot.

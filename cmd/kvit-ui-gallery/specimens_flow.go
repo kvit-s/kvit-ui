@@ -53,11 +53,11 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
 	// opens its menu.
 	whenShown(stage, func() {
 		ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-			{Text: "Open", Key: command(unison.KeyO)},
-			{Text: "Duplicate", Key: command(unison.KeyD)},
-			{Text: "Archive"},
+			{Text: "Open", Symbol: "file", Key: command(unison.KeyO)},
+			{Text: "Duplicate", Symbol: "copy", Key: command(unison.KeyD)},
+			{Text: "Archive", Symbol: "archive"},
 			{Separator: true},
-			{Text: "Delete"},
+			{Text: "Delete", Symbol: "trash", Danger: true},
 		})
 	})
 	return stage
@@ -67,9 +67,9 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(110), unison.NewPanel()))
 	whenShown(stage, func() {
 		ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-			{Text: "Reconcile", Key: command(unison.KeyR)},
-			{Text: "Split", Disabled: true},
-			{Text: "Delete"},
+			{Text: "Reconcile", Symbol: "check", Key: command(unison.KeyR)},
+			{Text: "Split", Symbol: "split", Disabled: true},
+			{Text: "Delete", Symbol: "trash", Danger: true},
 		})
 	})
 	return stage

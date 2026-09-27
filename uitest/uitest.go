@@ -180,7 +180,8 @@ func (s *Session) WaitFor(what string, cond func() bool) {
 // CheckNamed fails the test for every node a reader can reach or press that
 // does not say what kind of thing it is or what it is called: a control with
 // no name is read as "button" and nothing else. An empty table cell may have
-// no name, since its description names its row.
+// no name, since its description names its row, and so may a menu, whose
+// lines each have one.
 func (s *Session) CheckNamed() {
 	s.t.Helper()
 	for _, problem := range Unnamed(s.Tree()) {
@@ -203,7 +204,7 @@ func Unnamed(tree *accessibility.Tree) []string {
 		if n.Role == role.Auto || n.Role == role.None || n.Role == role.Unknown {
 			out = append(out, "a node named "+quote(n.Name)+" has no role")
 		}
-		if n.Name == "" && len(n.LabeledBy) == 0 && n.Role != role.Cell {
+		if n.Name == "" && len(n.LabeledBy) == 0 && n.Role != role.Cell && n.Role != role.Menu {
 			out = append(out, "a "+n.Role.String()+" node at "+n.Bounds.String()+" has no name")
 		}
 	}

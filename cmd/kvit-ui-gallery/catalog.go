@@ -554,7 +554,7 @@ var catalog = []entry{
 	{
 		name:    "KvitMenu",
 		group:   "Flow",
-		summary: "A list of commands, opened with UI.ShowMenu. It is unison's menu in the Kvit colours and type, as the owner chose: it answers the arrow keys, Return and Escape, and teaches each shortcut by showing it beside its command.",
+		summary: "A list of commands. Eighteen private versions in the estate, and what they mostly get wrong is the same two things: no keyboard route in, and no separator before the destructive item. Opened by a button, a right-click, the Menu key or Shift+F10; drawn by Kvit on Windows and Linux and by the system on macOS.",
 		specimens: []specimen{
 			{caption: "Opened, with shortcuts and a destructive item", build: menuOpened},
 		},

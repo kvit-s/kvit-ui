@@ -197,6 +197,26 @@ func (f *Field) initField(ui *UI, multi bool) {
 		can, do := e.InstallCmdHandlers(id, nil, nil)
 		e.InstallCmdHandlers(id, func(v any) bool { return !f.ReadOnly && can(v) }, do)
 	}
+	// The editing commands as a Kvit menu, as every other menu is, rather
+	// than unison's own.
+	e.ContextMenuCallback = nil
+	ui.SetContextMenu(e, func(geom.Point) (string, []MenuItem) {
+		command := func(a *unison.Action, can func() bool, do func()) MenuItem {
+			return MenuItem{Text: a.Title, Key: a.KeyBinding, Disabled: !can(), OnSelect: do}
+		}
+		cut := e.CanCut
+		paste := e.CanPaste
+		if f.ReadOnly {
+			cut, paste = func() bool { return false }, func() bool { return false }
+		}
+		return "", []MenuItem{
+			command(unison.CutAction(), cut, e.Cut),
+			command(unison.CopyAction(), e.CanCopy, e.Copy),
+			command(unison.PasteAction(), paste, e.Paste),
+			{Separator: true},
+			command(unison.SelectAllAction(), e.CanSelectAll, e.SelectAll),
+		}
+	})
 	f.message = NewLabel(ui, "")
 	f.message.Role, f.message.Ink, f.message.Wrap = RoleCaption, InkDanger, true
 	f.AddChild(e)

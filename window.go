@@ -94,10 +94,17 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 		if w.popupKeys(key) {
 			return true
 		}
+		if !repeat && w.contextKeys(key, mods) {
+			return true
+		}
 		return w.OnKeyDown != nil && w.OnKeyDown(key, mods, repeat)
 	}
-	uw.MouseDownCallback = func(where geom.Point, _, _ int, _ mod.Modifiers) bool {
-		return w.popupPress(uw.Content().PointFromRoot(where))
+	uw.MouseDownCallback = func(where geom.Point, button, _ int, _ mod.Modifiers) bool {
+		at := uw.Content().PointFromRoot(where)
+		if w.popupPress(at) {
+			return true
+		}
+		return button == unison.ButtonRight && w.contextPress(at)
 	}
 	if ui.windows == nil {
 		ui.windows = map[*unison.Window]*Window{}

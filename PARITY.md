@@ -372,19 +372,25 @@ component draws it itself, cut off at its box.
   Kvit colours in a strip of its own). Evidence: the region test;
   `light-KvitScrollBar.png` matches, with the same row-width difference as
   `KvitRegion`.
-- [ ] `KvitMenu`, as `UI.ShowMenu` and `UI.ShowMenuAt`: unison's menu, drawn
-  in the Kvit colours and type on Windows and Linux and native on macOS, as
-  the owner chose on 2026-09-26. It has text, a shortcut, a check and
-  separators, answers the arrow keys, Return and Escape, and opens with no
-  line lit, as the Qt menu does. `light-KvitMenu.png` shows it open on its
-  page, as the Qt page does. Not ticked: it cannot show the Qt menu's
-  symbols, a destructive item in the danger colour or explanations, its
-  minimum width is not the Qt menu's 200 px, and its separator is taller.
-  The Kvit window's popup layer (`Window.Show`) now exists, so a menu drawn
-  by Kvit, with all of these, would be a small component if the owner
-  chooses it.
-- [ ] `KvitMenuItem`: the `MenuItem` lines of `ShowMenu`, with the same gaps;
-  `light-KvitMenuItem.png` shows the disabled line.
+- [x] `KvitMenu` (`UI.ShowMenu`, `UI.ShowMenuAt`, and `UI.SetContextMenu`).
+  Evidence: `TestAMenuIsWorkedFromTheKeyboard`,
+  `TestContextMenusOpenFromTheKeyboardAndThePointer`; `light-KvitMenu.png`
+  matches, the words one pixel lower. As the owner chose on 2026-09-27, it
+  is drawn by Kvit in the window's popup layer on Windows and Linux, as the
+  Qt menu is drawn by Qt, and is the system's own menu on macOS, which
+  shows no symbols and no destructive colour. It opens with no line lit,
+  moves with the arrow keys, Home and End over the lines that can be
+  chosen, chooses with Return or Space, closes on Escape or a press
+  outside, and gives the focus back. A context menu (`SetContextMenu`)
+  opens on a right-click, the Menu key and Shift+F10, which the window
+  handles before any control sees the key; a field's editing commands and
+  a table header's column menu use it. The separator is the decorative
+  border colour; Qt's comes from its style's palette, which is no Kvit
+  colour.
+- [x] `KvitMenuItem` (`MenuItem`). Evidence: the same tests;
+  `light-KvitMenuItem.png` matches. It has the newer Qt item's
+  `Explanation`, shown as the line's tooltip and told to a screen reader,
+  and its chosen entry drawn with a tick and in bold.
 - [x] `KvitTree` (`Tree`, over a `TreeModel`, or `TreeNodes` written out).
   Evidence: `TestATreeOpensAndStepsWithTheArrows`; `light-KvitTree.png`
   matches. It draws only the rows in view and asks the model only about
