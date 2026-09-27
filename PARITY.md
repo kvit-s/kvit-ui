@@ -44,7 +44,9 @@ Taken from `agent/skills/kvit-ui/catalog.md` in `~/kvit-ui` at commit 0a0b210 (7
 
 The screenshot evidence below is `./build.sh --shots`, which writes each Go
 page under the Qt file name and stacks it above the Qt shot in
-`build/shots/compare`. "Matches" means the pair was compared by eye region by
+`build/shots/compare`. As in the Qt run, the window is as wide as the design
+width at each interface size (1200, 1440 and 2880 px at 10, 12 and 24 px),
+and numbers are written under the C locale, with no digit grouping. "Matches" means the pair was compared by eye region by
 region, and positions agree to the pixel unless a difference is listed.
 
 ### Foundation (4)
@@ -75,10 +77,24 @@ yet.
 
 ### Structure (8)
 
-- [ ] `KvitHeader`
-- [ ] `KvitSidebar`
-- [ ] `KvitSidebarItem`
-- [ ] `KvitBreadcrumb`
+- [x] `KvitHeader` (`Header`). Evidence: `TestTheHeaderKeepsItsThreePlaces`;
+  `light-KvitHeader.png` matches.
+- [x] `KvitSidebar` (`Sidebar`). Evidence:
+  `TestASidebarItemSaysWhereItGoesAndHowMuchIsThere`; `light-KvitSidebar.png`
+  matches for the expanded sidebar. The rail differs on purpose: in Qt the
+  items keep the full sidebar width (232 px at 12 px) inside a 48 px rail,
+  because a QML `Column` does not give its children its width, so the
+  selection tint and the centred symbols reach far past the rail. Go's items
+  take the sidebar's width.
+- [x] `KvitSidebarItem` (`SidebarItem`). Evidence: the same test;
+  `light-KvitSidebarItem.png` matches for the expanded items, and its rail
+  specimen differs from Qt for the reason given under `KvitSidebar`. The
+  tooltip in the rail shows on pointer hover after unison's own delay
+  rather than Qt's 400 ms.
+- [x] `KvitBreadcrumb` (`Breadcrumb`). Evidence:
+  `TestTheBreadcrumbLinksBackAndCutsTheMiddle`; `light-KvitBreadcrumb.png`
+  matches. The crumbs that can be followed are `Link`s, so unlike Qt's they
+  can also be reached with Tab and followed with the keyboard.
 - [ ] `KvitRegion`
 - [ ] `KvitViewHead` (`ViewHead`): built and used for the head of every
   gallery page, with kvit-cash's side padding. Evidence so far:
@@ -95,9 +111,11 @@ yet.
 - [ ] `KvitRow`
 - [ ] `KvitSlimRow`
 - [ ] `KvitCard`
-- [ ] `KvitPanel`
+- [x] `KvitPanel` (`Panel`). Evidence: `TestAPanelDrawsTheRulesItIsAskedFor`;
+  `light-KvitPanel.png` matches.
 - [ ] `KvitPane`
-- [ ] `KvitDivider`
+- [x] `KvitDivider` (`Divider`). Evidence: `TestADividerIsOneHairline`;
+  `sepia-KvitDivider.png` matches.
 - [ ] `KvitDisclosure`
 - [ ] `KvitEmptyState`
 
@@ -105,7 +123,9 @@ yet.
 
 - [ ] `KvitChip`
 - [ ] `KvitTag`
-- [ ] `KvitBadge`
+- [x] `KvitBadge` (`Badge`). Evidence:
+  `TestABadgeCapsHidesAtZeroAndSaysItsNoun`; `dark-KvitBadge.png` and
+  `highContrast-24px-KvitBadge.png` match.
 - [ ] `KvitSlug`
 - [ ] `KvitDot`
 - [ ] `KvitSignal`
@@ -126,7 +146,11 @@ yet.
 - [ ] `KvitSearchField`
 - [ ] `KvitCheck`
 - [ ] `KvitSelect`
-- [ ] `KvitTab`
+- [x] `KvitTab` (`Tab`). Evidence:
+  `TestATabSaysWhatItHoldsAndWhetherItIsChosen`; `dark-KvitTab.png`,
+  `dark-24px-KvitTab.png` and `light-10px-KvitTab.png` match. The Qt tab also
+  shows its explanation as a tooltip when it gains keyboard focus; the Go
+  one shows it only on pointer hover so far, as with `KvitIconButton`.
 
 ### Feedback (7)
 

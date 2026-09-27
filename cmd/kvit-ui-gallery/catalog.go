@@ -68,6 +68,73 @@ var catalog = []entry{
 			{"Elided in a narrow column", linkElided},
 		},
 	},
+	{
+		name:    "KvitHeader",
+		group:   "Structure",
+		summary: "The strip across the top of the window: the wordmark, navigation in the middle, actions on the right, in that fixed order on every screen.",
+		specimens: []specimen{
+			{"With navigation and actions", headerWithNavigation},
+		},
+	},
+	{
+		name:    "KvitSidebar",
+		group:   "Structure",
+		summary: "The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone.",
+		specimens: []specimen{
+			{"Expanded and collapsed", sidebarExpandedAndCollapsed},
+		},
+	},
+	{
+		name:    "KvitSidebarItem",
+		group:   "Structure",
+		summary: "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number.",
+		specimens: []specimen{
+			{"Selected, hovered and counted", sidebarItemStates},
+			{"The rail, with and without its counts", sidebarItemRail},
+		},
+	},
+	{
+		name:    "KvitBreadcrumb",
+		group:   "Structure",
+		summary: "Where the reader is and the way back. The last crumb is the current place and is deliberately not a link; a long trail elides from the middle, keeping the section and the current place.",
+		specimens: []specimen{
+			{"A short trail and a long one", breadcrumbTrails},
+		},
+	},
+	{
+		name:    "KvitPanel",
+		group:   "Content",
+		summary: "A region of the window with its own ground: a sidebar, a toolbar strip. Structural, where a card is content — which is why it has no radius.",
+		specimens: []specimen{
+			{"With rules on two edges", panelWithRules},
+		},
+	},
+	{
+		name:    "KvitDivider",
+		group:   "Content",
+		summary: "A rule between two things. One design pixel, in the decorative border token rather than the control-boundary one.",
+		specimens: []specimen{
+			{"Horizontal and vertical", dividerBothWays},
+		},
+	},
+	{
+		name:    "KvitBadge",
+		group:   "Marks",
+		summary: "A count attached to something else. Caps rather than growing wide, and hides at zero — a badge showing nought says look here about nothing. The number is drawn and announced with the reader's own digit grouping, and the noun beside it comes from the caller in two slots, a singular and a plural.",
+		specimens: []specimen{
+			{"Counts, capped, and hidden at zero", badgeCounts},
+			{"What the count counts", badgeNouns},
+		},
+	},
+	{
+		name:    "KvitTab",
+		group:   "Controls",
+		summary: "One tab in a row of them. The selected tab is marked by an underline as well as by colour and weight — selection shown by colour alone is the most common place the rule gets broken. `Explanation` is one sentence saying what the view behind the tab shows, which two or three words cannot.",
+		specimens: []specimen{
+			{"Selected, counted and plain", tabForms},
+			{"Each tab saying what its view shows", tabExplanations},
+		},
+	},
 }
 
 func entryNamed(name string) (entry, bool) {

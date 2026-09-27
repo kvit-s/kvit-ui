@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
@@ -36,9 +38,17 @@ func TestShots(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
+		// As wide as the design width at the shot's interface size, as the
+		// Qt set is, and at least the gallery's usual height.
+		m := tokens.NewInterface()
+		for _, size := range shotSizes {
+			if strings.Contains(name, fmt.Sprintf("-%dpx-", size)) {
+				m.SetFontSize(size)
+			}
+		}
 		b := img.Bounds()
-		if b.Dx() < windowWidth || b.Dy() < windowHeight {
-			t.Errorf("%s is %d × %d, smaller than the window", name, b.Dx(), b.Dy())
+		if b.Dx() != m.WidthDrawn() || b.Dy() < windowHeight {
+			t.Errorf("%s is %d × %d, want %d wide and at least %d tall", name, b.Dx(), b.Dy(), m.WidthDrawn(), windowHeight)
 		}
 		// Blank would be one colour throughout; count a sample of distinct ones.
 		seen := map[uint32]bool{}

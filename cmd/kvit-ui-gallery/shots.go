@@ -41,7 +41,9 @@ func writeShots(dir, compare string) ([]string, error) {
 	}
 	var g *gallery
 	var startErr error
-	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: windowWidth, Height: 16000},
+	widest := tokens.NewInterface()
+	widest.SetFontSize(tokens.MaxInterfaceSize)
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: float32(widest.WidthDrawn()), Height: 16000},
 		unison.StartupFinishedCallback(func() {
 			g, startErr = newGallery(ui, "Foundations", nil)
 		}))
@@ -90,14 +92,16 @@ func writeShots(dir, compare string) ([]string, error) {
 	return written, nil
 }
 
-// fit sizes the window so the page shows in full: at least the gallery's
-// usual 1440 × 960, taller when the page needs it.
+// fit sizes the window so the page shows in full: as wide as the design
+// width at the current interface size, which is the width the Qt gallery's
+// window takes and so where its pages wrap, and at least 960 tall, taller
+// when the page needs it.
 func (g *gallery) fit() {
 	m := g.ui.Interface
-	width := float32(windowWidth - m.SidebarWidth())
-	need := float32(m.HeaderHeight()+m.StatusBarHeight()) + g.pageHeight(width) + float32(m.Space())
+	width := float32(m.WidthDrawn())
+	need := float32(m.HeaderHeight()+m.StatusBarHeight()) + g.pageHeight(width-float32(m.SidebarWidth())) + float32(m.Space())
 	h := max(float32(windowHeight), need)
-	g.wnd.SetContentRect(geom.NewRect(0, 0, windowWidth, h))
+	g.wnd.SetContentRect(geom.NewRect(0, 0, width, h))
 	g.wnd.Content().MarkForLayoutRecursively()
 	g.wnd.ValidateLayout()
 	g.wnd.MarkForRedraw()

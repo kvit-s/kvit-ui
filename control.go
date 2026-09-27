@@ -49,7 +49,9 @@ func (u *UI) Size(r TypeRole) int {
 // control is what the interactive components share: hover and press state,
 // activation by the pointer and by the keyboard, and a focus ring that shows
 // only when the focus arrived from the keyboard. A ring on every click is
-// noise; a keyboard user needs to see where they are.
+// noise; a keyboard user needs to see where they are. The focus a window
+// hands its first control when it opens came from neither, and shows no
+// ring either, as in Qt.
 type control struct {
 	unison.Panel
 	ui            *UI
@@ -57,6 +59,7 @@ type control struct {
 	pressed       bool
 	keyboardFocus bool // the focus came from the keyboard, so the ring shows
 	pointerFocus  bool // set while a press is giving the control the focus
+	askedFocus    bool // set while Focus is giving the control the focus
 	activate      func()
 	keys          []unison.KeyCode // the keys that activate the control
 	ringRadius    func() float32   // the corner radius of the shape the ring surrounds
@@ -70,6 +73,13 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 	c.activate = activate
 	c.keys = keys
 	c.SetFocusable(true)
+	// Laid out in a window means shown in it, before anybody can press a key
+	// there, which is when the window has to start watching for keys.
+	c.FrameChangeCallback = func() {
+		if w := c.Window(); w != nil {
+			ui.watchWindow(w)
+		}
+	}
 	c.MouseEnterCallback = func(geom.Point, mod.Modifiers) bool {
 		c.hovered = true
 		c.MarkForRedraw()
@@ -118,11 +128,11 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 		return true
 	}
 	c.GainedFocusCallback = func() {
-		c.keyboardFocus = !c.pointerFocus
-		c.pointerFocus = false
+		c.keyboardFocus = !c.pointerFocus && (c.askedFocus || ui.keyTurn)
+		c.pointerFocus, c.askedFocus = false, false
 		c.MarkForRedraw()
 		if w := c.Window(); w != nil {
-			ui.paintRingsIn(w)
+			ui.watchWindow(w)
 			w.MarkForRedraw()
 		}
 	}
@@ -145,11 +155,13 @@ func (c *control) fire() {
 // would. A control not in a window yet takes it once it is.
 func (c *control) Focus() {
 	if c.Window() != nil {
+		c.askedFocus = true
 		c.RequestFocus()
 		return
 	}
 	unison.InvokeTask(func() {
 		if c.Window() != nil {
+			c.askedFocus = true
 			c.RequestFocus()
 		}
 	})
@@ -178,26 +190,46 @@ func (c *control) focusRing() (*unison.Panel, float32, bool) {
 	return c.AsPanel(), r, c.KeyboardFocus() && !c.noRing
 }
 
-// paintRingsIn makes a window draw the focus ring of whichever Kvit control
-// holds its keyboard focus. The ring sits outside the control's own box, as
-// the Qt library draws it, and unison clips each panel's drawing to its
-// bounds, so it is drawn by the window over everything, clipped to the area
-// the control's container shows.
-func (u *UI) paintRingsIn(w *unison.Window) {
-	if u.ringWindows == nil {
-		u.ringWindows = map[*unison.Window]bool{}
+// watchWindow makes a window draw the focus ring of whichever Kvit control
+// holds its keyboard focus, and tell the controls when a key is being
+// handled, so a control can tell focus moved by Tab from the focus the window
+// hands out when it opens.
+//
+// The ring sits outside the control's own box, as the Qt library draws it,
+// and unison clips each panel's drawing to its bounds, so it is drawn by the
+// window over everything, clipped to the area the control's container shows.
+//
+// The key watch wraps the window's KeyDownCallback. An application that sets
+// its own after Kvit controls are shown in the window has to call the one it
+// replaces.
+func (u *UI) watchWindow(w *unison.Window) {
+	if u.watched == nil {
+		u.watched = map[*unison.Window]bool{}
 	}
-	if u.ringWindows[w] {
+	if u.watched[w] {
 		return
 	}
-	u.ringWindows[w] = true
+	u.watched[w] = true
+	previousKey := w.KeyDownCallback
+	w.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		// unison moves the focus for Tab after this returns, within the same
+		// key press; the turn ends once the press has been handled.
+		u.keyTurn = true
+		unison.InvokeTask(func() { u.keyTurn = false })
+		if previousKey != nil {
+			return previousKey(key, mods, repeat)
+		}
+		return false
+	}
 	content := w.Content()
 	previous := content.DrawOverCallback
 	content.DrawOverCallback = func(gc *unison.Canvas, rect geom.Rect) {
 		if previous != nil {
 			previous(gc, rect)
 		}
-		focus := w.Focus()
+		// CurrentFocus rather than Focus, which hands the focus to the first
+		// control it finds when nothing holds it.
+		focus := w.CurrentFocus()
 		if focus == nil {
 			return
 		}

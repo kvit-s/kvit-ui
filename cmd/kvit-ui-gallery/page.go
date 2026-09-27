@@ -31,7 +31,11 @@ func buildComponentPage(ui *kvitui.UI, e entry) *unison.Panel {
 func specimenFrame(ui *kvitui.UI, content unison.Paneler) *unison.Panel {
 	f := unison.NewPanel()
 	f.SetLayout(&unison.FlexLayout{Columns: 1})
-	content.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Start, VAlign: align.Start})
+	// At the top left unless the specimen asked for more, as a full-width
+	// header does.
+	if content.AsPanel().LayoutData() == nil {
+		content.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Start, VAlign: align.Start})
+	}
 	f.AddChild(content)
 	f.SetBorder(kvitui.Padding(ui, kvitui.SizeSpaceLoose))
 	f.SetLayout(kvitui.AtLeast(ui, kvitui.SizeRowHeight, f.Layout()))

@@ -31,8 +31,11 @@ type UI struct {
 	// Number. language.Und groups no digits, as the C locale does.
 	Locale   language.Tag
 	onChange []func()
-	// ringWindows are the windows already drawing keyboard focus rings.
-	ringWindows map[*unison.Window]bool
+	// watched are the windows already drawing focus rings and watching keys.
+	watched map[*unison.Window]bool
+	// keyTurn is set while a window is handling a key press, so focus that
+	// moves then came from the keyboard.
+	keyTurn bool
 }
 
 // Options configure New.
@@ -44,8 +47,10 @@ type Options struct {
 	// user cache directory.
 	FontCacheDir string
 	// IgnoreDesktop leaves the desktop's appearance and locale out, so
-	// "system" is light, motion is on and numbers are written as in American
-	// English. Screenshots and tests want the same result on every machine.
+	// "system" is light, motion is on and numbers are written as under the C
+	// locale, with no digit grouping, which is what the Qt gallery's
+	// screenshot set was taken under. Screenshots and tests want the same
+	// result on every machine.
 	IgnoreDesktop bool
 }
 
@@ -80,7 +85,7 @@ func New(opt Options) (*UI, error) {
 	}
 	if opt.IgnoreDesktop {
 		u.Appearance.Set(false, false, false)
-		u.Locale = language.AmericanEnglish
+		u.Locale = language.Und
 	} else if tag, err := language.Parse(platform.Locale()); err == nil {
 		u.Locale = tag
 	}

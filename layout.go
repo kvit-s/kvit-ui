@@ -138,3 +138,28 @@ func (a *atLeast) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, pr
 	maxSize.Height = max(maxSize.Height, prefSize.Height)
 	return minSize, prefSize, maxSize
 }
+
+// FullWidth makes a panel as wide as the column or frame it sits in, which
+// is what `width: parent.width` says in QML.
+func FullWidth[T unison.Paneler](p T) T {
+	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
+	return p
+}
+
+// syncing runs sync before every size question and every layout, so a
+// component whose child panels follow its fields picks up a field changed
+// since the last layout.
+type syncing struct {
+	unison.Layout
+	sync func()
+}
+
+func (s syncing) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	s.sync()
+	return s.Layout.LayoutSizes(target, hint)
+}
+
+func (s syncing) PerformLayout(target *unison.Panel) {
+	s.sync()
+	s.Layout.PerformLayout(target)
+}
