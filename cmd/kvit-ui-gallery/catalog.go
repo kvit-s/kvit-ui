@@ -220,12 +220,62 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitChip",
+		group:   "Marks",
+		summary: "A small labelled mark saying what kind of thing this is or what state it is in. The tone names a meaning rather than a colour, and every tone carries its outline as well as its tint so the distinction is not resting on hue. It is a mark and not a control: a chip that opens something when it is pressed is KvitChipButton, drawn from this same tone table.",
+		specimens: []specimen{
+			{caption: "Every tone, tinted and filled", build: chipTones},
+			{caption: "A state whose word is not enough to act on", build: chipExplanation},
+		},
+	},
+	{
+		name:    "KvitTag",
+		group:   "Marks",
+		summary: "A label a person put there, in a colour they chose. Theme-independent, because the reader picked that red and would not expect it to change; the label colour is derived from the fill rather than taken from a token.",
+		specimens: []specimen{
+			{caption: "Tinted, plain and removable", build: tagForms},
+		},
+	},
+	{
 		name:    "KvitBadge",
 		group:   "Marks",
 		summary: "A count attached to something else. Caps rather than growing wide, and hides at zero — a badge showing nought says look here about nothing. The number is drawn and announced with the reader's own digit grouping, and the noun beside it comes from the caller in two slots, a singular and a plural.",
 		specimens: []specimen{
 			{caption: "Counts, capped, and hidden at zero", build: badgeCounts},
 			{caption: "What the count counts", build: badgeNouns},
+		},
+	},
+	{
+		name:    "KvitSlug",
+		group:   "Marks",
+		summary: "An identifier: a reference, a hash, a key. Monospace, because the task is comparison rather than reading, and elided from the middle because the end is what distinguishes one from its neighbours.",
+		specimens: []specimen{
+			{caption: "With and without a ground", build: slugGrounds},
+		},
+	},
+	{
+		name:    "KvitDot",
+		group:   "Marks",
+		summary: "A small filled circle standing for one thing's state. The shape is the second channel: a level that differs only by hue says nothing to a reader who cannot separate red from amber.",
+		specimens: []specimen{
+			{caption: "Three shapes, three levels", build: dotLevels},
+		},
+	},
+	{
+		name:    "KvitSignal",
+		group:   "Marks",
+		summary: "A mark saying what state something is in and how many things are in it, for a list where one row may have several of each. The number is drawn only past one, because a column of marks all reading `1` says nothing the mark did not already say. The colour is the caller’s, since which states exist is an application’s own question; the shape and the hollow form are the second channel, so states told apart by hue alone are not.",
+		specimens: []specimen{
+			{caption: "One of each, and several of one", build: signalCounts},
+			{caption: "Beside the words it marks", build: signalBesideWords},
+		},
+	},
+	{
+		name:    "KvitPip",
+		group:   "Marks",
+		summary: "A row of dots standing for a small count — three of five days recorded. For counts a reader takes in without counting; past about seven, the figure is faster.",
+		specimens: []specimen{
+			{caption: "Three of five, and none of four", build: pipCounts},
 		},
 	},
 	{

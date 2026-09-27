@@ -169,15 +169,25 @@ yet.
 
 ### Marks (7)
 
-- [ ] `KvitChip`
-- [ ] `KvitTag`
+- [x] `KvitChip` (`Chip`, with `Tone`). Evidence: `TestMarksSayWhatTheyMean`;
+  `light-KvitChip.png` matches.
+- [x] `KvitTag` (`Tag`). Evidence: `TestMarksSayWhatTheyMean`, which also
+  checks the colour is announced by its name ("groceries, Red");
+  `dark-KvitTag.png` matches.
 - [x] `KvitBadge` (`Badge`). Evidence:
   `TestABadgeCapsHidesAtZeroAndSaysItsNoun`; `dark-KvitBadge.png` and
   `highContrast-24px-KvitBadge.png` match.
-- [ ] `KvitSlug`
-- [ ] `KvitDot`
-- [ ] `KvitSignal`
-- [ ] `KvitPip`
+- [x] `KvitSlug` (`Slug`). Evidence: `TestMarksSayWhatTheyMean`,
+  `TestAnIdentifierIsCutInTheMiddle` (the text layer's middle eliding);
+  `sepia-KvitSlug.png` matches.
+- [x] `KvitDot` (`Dot`, with `Shape`). Evidence: `TestMarksSayWhatTheyMean`;
+  `highContrast-KvitDot.png` matches, the diamond's box a little wider:
+  Qt draws the turned square past the dot's box, and unison clips to it, so
+  the box grows and what follows a diamond sits 2 px further along.
+- [x] `KvitSignal` (`Signal`). Evidence: `TestASignalCountsOnlyPastOne`;
+  `light-KvitSignal.png` matches.
+- [x] `KvitPip` (`Pip`). Evidence: `TestMarksSayWhatTheyMean`;
+  `light-KvitPip.png` matches.
 
 ### Quantities (2)
 
@@ -312,7 +322,7 @@ yet.
 
 ## Gallery
 
-- [ ] One page per component, with its states and a working sample: 31 of
+- [ ] One page per component, with its states and a working sample: 37 of
   74 so far, each listed in the sidebar; the rest are listed faint.
 - [x] The gallery is built from the library's own components, as the Qt
   gallery is: `Window`, a `Header` holding `Segmented` and `Stepper`, a

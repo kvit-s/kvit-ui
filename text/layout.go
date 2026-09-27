@@ -63,6 +63,10 @@ type Options struct {
 	// short with "…" when it does not fit. A label that grows past its column
 	// pushes whatever is beside it off the screen; one cut short is legible.
 	Elide bool
+	// ElideMiddle, with Elide, cuts one-style text short in the middle rather
+	// than at the end, keeping its start and its end: the end of an
+	// identifier is what tells it from its neighbours.
+	ElideMiddle bool
 	// Align places each line in the width: at its start (the default), in
 	// its middle, or at its end. The width is MaxWidth, or the widest line
 	// when there is none.
@@ -394,6 +398,22 @@ func (f *Fonts) elided(spans []Span, opt Options) *Layout {
 		w, _ := f.Layout([]Span{{Text: "…", Style: st}}, one).Size()
 		return w
 	}
+	if opt.ElideMiddle && len(flat) == 1 {
+		// The most runes whose first half, the ellipsis and last half fit.
+		rs, st := full.runes, flat[0].Style
+		ew := ellipsisWidth(st)
+		xAt := func(i int) float32 { x, _, _ := full.CaretAt(i); return x }
+		keep := 0
+		for n := len(rs) - 1; n > 0; n-- {
+			head := (n + 1) / 2
+			if xAt(head)+ew+(full.width-xAt(len(rs)-(n-head))) <= opt.MaxWidth {
+				keep = n
+				break
+			}
+		}
+		head := (keep + 1) / 2
+		return f.Layout([]Span{{Text: string(rs[:head]) + "…" + string(rs[len(rs)-(keep-head):]), Style: st}}, one)
+	}
 	keep := 0
 	for _, s := range full.lines[0].stops {
 		if s.index > keep && s.x+ellipsisWidth(lastStyle(s.index)) <= opt.MaxWidth {
@@ -503,6 +523,9 @@ func (l *Layout) LineCount() int { return len(l.lines) }
 
 // Len is the number of runes laid out.
 func (l *Layout) Len() int { return len(l.runes) }
+
+// Text is the text as laid out, including any "…" eliding put in.
+func (l *Layout) Text() string { return string(l.runes) }
 
 // Baseline is the first line's baseline, from the top.
 func (l *Layout) Baseline() float32 { return l.lines[0].baseline }

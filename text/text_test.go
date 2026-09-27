@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -309,5 +310,20 @@ func TestLinesAlignAcrossTheWidth(t *testing.T) {
 	}
 	if x, _, _ := end.CaretAt(0); math.Abs(float64(x-(200-w))) > 0.01 {
 		t.Errorf("an end-aligned line starts at %.2f, want %.2f", x, 200-w)
+	}
+}
+
+func TestAnIdentifierIsCutInTheMiddle(t *testing.T) {
+	f := sharedFonts(t)
+	id := "a1b2c3d4e5f6a7b8c9d0e1f2"
+	l := f.Layout(plain(id, 12), text.Options{MaxWidth: 90, Elide: true, ElideMiddle: true})
+	w, _ := l.Size()
+	if w > 90 || l.Len() >= len(id) {
+		t.Fatalf("cut to %d runes, %.1f wide", l.Len(), w)
+	}
+	// Its start and its end survive, with the ellipsis between.
+	got := l.Text()
+	if !strings.HasPrefix(got, "a1b") || !strings.HasSuffix(got, "1f2") || !strings.Contains(got, "…") {
+		t.Errorf("cut to %q", got)
 	}
 }
