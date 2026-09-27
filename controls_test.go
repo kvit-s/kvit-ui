@@ -94,3 +94,90 @@ func TestAButtonSaysWhatItDoesInEveryState(t *testing.T) {
 		t.Errorf("a checkable button pressed once: %+v", n)
 	}
 }
+
+func TestAFieldTakesTypingAndSaysWhatIsWrong(t *testing.T) {
+	var amount *kvitui.Field
+	var typed []string
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		amount = kvitui.NewField(ui)
+		amount.Label, amount.Placeholder = "Amount", "0.00"
+		amount.OnChange = func(s string) { typed = append(typed, s) }
+		// Padded, so the ring outside the field is inside the window.
+		around := kvitui.Width(ui, kvitui.Px(240), amount)
+		around.SetBorder(kvitui.Padding(ui, kvitui.SizeViewMargin))
+		return []unison.Paneler{around}
+	})
+	screen.Click(screen.PanelCenter(amount.Edit()))
+	screen.Type("twelve")
+	screen.Sync()
+	if got := amount.Text(); got != "twelve" {
+		t.Fatalf("typing made %q", got)
+	}
+	if len(typed) == 0 || typed[len(typed)-1] != "twelve" {
+		t.Errorf("OnChange saw %v", typed)
+	}
+	n := screen.AccessibilityNodeFor(amount.Edit())
+	if n == nil || n.Role != role.TextField || n.Name != "Amount" || n.Value != "twelve" || n.Placeholder != "0.00" {
+		t.Fatalf("the field's node: %+v", n)
+	}
+	// The ring shows whenever the field holds the focus, a click included.
+	var box geom.Rect
+	screen.Do(func() { box = amount.Edit().RectToRoot(amount.Edit().ContentRect(true)) })
+	img := screen.Capture()
+	want := kvitui.Color(ui.Theme.Tokens().FocusRing)
+	ringed := false
+	for dx := 1; dx <= ui.Interface.FocusRingWidth(); dx++ {
+		pr, pg, pb, _ := img.At(int(box.X)-dx, int(box.Y+box.Height/2)).RGBA()
+		ringed = ringed || (pr>>8 == uint32(want.Red()) && pg>>8 == uint32(want.Green()) && pb>>8 == uint32(want.Blue()))
+	}
+	if !ringed {
+		t.Error("a focused field has no ring")
+	}
+	// An error is a message under the field as well as a red outline.
+	var before, after float32
+	screen.Do(func() {
+		before = amount.FrameRect().Height
+		amount.Error = "Not a number"
+		amount.MarkForLayoutAndRedraw()
+		amount.Window().Content().MarkForLayoutRecursively()
+		amount.Window().ValidateLayout()
+		after = amount.FrameRect().Height
+	})
+	if before != float32(ui.Interface.ControlHeight()) || after <= before {
+		t.Errorf("the field is %.1f tall, and %.1f with an error", before, after)
+	}
+	if n := screen.AccessibilityNodeFor(amount.Edit()); n == nil || n.Description != "Not a number" || !n.Invalid {
+		t.Errorf("the field in error: %+v", n)
+	}
+}
+
+func TestASearchFieldClearsWithEscapeAndCountsWhatItLeft(t *testing.T) {
+	var s *kvitui.SearchField
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		ui.Locale = language.AmericanEnglish
+		s = kvitui.NewSearchField(ui)
+		s.Matches, s.MatchedNoun, s.MatchedNounPlural = 250000, "entry", "entries"
+		return []unison.Paneler{s}
+	})
+	n := screen.AccessibilityNodeFor(s.Edit())
+	if n == nil || n.Name != "Filter" || n.Description != "250,000 entries" {
+		t.Fatalf("the search field's node: %+v", n)
+	}
+	clearShown := func() (shown bool) {
+		screen.Do(func() { shown = !s.Children()[0].Hidden })
+		return shown
+	}
+	if clearShown() {
+		t.Error("an empty filter shows its clear button")
+	}
+	screen.Click(screen.PanelCenter(s.Edit()))
+	screen.Type("harlow")
+	screen.Sync()
+	if !clearShown() {
+		t.Error("a filter with text has no clear button")
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	if got := s.Text(); got != "" {
+		t.Errorf("Escape left %q", got)
+	}
+}

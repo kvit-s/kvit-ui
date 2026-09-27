@@ -120,6 +120,9 @@ func (f *fixedSize) LayoutSizes(target *unison.Panel, _ geom.Size) (minSize, pre
 		}
 	}
 	size := geom.NewSize(width, h)
+	if b := target.Border(); b != nil {
+		size = size.Add(b.Insets().Size())
+	}
 	return size, size, size
 }
 

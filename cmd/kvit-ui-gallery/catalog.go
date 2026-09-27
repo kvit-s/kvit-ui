@@ -110,6 +110,14 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitViewHead",
+		group:   "Structure",
+		summary: "The strip at the top of a view: what the view is, how much is in it, and the controls that act on all of it.",
+		specimens: []specimen{
+			{"Title, count and controls", viewHeadWithControls},
+		},
+	},
+	{
 		name:    "KvitRow",
 		group:   "Content",
 		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`.",
@@ -169,6 +177,22 @@ var catalog = []entry{
 			{"Destructive and disabled", buttonDanger},
 			{"A button that stays on, beside the same button off", buttonChecked},
 			{"Why a button cannot be pressed", buttonExplanations},
+		},
+	},
+	{
+		name:    "KvitField",
+		group:   "Controls",
+		summary: "A single line of text. The outline is the control-boundary token, so its edges are visible. An error is a message and a border together, never a border alone.",
+		specimens: []specimen{
+			{"Resting, filled and in error", fieldStates},
+		},
+	},
+	{
+		name:    "KvitSearchField",
+		group:   "Controls",
+		summary: "A field that filters something. Escape clears rather than reverting, and it announces its result count — filtering is the one interaction whose whole outcome happens somewhere else on the screen.",
+		specimens: []specimen{
+			{"Empty and filtering", searchFieldStates},
 		},
 	},
 	{

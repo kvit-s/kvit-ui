@@ -177,6 +177,10 @@ func (c *control) Hovered() bool { return c.hovered }
 // Pressed reports whether the control is being pressed.
 func (c *control) Pressed() bool { return c.pressed }
 
+// ringOwnerKey is the client-data key under which a unison widget, such as
+// the field inside a Field, names the Kvit component that draws its ring.
+const ringOwnerKey = "kvitui.ringOwner"
+
 // ringed is a component whose keyboard focus the window draws a ring around.
 type ringed interface {
 	focusRing() (panel *unison.Panel, radius float32, show bool)
@@ -235,7 +239,11 @@ func (u *UI) watchWindow(w *unison.Window) {
 		}
 		r, ok := focus.Self.(ringed)
 		if !ok {
-			return
+			// A unison widget a Kvit component is built around names the
+			// component in its client data.
+			if r, ok = focus.ClientData()[ringOwnerKey].(ringed); !ok {
+				return
+			}
 		}
 		p, radius, show := r.focusRing()
 		if !show {
@@ -243,7 +251,7 @@ func (u *UI) watchWindow(w *unison.Window) {
 		}
 		m := u.Interface
 		width := float32(m.FocusRingWidth())
-		box := content.RectFromRoot(p.RectToRoot(p.ContentRect(false)))
+		box := content.RectFromRoot(p.RectToRoot(p.ContentRect(true)))
 		ring := box.Inset(geom.NewUniformInsets(-width / 2))
 		// Clip to what the control's containers show, grown by the ring.
 		clip := box.Inset(geom.NewUniformInsets(-2 * width))

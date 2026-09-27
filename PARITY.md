@@ -102,12 +102,11 @@ yet.
   column's width. It includes kvit-cash's keyboard scrolling, bringing the
   focused control into view, and the wheel travelling the desktop's lines
   per notch of one slim row each, eased over a few frames.
-- [ ] `KvitViewHead` (`ViewHead`): built and used for the head of every
-  gallery page, with kvit-cash's side padding. Evidence so far:
+- [x] `KvitViewHead` (`ViewHead`). Evidence:
   `TestTheViewHeadCountsInTheReadersLocale` (ported from
-  `test_components.cpp`), `TestTheViewHeadIsARowTallWithItsControlsAtTheRight`.
-  Not ticked until its own gallery page exists, which needs `KvitSearchField`
-  and `KvitButton` for its specimen.
+  `test_components.cpp`), `TestTheViewHeadIsARowTallWithItsControlsAtTheRight`;
+  `light-KvitViewHead.png` matches except for kvit-cash's side padding, which
+  insets the title and the controls by the view margin.
 - [ ] `KvitStatusBar`
 - [ ] `KvitWindow`
 
@@ -159,9 +158,19 @@ yet.
   `KvitIconButton`.
 - [ ] `KvitChipButton`
 - [ ] `KvitStepper`
-- [ ] `KvitField`
+- [x] `KvitField` (`Field`). Evidence:
+  `TestAFieldTakesTypingAndSaysWhatIsWrong`; `light-KvitField.png` matches,
+  except that the error message takes room of its own under the field,
+  where Qt's is drawn over the space below it. The editing is unison's field
+  (caret, selection, clipboard, undo, screen reader text), and the typed
+  text is drawn by unison's text engine rather than the Kvit text layer.
+  kvit-cash's `shortcut` is `Shortcut`, shown with the label as the tooltip
+  on pointer hover.
 - [ ] `KvitTextArea`
-- [ ] `KvitSearchField`
+- [x] `KvitSearchField` (`SearchField`). Evidence:
+  `TestASearchFieldClearsWithEscapeAndCountsWhatItLeft`;
+  `dark-KvitSearchField.png` matches, with kvit-cash's clear button a
+  control's height square.
 - [ ] `KvitCheck`
 - [ ] `KvitSelect`
 - [x] `KvitTab` (`Tab`). Evidence:
@@ -285,7 +294,8 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
 
 - [ ] `97575ee` 2026-09-11: Say what opens something, and keep a popup inside the window.
   Done so far: the region's keyboard scrolling and bringing focus into view,
-  the slim row's kind capped at a quarter of the row, the row's chevron.
+  the slim row's kind capped at a quarter of the row, the row's chevron, the
+  search field's clear button at a control's height.
 - [ ] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses
 - [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
   Done so far: the row's `OpensLabel`.
@@ -294,5 +304,5 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
   Done so far: `ViewHead.Padding`, the view head's own side margin, and the
   region's wheel distance.
 - [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
-  Done so far: the quiet button's ground at rest.
+  Done so far: the quiet button's ground at rest, the field's shortcut.
 - [ ] `722906e` 2026-09-13: Name the shortest window the chrome holds

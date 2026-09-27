@@ -75,3 +75,32 @@ func buttonExplanations(ui *kvitui.UI) unison.Paneler {
 	archive.Explanation = "The branch has work that has not been pushed."
 	return kvitui.Row(ui, kvitui.SizeSpace, pull, push, archive)
 }
+
+func fieldStates(ui *kvitui.UI) unison.Paneler {
+	payee := kvitui.NewField(ui)
+	payee.Label, payee.Placeholder = "Payee", "Who was paid"
+	reference := kvitui.NewField(ui)
+	reference.Label = "Reference"
+	reference.SetText("TX-00173404")
+	amount := kvitui.NewField(ui)
+	amount.Label, amount.Error = "Amount", "Not a number"
+	amount.SetText("twelve")
+	locked := kvitui.NewField(ui)
+	locked.Label = "Locked"
+	locked.SetText("read only")
+	locked.SetEnabled(false)
+	return kvitui.Width(ui, kvitui.Px(200), kvitui.Column(ui, kvitui.SizeSpaceLoose, payee, reference, amount, locked))
+}
+
+func searchFieldStates(ui *kvitui.UI) unison.Paneler {
+	filtering := kvitui.NewSearchField(ui)
+	filtering.SetText("harlow")
+	filtering.Matches, filtering.MatchedNoun = 47, "transaction"
+	// What a screen reader is told is a sentence: the digits grouped by the
+	// reader's locale and the plural a word, so "250,000 entries" rather than
+	// "250000 entry(s)". A noun that does not take an s says its own plural.
+	year := kvitui.NewSearchField(ui)
+	year.SetText("2026")
+	year.Matches, year.MatchedNoun, year.MatchedNounPlural = 250000, "entry", "entries"
+	return kvitui.Width(ui, kvitui.Px(220), kvitui.Column(ui, kvitui.SizeSpaceLoose, kvitui.NewSearchField(ui), filtering, year))
+}
