@@ -297,3 +297,17 @@ func TestTabularDigitsAreOneWidth(t *testing.T) {
 		t.Errorf("tabular 1111 is %.2f wide and 8888 %.2f", a, b)
 	}
 }
+
+func TestLinesAlignAcrossTheWidth(t *testing.T) {
+	f := sharedFonts(t)
+	start := f.Layout(plain("centred", 14), text.Options{MaxWidth: 200})
+	w, _ := start.Size()
+	mid := f.Layout(plain("centred", 14), text.Options{MaxWidth: 200, Align: text.AlignMiddle})
+	end := f.Layout(plain("centred", 14), text.Options{MaxWidth: 200, Align: text.AlignEnd})
+	if x, _, _ := mid.CaretAt(0); math.Abs(float64(x-(200-w)/2)) > 0.01 {
+		t.Errorf("a centred line starts at %.2f, want %.2f", x, (200-w)/2)
+	}
+	if x, _, _ := end.CaretAt(0); math.Abs(float64(x-(200-w))) > 0.01 {
+		t.Errorf("an end-aligned line starts at %.2f, want %.2f", x, 200-w)
+	}
+}

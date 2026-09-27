@@ -92,6 +92,15 @@ func (r *ListRow) initListRow(ui *UI, content ...unison.Paneler) {
 		}
 		return keyDown(key, mods, repeat)
 	}
+	// A row nobody presses leaves a press to what it sits in, such as a card
+	// that opens something.
+	down, up := r.MouseDownCallback, r.MouseUpCallback
+	r.MouseDownCallback = func(where geom.Point, button, clicks int, mods mod.Modifiers) bool {
+		return r.Interactive && down(where, button, clicks, mods)
+	}
+	r.MouseUpCallback = func(where geom.Point, button int, mods mod.Modifiers) bool {
+		return r.Interactive && up(where, button, mods)
+	}
 	// The row draws its own ring, inside its edges, over what it holds.
 	r.noRing = true
 	for _, c := range content {

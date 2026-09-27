@@ -63,7 +63,21 @@ type Options struct {
 	// short with "…" when it does not fit. A label that grows past its column
 	// pushes whatever is beside it off the screen; one cut short is legible.
 	Elide bool
+	// Align places each line in the width: at its start (the default), in
+	// its middle, or at its end. The width is MaxWidth, or the widest line
+	// when there is none.
+	Align Alignment
 }
+
+// Alignment is where a line sits across the width of its layout.
+type Alignment int
+
+// The three alignments.
+const (
+	AlignStart Alignment = iota
+	AlignMiddle
+	AlignEnd
+)
 
 // Layout is text shaped and broken into lines, ready to draw and to answer
 // caret and hit-test questions. Offsets are rune indexes into the text.
@@ -117,9 +131,45 @@ func aspectOf(s Style) gfont.Aspect {
 
 // Layout shapes the spans and breaks them into lines.
 func (f *Fonts) Layout(spans []Span, opt Options) *Layout {
+	var l *Layout
 	if opt.Elide && opt.MaxWidth > 0 {
-		return f.elided(spans, opt)
+		l = f.elided(spans, opt)
+	} else {
+		l = f.layout(spans, opt)
 	}
+	l.align(opt)
+	return l
+}
+
+// align moves each line across the layout's width, carrying its caret stops
+// with it so hit tests agree with what is drawn.
+func (l *Layout) align(opt Options) {
+	if opt.Align == AlignStart {
+		return
+	}
+	box := opt.MaxWidth
+	if box <= 0 {
+		box = l.width
+	}
+	for i := range l.lines {
+		ln := &l.lines[i]
+		off := box - ln.width
+		if opt.Align == AlignMiddle {
+			off /= 2
+		}
+		if off <= 0 {
+			continue
+		}
+		for j := range ln.runs {
+			ln.runs[j].x += off
+		}
+		for j := range ln.stops {
+			ln.stops[j].x += off
+		}
+	}
+}
+
+func (f *Fonts) layout(spans []Span, opt Options) *Layout {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	l := &Layout{fonts: f}

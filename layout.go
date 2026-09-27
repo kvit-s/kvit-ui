@@ -90,6 +90,14 @@ func Width(ui *UI, w Measure, child unison.Paneler) *unison.Panel {
 	return Sized(ui, w, nil, child)
 }
 
+// Height holds a panel to a height, as a Measure, and lets it take the width
+// its container gives it.
+func Height(ui *UI, h Measure, child unison.Paneler) *unison.Panel {
+	p := Sized(ui, nil, h, child)
+	p.SetLayoutData(nil)
+	return p
+}
+
 // Sized holds a panel to a width and a height, as Measures; a nil height
 // lets it take the height it needs at that width.
 func Sized(ui *UI, w, h Measure, child unison.Paneler) *unison.Panel {
@@ -111,7 +119,17 @@ type fixedSize struct {
 	w, h Measure
 }
 
-func (f *fixedSize) LayoutSizes(target *unison.Panel, _ geom.Size) (minSize, prefSize, maxSize geom.Size) {
+func (f *fixedSize) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	if f.w == nil {
+		// Only the height is held: the width is whatever the container gives.
+		h := float32(f.h.Of(f.ui))
+		var w float32
+		for _, c := range target.Children() {
+			_, pref, _ := c.Sizes(geom.NewSize(hint.Width, h))
+			w = max(w, pref.Width)
+		}
+		return geom.NewSize(0, h), geom.NewSize(w, h), geom.NewSize(unison.DefaultMaxSize, h)
+	}
 	width := float32(f.w.Of(f.ui))
 	var h float32
 	if f.h != nil {

@@ -141,6 +141,17 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitSectionHeading",
+		group:   "Content",
+		summary: "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.",
+		specimens: []specimen{
+			{caption: "Collapsible, counted, with an action", build: sectionHeadingForms},
+			{caption: "Reached by tab, opened by Return", build: sectionHeadingKeyboard},
+			{caption: "A written count, and an action drawn as a symbol", build: sectionHeadingWrittenCount},
+			{caption: "What the action does, in a sentence", build: sectionHeadingExplanation},
+		},
+	},
+	{
 		name:    "KvitRow",
 		group:   "Content",
 		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`.",
@@ -159,6 +170,14 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitCard",
+		group:   "Content",
+		summary: "A bounded block of content on a surface. An interactive card takes the control-boundary token, the hover tint and the chevron a pressable row carries, so a card that responds to a click looks like it will before it is clicked.",
+		specimens: []specimen{
+			{caption: "Static and interactive", build: cardForms},
+		},
+	},
+	{
 		name:    "KvitPanel",
 		group:   "Content",
 		summary: "A region of the window with its own ground: a sidebar, a toolbar strip. Structural, where a card is content — which is why it has no radius.",
@@ -167,11 +186,37 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitPane",
+		group:   "Content",
+		summary: "The side pane: detail about the one thing selected, the same width wherever it appears so the list beside it never reflows.",
+		specimens: []specimen{
+			{caption: "Open", build: paneOpen},
+		},
+	},
+	{
 		name:    "KvitDivider",
 		group:   "Content",
 		summary: "A rule between two things. One design pixel, in the decorative border token rather than the control-boundary one.",
 		specimens: []specimen{
 			{caption: "Horizontal and vertical", build: dividerBothWays},
+		},
+	},
+	{
+		name:    "KvitDisclosure",
+		group:   "Content",
+		summary: "A trigger with a body under it. Takes a `Group` so several sections can behave as an accordion, which is what most of the eighteen hand-rolled versions in the estate actually are.",
+		specimens: []specimen{
+			{caption: "Open and closed", build: disclosureOpenAndClosed},
+		},
+	},
+	{
+		name:    "KvitEmptyState",
+		group:   "Content",
+		summary: "What a view says when it has nothing to show: what would be here, why it is not, and the action that would fill it. Also the answer for a chart with no data, in place of an axis drawn around zeros. The compact form is the same sentence on one line, at the height of a slim row and starting where the rows start, for a section in a stack of sections that may each be empty.",
+		specimens: []specimen{
+			{caption: "With an action", build: emptyStateWithAction},
+			{caption: "Dashed, as a drop target", build: emptyStateDropTarget},
+			{caption: "Compact, one line per empty section", build: emptyStateCompact},
 		},
 	},
 	{

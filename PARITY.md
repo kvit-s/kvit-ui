@@ -123,7 +123,14 @@ yet.
 
 ### Content (9)
 
-- [ ] `KvitSectionHeading`
+- [x] `KvitSectionHeading` (`SectionHeading`). Evidence:
+  `TestASectionHeadingOpensAndItsActionStaysItsOwn`;
+  `light-KvitSectionHeading.png` matches. Two differences: it opens and
+  closes by itself and reports the new state, where the Qt heading only
+  signals and leaves the state to its caller; and unison treats a heading as
+  text and leaves its children out, so a heading that opens and closes is
+  announced as a button with its expanded state, and a fixed heading with an
+  action as a group named by the heading, to keep the action reachable.
 - [x] `KvitRow` (`ListRow`, since `Row` is the Go layout helper). Evidence:
   `TestAListRowActsOnlyWhenItSaysItDoes`; `dark-KvitRow.png` matches, with
   one intended difference: rows that can be pressed carry kvit-cash's
@@ -132,14 +139,33 @@ yet.
   `dark-KvitSlimRow.png` matches. A slim row nobody presses is announced as
   a named group rather than as text, because unison drops the children of a
   text node and the figure would not be read.
-- [ ] `KvitCard`
+- [x] `KvitCard` (`Card`). Evidence: `TestACardOpensOnceWhenARowInsideActs`;
+  `light-KvitCard.png` matches, with kvit-cash's chevron on the pressable
+  card. It also does kvit-cash's other two card changes: `OpensLabel`, and a
+  press on something inside that acts on its own not also opening the card.
+  Unlike the Qt card, a pressable card takes the keyboard focus and opens on
+  Return, Enter or Space.
 - [x] `KvitPanel` (`Panel`). Evidence: `TestAPanelDrawsTheRulesItIsAskedFor`;
   `light-KvitPanel.png` matches.
-- [ ] `KvitPane`
+- [x] `KvitPane` (`Pane`, placed with `WithPane`). Evidence:
+  `TestAPaneSlidesOverTheRightEdge`; `light-KvitPane.png` matches. kvit-cash's
+  `closable` is `Closable`. Its floor, which stops a press or a wheel turn on
+  the pane reaching the list under it, is not needed: unison delivers both
+  to the topmost panel and its own ancestors only.
 - [x] `KvitDivider` (`Divider`). Evidence: `TestADividerIsOneHairline`;
   `sepia-KvitDivider.png` matches.
-- [ ] `KvitDisclosure`
-- [ ] `KvitEmptyState`
+- [x] `KvitDisclosure` (`Disclosure`). Evidence:
+  `TestDisclosuresInAGroupOpenOneAtATime`; `sepia-KvitDisclosure.png`
+  matches. It opens and closes by itself, and sections sharing a `Group`
+  close each other, which the Qt disclosure's `group` property promises but
+  leaves to its callers.
+- [x] `KvitEmptyState` (`EmptyState`). Evidence:
+  `TestAnEmptyStateSaysWhatWouldBeHereAndOffersTheWayIn`;
+  `dark-KvitEmptyState.png` matches, except that the Go drop target shows its
+  dashed edge and the Qt shot does not: the Qt edge is drawn on a Canvas,
+  which draws nothing under the software renderer the Qt screenshots were
+  taken with. Its action button takes the keyboard focus, as kvit-cash made
+  it do.
 
 ### Marks (7)
 
@@ -312,16 +338,19 @@ kvit-cash's kvit-ui checkout (`~/kvit-cash/third-party/kvit-ui`, pinned at
   Done so far: the region's keyboard scrolling and bringing focus into view,
   the slim row's kind capped at a quarter of the row, the row's chevron, the
   search field's clear button at a control's height, the status bar's
-  overflow link hidden when nothing is hidden.
+  overflow link hidden when nothing is hidden, the card's chevron, the empty
+  state's action reachable by the keyboard, and the pane's floor (not needed
+  in unison).
 - [ ] `f4cb189` 2026-09-11: Raise a table's header to the height of a row somebody presses
 - [ ] `1c237df` 2026-09-11: Say what a mark opens, and draw no control with nothing on it.
-  Done so far: the row's `OpensLabel`.
+  Done so far: the row's and the card's `OpensLabel`, the pane's `closable`.
 - [ ] `364c3dc` 2026-09-11: Float a view over a list, open the rail on hover, draw a choice as chosen.
   Done so far: the rail opening on hover and for the keyboard.
 - [ ] `d32c373` 2026-09-12: Give the wheel a distance, the card a fourth side, and a chart one baseline.
   Done so far: `ViewHead.Padding`, the view head's own side margin, and the
   region's wheel distance.
 - [ ] `526b619` 2026-09-13: One press acts on one thing, and what acts says so before it is pressed.
-  Done so far: the quiet button's ground at rest, the field's shortcut.
+  Done so far: the quiet button's ground at rest, the field's shortcut, one
+  press acting on one thing in a card.
 - [x] `722906e` 2026-09-13: Name the shortest window the chrome holds.
   `Interface.HeightFloor`, and `Window`'s minimum height.

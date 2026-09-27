@@ -22,3 +22,11 @@ type Measure func(*tokens.Interface) int
 
 // Of returns the measure at the UI's current interface size.
 func (m Measure) Of(u *UI) int { return m(u.Interface) }
+
+// orZero is a Measure's value, or 0 for a nil one.
+func orZero(u *UI, m Measure) float32 {
+	if m == nil {
+		return 0
+	}
+	return float32(m.Of(u))
+}
