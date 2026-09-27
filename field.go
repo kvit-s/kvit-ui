@@ -60,6 +60,16 @@ type Field struct {
 	font  fieldFontKey
 	// area is the TextArea this field is, for one of several lines.
 	area *TextArea
+	// spoken, when set, is what a screen reader calls the field instead of
+	// its label, as a money field adds its currency.
+	spoken func() string
+	// changed, when set, runs after every change to the text, before
+	// OnChange, for a field that checks what is typed.
+	changed func()
+	// describe, when set, is what a screen reader is told about the field
+	// while it has no error, as a type-ahead says how many suggestions it
+	// has.
+	describe func() string
 }
 
 // fieldFontKey is the family and pixel size the field's unison font was made
@@ -130,6 +140,9 @@ func (f *Field) initField(ui *UI, multi bool) {
 		}
 	}
 	e.ModifiedCallback = func(_, after *unison.FieldState) {
+		if f.changed != nil {
+			f.changed()
+		}
 		if f.OnChange != nil {
 			f.OnChange(after.Text)
 		}
@@ -148,7 +161,13 @@ func (f *Field) initField(ui *UI, multi bool) {
 	}
 	e.Accessibility.Callback = func(n *accessibility.Node) {
 		n.Name = f.Label
+		if f.spoken != nil {
+			n.Name = f.spoken()
+		}
 		n.Description = f.Error
+		if f.Error == "" && f.describe != nil {
+			n.Description = f.describe()
+		}
 		n.Placeholder = f.Placeholder
 		n.Invalid = f.Error != ""
 		if f.ReadOnly {

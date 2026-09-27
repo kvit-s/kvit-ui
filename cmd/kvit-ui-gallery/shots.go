@@ -66,9 +66,9 @@ func writeShots(dir, compare string) ([]string, error) {
 				// Make the window tall enough to show the whole page without
 				// scrolling, then capture it.
 				screen.Do(func() {
-					if g.page != page {
-						g.setPage(page)
-					}
+					// Built again for every shot, so a specimen that opens a
+					// menu once it is shown opens it for each one.
+					g.setPage(page)
 					ui.Theme.SetThemeID(theme)
 					ui.Interface.SetFontSize(size)
 					// The status bar says what is being written, as the Qt
@@ -86,6 +86,8 @@ func writeShots(dir, compare string) ([]string, error) {
 					return written, err
 				}
 				written = append(written, name)
+				// Escape closes a menu a specimen opened.
+				screen.KeyPress(unison.KeyEscape, 0)
 				if compare != "" {
 					if err := writeComparison(dir, compare, name, img); err != nil {
 						return written, err

@@ -31,13 +31,15 @@ var menuIDs = 0x40000000
 // ShowMenu opens a menu of items under anchor. It is unison's menu: drawn in
 // the window on Windows and Linux in the Kvit colours and type, and a native
 // menu on macOS, and in both it answers the arrow keys, Return and Escape.
-func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) {
-	u.ShowMenuAt(anchor, anchor.AsPanel().ContentRect(true), title, items)
+// It returns the function that closes the menu.
+func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) (closeMenu func()) {
+	return u.ShowMenuAt(anchor, anchor.AsPanel().ContentRect(true), title, items)
 }
 
 // ShowMenuAt opens a menu of items under one part of owner, given in owner's
-// own coordinates, such as one column of a table's header.
-func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) {
+// own coordinates, such as one column of a table's header, and returns the
+// function that closes it.
+func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) (closeMenu func()) {
 	f := unison.DefaultMenuFactory()
 	menuIDs++
 	m := f.NewMenu(menuIDs, title, nil)
@@ -60,7 +62,10 @@ func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, item
 		}
 		m.InsertItem(-1, mi)
 	}
-	m.Popup(owner.AsPanel().RectToRoot(part), 0)
+	// No line is lit until the pointer or an arrow key reaches one, as the Qt
+	// menu opens.
+	m.Popup(owner.AsPanel().RectToRoot(part), -1)
+	return m.Dispose
 }
 
 // applyMenuTheme draws unison's menus in the Kvit colours and type: the popup

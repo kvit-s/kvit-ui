@@ -192,7 +192,9 @@ yet.
 
 - [x] `KvitFigure` (`Figure`). Evidence: `TestAFigureSaysWhatWasMeasured`;
   `sepia-KvitFigure.png` matches.
-- [ ] `KvitBeforeAfter`
+- [x] `KvitBeforeAfter` (`BeforeAfter`). Evidence:
+  `TestAHistoryAndAChangeSayThemselves`; `light-KvitBeforeAfter.png`
+  matches.
 
 ### Controls (9)
 
@@ -370,31 +372,93 @@ component draws it itself, cut off at its box.
   Kvit colours in a strip of its own). Evidence: the region test;
   `light-KvitScrollBar.png` matches, with the same row-width difference as
   `KvitRegion`.
-- [ ] `KvitMenu`, as `UI.ShowMenu`: unison's menu, drawn in the Kvit colours
-  and type on Windows and Linux and native on macOS, as the owner chose on
-  2026-09-26. It has text, a shortcut, a check and separators, and answers
-  the arrow keys, Return and Escape. Not ticked: it cannot show the Qt
-  menu's symbols, explanations or danger colour, and its minimum width is
-  not the Qt menu's 200 px.
-- [ ] `KvitMenuItem`: the `MenuItem` lines of `ShowMenu`, with the same gaps.
-- [ ] `KvitTree`
-- [ ] `KvitSwitch`
-- [ ] `KvitRadioGroup`
-- [ ] `KvitProgress`
-- [ ] `KvitSlider`
-- [ ] `KvitSplitView`
+- [ ] `KvitMenu`, as `UI.ShowMenu` and `UI.ShowMenuAt`: unison's menu, drawn
+  in the Kvit colours and type on Windows and Linux and native on macOS, as
+  the owner chose on 2026-09-26. It has text, a shortcut, a check and
+  separators, answers the arrow keys, Return and Escape, and opens with no
+  line lit, as the Qt menu does. `light-KvitMenu.png` shows it open on its
+  page, as the Qt page does. Not ticked: it cannot show the Qt menu's
+  symbols, a destructive item in the danger colour or explanations, its
+  minimum width is not the Qt menu's 200 px, and its separator is taller.
+  The Kvit window's popup layer (`Window.Show`) now exists, so a menu drawn
+  by Kvit, with all of these, would be a small component if the owner
+  chooses it.
+- [ ] `KvitMenuItem`: the `MenuItem` lines of `ShowMenu`, with the same gaps;
+  `light-KvitMenuItem.png` shows the disabled line.
+- [x] `KvitTree` (`Tree`, over a `TreeModel`, or `TreeNodes` written out).
+  Evidence: `TestATreeOpensAndStepsWithTheArrows`; `light-KvitTree.png`
+  matches. It draws only the rows in view and asks the model only about
+  open nodes, so a notes vault needs no rows held. Right opens and then
+  steps in, Left closes and then steps out, Home and End go to the ends,
+  and Return or a double press opens and closes a node or activates a leaf.
+- [x] `KvitSwitch` (`Switch`). Evidence:
+  `TestASwitchTurnsOverAtOnceAndSaysSo`; `light-KvitSwitch.png` and
+  `highContrast-KvitSwitch.png` match, with the 6 px of Qt Quick's padding
+  before the track that the check box has.
+- [x] `KvitRadioGroup` (`RadioGroup`). Evidence:
+  `TestARadioGroupIsOneStopAndTheArrowsChoose`; `light-KvitRadioGroup.png`
+  matches. The group is one stop in the tab order, the chosen option's, and
+  the arrow keys move within it and choose, as the Qt comment says a radio
+  group should.
+- [x] `KvitProgress` (`Progress`). Evidence:
+  `TestAProgressBarSaysHowFarThroughWhat`; `light-KvitProgress.png`
+  matches, the moving band shown as a muted full track with motion reduced,
+  as in the Qt run. It has kvit-cash's rule that a step whose slide never
+  arrived jumps rather than slides, so the bar is never more than one
+  report behind its label.
+- [x] `KvitSlider` (`Slider`). Evidence: `TestASliderMovesByKeyAndByPointer`;
+  `light-KvitSlider.png` matches, including the value drawn to the right of
+  the slider's box as overflow, and the Qt page's "1 %" for 0.6 at no
+  decimal places, which is what JavaScript's rounding gives. The arrow keys
+  move it a tenth of the range, or `Step`.
+- [x] `KvitSplitView` (`SplitView`). Evidence:
+  `TestASplitViewsHandleMovesWithTheKeys`; `light-KvitSplitView.png`
+  matches. The handle takes the keyboard focus and moves 16 design pixels
+  per arrow key, which the Qt comment promises and the Qt handle, having no
+  key handling, does not do.
 - [x] `KvitSegmented` (`Segmented`). Evidence:
   `TestASegmentedControlChoosesOne`; `light-KvitSegmented.png` and the
   gallery's own header. It is kvit-cash's form, a tab's height with the
   chosen segment filled with the accent, so it differs from the Qt shots,
   where the chosen segment is outlined.
-- [ ] `KvitTypeAhead`
-- [ ] `KvitConfirmInPlace`
-- [ ] `KvitTimeline`
-- [ ] `KvitNumberField`
-- [ ] `KvitMoneyField`
-- [ ] `KvitDualList`
-- [ ] `KvitSpotlight`
+- [x] `KvitTypeAhead` (`TypeAhead`). Evidence:
+  `TestATypeAheadOffersMatchesAndTakesOne`; `light-KvitTypeAhead.png`
+  matches. It has kvit-cash's trailing control (`SetTrailing`), the list
+  opening above the field where there is no room below, and the list
+  showing only while the reader is in the field. Text the application sets
+  opens no list even when the field has the focus, where the Qt list would
+  open then, which is the case kvit-cash's defect D68 was about.
+- [x] `KvitConfirmInPlace` (`ConfirmInPlace`). Evidence:
+  `TestAHistoryAndAChangeSayThemselves`; `light-KvitConfirmInPlace.png`
+  matches. It is announced to a screen reader when it opens.
+- [x] `KvitTimeline` (`Timeline`). Evidence:
+  `TestAHistoryAndAChangeSayThemselves`; `light-KvitTimeline.png` matches.
+- [x] `KvitNumberField` (`NumberField`). Evidence:
+  `TestNumberAndMoneyFieldsSayWhatIsWrong`; `light-KvitNumberField.png`
+  matches, the error under the field taking room of its own as on the
+  `KvitField` page. A value is rewritten with the reader's decimal
+  separator when the field is left; the Qt field writes a point in every
+  locale, so a German reader who typed "3,50" is shown "3.50". The typed
+  text is drawn by unison, whose font has tabular digits already; unison
+  has no way to ask for the `tnum` feature.
+- [x] `KvitMoneyField` (`MoneyField`). Evidence:
+  `TestNumberAndMoneyFieldsSayWhatIsWrong`; `light-KvitMoneyField.png`
+  matches. `MinorUnits` is an `int64`.
+- [x] `KvitDualList` (`DualList`). Evidence:
+  `TestADualListMovesAndOrdersFromTheKeyboard`; `light-KvitDualList.png`
+  matches except in width: the two lists share the width equally, where Qt's
+  layout engine divides the spare width in proportion to the two headings'
+  widths, so its chosen list is wider. Each list is one tab stop whose
+  arrow keys move its cursor and whose Return moves the item across; the Qt
+  lists take no focus, so there the buttons are the only keyboard route.
+  The list moves the item itself and then reports both lists through
+  `OnChange`; the Qt list only reports them and leaves the move to its
+  owner, so nothing moves on the Qt page.
+- [x] `KvitSpotlight` (`Spotlight`). Evidence:
+  `TestASpotlightClosesOnEscape`; `light-KvitSpotlight.png` matches. It is
+  shown in the window's popup layer over the region it darkens (`Open`),
+  appears at once rather than fading in over 140 ms, and is announced when
+  it opens.
 
 ## Icons
 
@@ -442,8 +506,8 @@ component draws it itself, cut off at its box.
 
 ## Gallery
 
-- [ ] One page per component, with its states and a working sample: 58 of
-  74 so far, each listed in the sidebar; the rest are listed faint.
+- [x] One page per component, with its states and a working sample: all 74.
+  Evidence: `TestShots`, which draws every page, and the screenshot set.
 - [x] The gallery is built from the library's own components, as the Qt
   gallery is: `Window`, a `Header` holding `Segmented` and `Stepper`, a
   sidebar of `SectionHeading`s and `ListRow`s under a `SearchField` that

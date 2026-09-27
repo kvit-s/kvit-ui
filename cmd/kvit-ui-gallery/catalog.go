@@ -287,6 +287,14 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitBeforeAfter",
+		group:   "Quantities",
+		summary: "One value as it stands and the value something proposes to replace it with. Position, colour weight and the arrow all say which is which, so no reader depends on separating the two colours. A record being added has no before, and the em dash says so.",
+		specimens: []specimen{
+			{caption: "Changed, added, removed and unchanged", build: beforeAfterForms},
+		},
+	},
+	{
 		name:    "KvitButton",
 		group:   "Controls",
 		summary: "A button with words on it, in three forms. One primary per screen region: it is the action the screen is for. `Danger` is separate from the form, because a destructive action can be any of the three. `Explanation` is one sentence saying what the words cannot — why it is disabled, or what pressing it opens — and it is read on a disabled button too.",
@@ -527,11 +535,131 @@ var catalog = []entry{
 		},
 	},
 	{
+		name:    "KvitMenu",
+		group:   "Flow",
+		summary: "A list of commands, opened with UI.ShowMenu. It is unison's menu in the Kvit colours and type, as the owner chose: it answers the arrow keys, Return and Escape, and teaches each shortcut by showing it beside its command.",
+		specimens: []specimen{
+			{caption: "Opened, with shortcuts and a destructive item", build: menuOpened},
+		},
+	},
+	{
+		name:    "KvitMenuItem",
+		group:   "Flow",
+		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it.",
+		specimens: []specimen{
+			{caption: "Ordinary, disabled and destructive", build: menuItemForms},
+		},
+	},
+	{
+		name:    "KvitTree",
+		group:   "Flow",
+		summary: "A nested list the reader can open and close. Twelve private versions; what a shared one has to get right is the keyboard, because depth without Left and Right is a wall.",
+		specimens: []specimen{
+			{caption: "A small hierarchy", build: treeAccounts},
+		},
+	},
+	{
+		name:    "KvitSwitch",
+		group:   "Flow",
+		summary: "An option that takes effect the moment it moves — where a checkbox is a value in a form that takes effect on submit. The knob moves and the track fills, so the state is not resting on hue.",
+		specimens: []specimen{
+			{caption: "On, off and disabled", build: switchForms},
+		},
+	},
+	{
+		name:    "KvitRadioGroup",
+		group:   "Flow",
+		summary: "One choice from a handful where the choice needs explaining. Arrow keys move within the group and Tab leaves it, which a column of separate controls does not do.",
+		specimens: []specimen{
+			{caption: "Three options with detail", build: radioAppearance},
+		},
+	},
+	{
+		name:    "KvitProgress",
+		group:   "Flow",
+		summary: "How far through something the application is. An unknown total is a moving band rather than a bar creeping toward the end, and it carries a label saying how far through what.",
+		specimens: []specimen{
+			{caption: "Determinate and indeterminate", build: progressForms},
+		},
+	},
+	{
+		name:    "KvitSlider",
+		group:   "Flow",
+		summary: "A value chosen by dragging, for a feel rather than a number. Where the exact value matters, KvitStepper or KvitNumberField are right — hitting a particular number on a slider is hard and it cannot be typed.",
+		specimens: []specimen{
+			{caption: "With its value shown", build: sliderWithValue},
+		},
+	},
+	{
+		name:    "KvitSplitView",
+		group:   "Flow",
+		summary: "Two regions the reader can resize. The handle is a wide invisible strip with a hairline down the middle, so the target is comfortable and the rule is still thin; it also moves with the arrow keys.",
+		specimens: []specimen{
+			{caption: "Two panes", build: splitTwoPanes},
+		},
+	},
+	{
 		name:    "KvitSegmented",
 		group:   "Flow",
 		summary: "One choice from two to five short options, all visible — the shape kvit-cash's dashboard period control needs, where a control governing seven widgets should say what they are showing without being opened.",
 		specimens: []specimen{
 			{caption: "A period control", build: segmentedPeriod},
+		},
+	},
+	{
+		name:    "KvitTypeAhead",
+		group:   "Flow",
+		summary: "A field offering matches as the reader types, for a list too long to read. Whether the reader may make a new value has no default: a tag picker should let the reader invent one, a category picker should not.",
+		specimens: []specimen{
+			{caption: "A category picker that will not invent categories", build: typeAheadCategory},
+		},
+	},
+	{
+		name:    "KvitConfirmInPlace",
+		group:   "Flow",
+		summary: "A strip saying what just happened, with the undo inside it. Cheaper than a dialog before every action when the reader is doing the same thing forty times — and right only when the action can really be undone.",
+		specimens: []specimen{
+			{caption: "After a bulk edit", build: confirmAfterBulkEdit},
+		},
+	},
+	{
+		name:    "KvitTimeline",
+		group:   "Flow",
+		summary: "What happened to something, newest first, with who did it. In an estate where an agent and a person change the same things, who is the column that makes a history worth reading.",
+		specimens: []specimen{
+			{caption: "An account's recent history", build: timelineHistory},
+		},
+	},
+	{
+		name:    "KvitNumberField",
+		group:   "Flow",
+		summary: "A number the reader types, right-aligned in tabular numerals. It validates and says why rather than refusing keystrokes — a field that ignores a key gives no reason, and the usual cause is a decimal separator the reader's locale writes differently.",
+		specimens: []specimen{
+			{caption: "Integer and decimal, valid and out of range", build: numberFieldForms},
+		},
+	},
+	{
+		name:    "KvitMoneyField",
+		group:   "Flow",
+		summary: "An amount of money, in minor units. The reader types 12.34 and the field reports 1234, an integer — money in floating point drifts by a penny somewhere nobody can find. The decimal count comes from the currency.",
+		specimens: []specimen{
+			{caption: "Sterling, yen and dinar", build: moneyFieldCurrencies},
+		},
+	},
+	{
+		name:    "KvitDualList",
+		group:   "Flow",
+		summary: "Two lists with items moving between them: what is available, and what is chosen and in what order. Everything works from the keyboard, which most implementations of this shape do not.",
+		specimens: []specimen{
+			{caption: "Choosing table columns", build: dualListColumns},
+		},
+	},
+	{
+		name:    "KvitSpotlight",
+		group:   "Flow",
+		summary: "Darken everything except one region and say something about it — the primitive under a guided tour, and deliberately only the primitive: what drives the stepping differs between the two applications that want one.",
+		specimens: []specimen{
+			{caption: "Focusing a button", build: spotlightOnButton},
 		},
 	},
 }

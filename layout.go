@@ -254,9 +254,6 @@ func Centred[T unison.Paneler](p T) T {
 	return p
 }
 
-// syncing runs sync before every size question and every layout, so a
-// component whose child panels follow its fields picks up a field changed
-// since the last layout.
 // showOnly makes a panel's children the parts that are not hidden, in the
 // order given, changing nothing when they already are. unison's flex layout
 // gives a hidden child its room and its gap, so an optional part is taken
@@ -282,6 +279,9 @@ func showOnly(p *unison.Panel, parts ...unison.Paneler) {
 	}
 }
 
+// syncing runs sync before every size question and every layout, so a
+// component whose child panels follow its fields picks up a field changed
+// since the last layout.
 type syncing struct {
 	unison.Layout
 	sync func()

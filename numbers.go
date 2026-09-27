@@ -1,6 +1,7 @@
 package kvitui
 
 import (
+	"math"
 	"strconv"
 
 	"golang.org/x/text/language"
@@ -33,4 +34,31 @@ func (u *UI) CountPhrase(n int, singular, plural string) string {
 	default:
 		return u.Number(n) + " " + singular + "s"
 	}
+}
+
+// toFixed writes a number with a fixed count of decimal places, rounding a
+// half away from zero as JavaScript's toFixed does, where Go's formatting
+// rounds it to even: a Qt value of 0.5 shown with no decimals is "1", and
+// the Go page has to say the same.
+func toFixed(v float64, places int) string {
+	scale := math.Pow(10, float64(places))
+	r := math.Round(v*scale) / scale
+	if r == 0 {
+		r = 0 // not "-0"
+	}
+	return strconv.FormatFloat(r, 'f', max(0, places), 64)
+}
+
+// DecimalSeparator is the character the reader's locale writes between the
+// whole part of a number and its fraction: "." in en-US and under the C
+// locale, "," in de-DE.
+func (u *UI) DecimalSeparator() string {
+	if u.Locale == language.Und {
+		return "."
+	}
+	s := []rune(message.NewPrinter(u.Locale).Sprintf("%.1f", 1.5))
+	if len(s) < 3 {
+		return "."
+	}
+	return string(s[1])
 }

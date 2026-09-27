@@ -946,11 +946,8 @@ func (t *Trend) drawSpill(gc *unison.Canvas) {
 		if y := t.gridline(plot, i, lines); y >= r.Bottom() {
 			painterFor(gc, ui).fill(geom.NewRect(plot.X, y, plot.Width, float32(m.Hairline())), ui.Theme.Tokens().Border)
 		}
-		value := math.Round(t.MaximumY - (t.MaximumY-t.MinimumY)*float64(i)/float64(lines-1))
-		if value == 0 {
-			value = 0 // not "-0"
-		}
-		l := ui.Fonts.Layout([]text.Span{{Text: strconv.FormatFloat(value, 'f', 0, 64), Style: st}},
+		value := t.MaximumY - (t.MaximumY-t.MinimumY)*float64(i)/float64(lines-1)
+		l := ui.Fonts.Layout([]text.Span{{Text: toFixed(value, 0), Style: st}},
 			text.Options{MaxWidth: plot.X - r.X - float32(m.SpaceSnug()), Align: text.AlignEnd})
 		_, h := l.Size()
 		l.Draw(gc, r.X, t.gridline(plot, i, lines)-h/2)
