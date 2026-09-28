@@ -29,9 +29,9 @@ Give the command behind every number, and save screenshots under
 | `palette` | Colours and the colour science the design values are checked with: OKLab/OKLCH, perceptual distance, colour-vision simulation, WCAG contrast, chart-ramp rules |
 | `tokens` | `Theme` (four colour tables, overrides, reduced motion, following the desktop), `Interface` (everything derived from the 10–24 px interface size), `Typography` (document text). `tables_gen.go` is generated |
 | `settings` | The settings file (`ui.json`), in the Qt library's format and keys |
-| `platform` | What the desktop says about dark mode, high contrast and reduced motion |
+| `platform` | What the desktop says about dark mode, high contrast and reduced motion; the tray icon, its menu and notifications (`tray.go`, with a backend per system: Shell_NotifyIcon on Windows, StatusNotifierItem and dbusmenu over D-Bus on Linux, NSStatusItem and UNUserNotificationCenter on macOS through purego, compiled but not yet run on a Mac) |
 | `icons` | The embedded Phosphor font and its names. `catalog_gen.go` is generated |
-| `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas |
+| `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas, and room kept in a line for something the caller draws over the text, such as a typeset formula (`Style.Box`, placed with `CaretAt` and `Layout.LineBaseline`) |
 | root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
 | `uitest` | Headless test helpers for the library and the applications: a Kvit window in a chosen theme and interface size (`Open`), a screen reader's view of it, the check that every control has a role and a name (`CheckNamed`), and the check on a program's source for colour literals and numeric font sizes (`CheckRules`) |
 | `cmd/kvit-ui-gallery` | The gallery, its screenshot mode, and `--catalog`, which writes the skill's component catalogue |

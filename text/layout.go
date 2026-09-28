@@ -44,6 +44,9 @@ type Style struct {
 	// baseline, or below it when negative, for superscript and subscript. It
 	// does not change the line's height.
 	Rise float32
+	// Box, when its Width is above zero, lays the span out as room for
+	// something drawn over the text (see Box).
+	Box Box
 }
 
 // Span is text in one style.
@@ -305,6 +308,10 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 		if end <= start {
 			continue
 		}
+		if st.Box.on() {
+			outs = append(outs, boxOutput(st.Box, st.Size, start-ps, end-start))
+			continue
+		}
 		// A character followed by an emoji presentation mark (U+FE0F, or the
 		// keycap U+20E3) belongs to the emoji font with its marks, even when the
 		// span's font has the character itself: "1️⃣" and "❤️" split across two
@@ -366,12 +373,24 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 	}, maxWidth, para, shaping.NewSliceIterator(outs))
 	for n, wl := range wrapped {
 		ln := line{start: math.MaxInt, end: 0, hardEnd: n == len(wrapped)-1}
-		var ascent, descent float32
+		var ascent, descent, boxAscent, boxDescent float32
+		texts := 0
 		for _, o := range wl {
-			ascent = max(ascent, toF(o.LineBounds.Ascent))
-			descent = max(descent, -toF(o.LineBounds.Descent))
+			if st := l.styles[l.styleAt(ps+o.Runes.Offset)]; st.Box.on() {
+				boxAscent = max(boxAscent, st.Box.Ascent)
+				boxDescent = max(boxDescent, st.Box.Descent)
+			} else {
+				ascent = max(ascent, toF(o.LineBounds.Ascent))
+				descent = max(descent, -toF(o.LineBounds.Descent))
+				texts++
+			}
 			ln.start = min(ln.start, ps+o.Runes.Offset)
 			ln.end = max(ln.end, ps+o.Runes.Offset+o.Runes.Count)
+		}
+		if texts == 0 {
+			// A line of boxes alone stands on the font of the first one's
+			// style, as an empty line does.
+			ascent, descent = l.emptyMetrics(l.styles[l.styleAt(ln.start)])
 		}
 		runs := append(shaping.Line(nil), wl...)
 		sort.SliceStable(runs, func(a, b int) bool { return runs[a].VisualIndex < runs[b].VisualIndex })
@@ -381,7 +400,7 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 			ln.runs = append(ln.runs, placedRun{out: o, base: ps, x: x, width: w, style: l.styleAt(ps + o.Runes.Offset)})
 			x += w
 		}
-		h, baseline := l.lineBox(ascent, descent, lineMult, y, opt)
+		h, baseline := l.boxedLineBox(ascent, descent, boxAscent, boxDescent, lineMult, y, opt)
 		ln.height = h
 		ln.top = y
 		ln.baseline = y + baseline

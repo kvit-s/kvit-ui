@@ -347,3 +347,46 @@ func TestGridPlacesEveryCharacterOnItsCell(t *testing.T) {
 		}
 	}
 }
+
+// A box is laid out as room of its width, one caret stop at each side, and
+// a line of a fixed pitch grows by what a box needs beyond the pitch.
+func TestBoxKeepsRoomInTheLine(t *testing.T) {
+	f := sharedFonts(t)
+	st := text.Style{Size: 15, Color: black}
+	boxed := func(b text.Box) *text.Layout {
+		bs := st
+		bs.Box = b
+		return f.Layout([]text.Span{{Text: "a ", Style: st}, {Text: "￼", Style: bs}, {Text: " b", Style: st}},
+			text.Options{Pitch: 20})
+	}
+	plainW, _ := f.Layout([]text.Span{{Text: "a  b", Style: st}}, text.Options{Pitch: 20}).Size()
+
+	small := boxed(text.Box{Width: 30, Ascent: 5, Descent: 2})
+	w, h := small.Size()
+	if math.Abs(float64(w-(plainW+30))) > 0.1 {
+		t.Errorf("width %.2f, want the text's %.2f and the box's 30", w, plainW)
+	}
+	if h != 20 {
+		t.Errorf("a box inside the pitch made the line %.2f tall", h)
+	}
+	x2, _, _ := small.CaretAt(2)
+	x3, _, _ := small.CaretAt(3)
+	if math.Abs(float64(x3-x2-30)) > 0.1 {
+		t.Errorf("the box runs from %.2f to %.2f", x2, x3)
+	}
+	base := small.LineBaseline(0)
+
+	tall := boxed(text.Box{Width: 30, Ascent: 40, Descent: 12})
+	_, th := tall.Size()
+	tb := tall.LineBaseline(0)
+	if tb < 40 || tb != float32(math.Ceil(float64(tb))) {
+		t.Errorf("baseline %.2f is not a whole pixel under the box's ascent of 40", tb)
+	}
+	if want := tb + max(20-base, 12); th != want {
+		t.Errorf("line %.2f tall, want %.2f", th, want)
+	}
+	// The box's own runes are not drawn, and drawing it is safe.
+	if _, err := unison.NewImageFromDrawing(200, 80, 72, func(gc *unison.Canvas) { tall.Draw(gc, 0, 0) }); err != nil {
+		t.Fatal(err)
+	}
+}

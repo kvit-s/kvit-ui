@@ -55,7 +55,7 @@ func (l *Layout) Draw(gc *unison.Canvas, x, y float32) {
 			st := l.styles[r.style]
 			origin := geom.NewPoint(x+r.x, y+ln.baseline-st.Rise)
 			paint := st.Color.Unison().Paint(gc, geom.Rect{}, paintstyle.Fill)
-			if len(r.out.Glyphs) > 0 {
+			if len(r.out.Glyphs) > 0 && !st.Box.on() {
 				if cf := l.fonts.font(r.out.Face, toF(r.out.Size)); cf != nil {
 					b := textblob.NewBuilder()
 					buf := b.AllocRunPos(cf, len(r.out.Glyphs), nil)
@@ -71,7 +71,7 @@ func (l *Layout) Draw(gc *unison.Canvas, x, y float32) {
 					}
 				}
 			}
-			if st.Underline || st.Strike {
+			if (st.Underline || st.Strike) && !st.Box.on() {
 				thick := max(1, st.Size/14)
 				line := st.Color.Unison().Paint(gc, geom.Rect{}, paintstyle.Stroke)
 				line.SetStrokeWidth(thick)
