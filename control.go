@@ -222,7 +222,7 @@ func (c *control) showTip() {
 	if w == nil || say == "" {
 		return
 	}
-	hide := w.Show(&Popup{Panel: newTooltip(c.ui, say, ""), Place: PlaceBeside(c.ui, c), Anchor: c})
+	hide := w.Show(&Popup{Panel: newTooltip(c.ui, say, ""), Place: PlaceBeside(c.ui, c), Anchor: c, Passive: true})
 	c.tipHide = hide
 	gen := c.tipGen
 	unison.InvokeTaskAfter(func() {

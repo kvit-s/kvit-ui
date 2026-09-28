@@ -21,9 +21,15 @@ type Popup struct {
 	// Modal lays a scrim over everything below it that takes every press,
 	// so the popup has to be answered first.
 	Modal bool
-	// OnEscape runs when Escape is pressed while this is the topmost popup;
-	// nil leaves Escape alone.
+	// OnEscape runs when Escape is pressed while this is the topmost popup
+	// that is not passive; nil leaves Escape alone.
 	OnEscape func()
+	// Passive is a popup that only informs, such as a tooltip: it never has
+	// the focus, so Escape passes it by and goes to the popup under it, or to
+	// the window when there is none. In Qt a tooltip never takes the focus,
+	// so Escape reached what was under it, such as the panel the control
+	// with the tooltip is in.
+	Passive bool
 	// OnPressOutside runs when the pointer is pressed outside it; the press
 	// still reaches whatever is under the pointer unless the popup is modal.
 	OnPressOutside func()
@@ -134,14 +140,23 @@ func (w *Window) layoutPopups(r geom.Rect) {
 }
 
 // popupKeys closes the topmost popup on Escape, before any control sees the
-// key.
+// key. Passive popups are passed by. A popup that is not passive and has no
+// OnEscape leaves the key to the focused control, as the typeahead's list
+// does for its field, which closes the list.
 func (w *Window) popupKeys(key unison.KeyCode) bool {
 	if key != unison.KeyEscape {
 		return false
 	}
-	if p := w.top(); p != nil && p.OnEscape != nil {
-		p.OnEscape()
-		return true
+	for i := len(w.popups) - 1; i >= 0; i-- {
+		p := w.popups[i]
+		if p.Passive {
+			continue
+		}
+		if p.OnEscape != nil {
+			p.OnEscape()
+			return true
+		}
+		return false
 	}
 	return false
 }

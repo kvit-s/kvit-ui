@@ -117,6 +117,53 @@ func TestAPopoverClosesOnEscapeAndGivesTheFocusBack(t *testing.T) {
 	})
 }
 
+// A tooltip never has the focus, so Escape passes it by: over an open
+// popover it closes the popover rather than stopping at the tooltip, as in
+// Qt. A popup that is not a tooltip and has no Escape of its own still stops
+// it, so the control with the focus gets the key, as the typeahead's field
+// does to close its list.
+func TestEscapePassesATooltipByToThePopupUnderIt(t *testing.T) {
+	var opener *kvitui.Button
+	var pop *kvitui.Popover
+	var inside *kvitui.Check
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		opener = kvitui.NewButton(ui, "Filter")
+		inside = kvitui.NewCheck(ui, "Settled")
+		return []unison.Paneler{kvitui.Left(opener)}
+	})
+	screen.Do(func() {
+		pop = kvitui.NewPopover(ui, "Filter", inside)
+		opener.Focus()
+		pop.Open(opener, kvitui.PlaceBelow(ui, opener))
+	})
+	waitFor(t, screen, "the popover to take the focus", func() bool { return inside.Focused() })
+	screen.Do(func() { ui.ShowTooltip(inside, "Only rows that are settled") })
+	waitFor(t, screen, "the tooltip over the popover", func() bool { return len(w.Popups()) == 2 })
+	screen.KeyPress(unison.KeyEscape, 0)
+	screen.Do(func() {
+		if pop.Opened() {
+			t.Error("Escape stopped at the tooltip and left the popover open")
+		}
+	})
+
+	screen.Do(func() { pop.Open(opener, kvitui.PlaceBelow(ui, opener)) })
+	waitFor(t, screen, "the popover again", func() bool { return inside.Focused() })
+	var hideList func()
+	screen.Do(func() {
+		list := kvitui.NewLabel(ui, "a list that takes keys")
+		hideList = w.Show(&kvitui.Popup{Panel: list, Anchor: inside,
+			Place: func(bounds geom.Rect, size geom.Size) geom.Rect { return geom.Rect{Size: size} }})
+	})
+	screen.KeyPress(unison.KeyEscape, 0)
+	screen.Do(func() {
+		if !pop.Opened() {
+			t.Error("Escape went past a popup that takes keys and closed the popover under it")
+		}
+		hideList()
+		pop.Close()
+	})
+}
+
 func TestADialogHasToBeAnsweredFirst(t *testing.T) {
 	var behind *kvitui.Button
 	var dialog *kvitui.Dialog

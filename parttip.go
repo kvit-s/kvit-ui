@@ -68,7 +68,7 @@ func (t *partTip) card(key any, panel func() unison.Paneler, box func() geom.Rec
 
 func (t *partTip) show(p unison.Paneler, place func(bounds geom.Rect, size geom.Size) geom.Rect) {
 	if w := t.ui.windowOf(t.owner); w != nil {
-		t.hide = w.Show(&Popup{Panel: p, Place: place, Anchor: t.owner})
+		t.hide = w.Show(&Popup{Panel: p, Place: place, Anchor: t.owner, Passive: true})
 	}
 }
 

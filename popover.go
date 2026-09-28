@@ -18,7 +18,8 @@ func (u *UI) ShowTooltip(anchor unison.Paneler, words string) (hide func()) {
 	var remove func()
 	show := func() {
 		if w := u.windowOf(anchor); w != nil && words != "" && !hidden {
-			remove = w.Show(&Popup{Panel: newTooltip(u, words, ""), Place: PlaceBeside(u, anchor), Anchor: anchor})
+			remove = w.Show(&Popup{Panel: newTooltip(u, words, ""), Place: PlaceBeside(u, anchor), Anchor: anchor,
+				Passive: true})
 		}
 	}
 	// An anchor not in a window yet shows it once it is.
