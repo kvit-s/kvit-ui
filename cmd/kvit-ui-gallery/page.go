@@ -80,9 +80,10 @@ func drawnPage(ui *kvitui.UI, draw func(p painter, x, y, width float32) float32)
 	// The region the page is shown in keeps the view margin around it.
 	margin := func() float32 { return 0 }
 	p.SetSizer(func(hint geom.Size) (geom.Size, geom.Size, geom.Size) {
-		w := max(hint.Width, 400)
+		least := float32(ui.Interface.Px(400))
+		w := max(hint.Width, least)
 		h := draw(painter{nil, ui}, margin(), margin(), w-2*margin()) + 2*margin()
-		return geom.NewSize(400, h), geom.NewSize(w, h), geom.NewSize(unison.DefaultMaxSize, h)
+		return geom.NewSize(least, h), geom.NewSize(w, h), geom.NewSize(unison.DefaultMaxSize, h)
 	})
 	p.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
 		b := p.ContentRect(false)

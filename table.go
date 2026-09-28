@@ -960,13 +960,20 @@ func (h *tableHeader) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bo
 	return true
 }
 
+// selectShownName is the name of the box in a Check column's header, which
+// selects every row shown.
+const selectShownName = "Select the rows shown"
+
 // headerName is what a screen reader says about a column's header: its
-// title, and the order it is holding the rows in.
+// title, and the order it is holding the rows in. A Check column's header is
+// named by its title, as every other header is, and the box inside it by
+// what the box does (selectShownName); a Check column with no title is named
+// by its box, since a header the keyboard stops on needs a name.
 func (t *Table) headerName(column int) string {
 	title := t.columns()[column].Title
 	switch {
-	case t.columns()[column].Kind == CellCheck:
-		return "Select the rows shown"
+	case t.columns()[column].Kind == CellCheck && title == "":
+		return selectShownName
 	case t.SortColumn != column:
 		return title
 	case t.SortAscending:
@@ -976,7 +983,10 @@ func (t *Table) headerName(column int) string {
 }
 
 // ProvideAccessibility describes the header as a row of column headers, with
-// the focus on the one the cursor is on.
+// the focus on the one the cursor is on. A Check column's header holds its
+// box as a node of its own, as the Qt header cell held a KvitCheck: the
+// header is named by the column's title and the box by what it does, and
+// the box, not the header, says whether it is ticked.
 func (h *tableHeader) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	t := h.t
 	n := b.Node()
@@ -994,14 +1004,6 @@ func (h *tableHeader) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 			switch {
 			case col.Kind == CellCheck:
 				v.Description = "Enter selects or clears every row shown; the menu key opens this column's options"
-				v.HasCheck = true
-				v.Checked = check.Off
-				switch {
-				case t.HeaderPartial:
-					v.Checked = check.Mixed
-				case t.HeaderChecked:
-					v.Checked = check.On
-				}
 			case col.Unsortable:
 				v.Description = "This column does not sort; the menu key opens its options"
 			default:
@@ -1010,15 +1012,44 @@ func (h *tableHeader) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 			v.Focusable = true
 			v.Actions = v.Actions.With(accessibility.Press, accessibility.ShowContextMenu, accessibility.Focus)
 		})
+		if col.Kind == CellCheck {
+			checkBox := h.checkBox(p)
+			b.AddVirtualChildOf(id, headerBoxKey(p.column), func(v *accessibility.Node) {
+				v.Role = role.CheckBox
+				v.Name = selectShownName
+				v.Bounds = checkBox
+				v.HasCheck = true
+				v.Checked = check.Off
+				switch {
+				case t.HeaderPartial:
+					v.Checked = check.Mixed
+				case t.HeaderChecked:
+					v.Checked = check.On
+				}
+				v.Actions = v.Actions.With(accessibility.Press)
+			})
+		}
 		if p.column == t.cursor {
 			b.FocusChild(id)
 		}
 	}
 }
 
-// PerformAccessibilityAction presses a column's header, opens its menu, or
-// puts the cursor on it.
+// headerBoxKey is the key of the box in a Check column's header among the
+// header's virtual children, which key the headers themselves by column.
+type headerBoxKey int
+
+// PerformAccessibilityAction presses a column's header or the box in it,
+// opens a column's menu, or puts the cursor on a column.
 func (h *tableHeader) PerformAccessibilityAction(req accessibility.ActionRequest) bool {
+	if box, ok := req.Key.(headerBoxKey); ok {
+		if req.Action != accessibility.Press {
+			return false
+		}
+		h.t.activate(int(box))
+		h.MarkForRedraw()
+		return true
+	}
 	col, ok := req.Key.(int)
 	if !ok || col < 0 || col >= len(h.t.columns()) {
 		return false

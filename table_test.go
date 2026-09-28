@@ -194,6 +194,67 @@ func TestTheHeaderSortsAndResizesFromTheKeyboard(t *testing.T) {
 	}
 }
 
+// titledChecks is the benchmark model with a title on its Check column, as
+// an application's ledger has one.
+type titledChecks struct{ *kvitui.BenchmarkTableModel }
+
+func (m titledChecks) Columns() []kvitui.TableColumn {
+	cols := slices.Clone(m.BenchmarkTableModel.Columns())
+	cols[12].Title = "Selected"
+	return cols
+}
+
+// A Check column's header is heard by the column's title, as every other
+// header is, and the box inside it by what it does, with its tick; the box
+// presses from a screen reader. An untitled Check column is named by its
+// box, since the keyboard stops on its header.
+func TestACheckColumnsHeaderIsNamedByItsTitleAndItsBoxByWhatItDoes(t *testing.T) {
+	var table *kvitui.Table
+	var toggled []bool
+	screen, _, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		table = kvitui.NewTable(ui, titledChecks{kvitui.NewBenchmarkTableModel(40)})
+		table.HiddenColumns = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+		table.HeaderPartial = true
+		table.OnHeaderToggled = func(checked bool) {
+			toggled = append(toggled, checked)
+			table.HeaderChecked, table.HeaderPartial = checked, false
+		}
+		return []unison.Paneler{kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(300), table))}
+	})
+	tree := screen.AccessibilityTree(w.Window)
+	var header, box *accessibility.Node
+	for _, n := range tree.Nodes {
+		if n.Role == role.ColumnHeader && n.ColumnIndex == 1 {
+			header = n
+		}
+	}
+	if header == nil || header.Name != "Selected" || header.HasCheck {
+		t.Fatalf("the Check column's header is %+v", header)
+	}
+	for _, id := range header.Children {
+		if n := tree.Nodes[id]; n.Role == role.CheckBox {
+			box = n
+		}
+	}
+	if box == nil || box.Name != "Select the rows shown" || !box.HasCheck || box.Checked != check.Mixed {
+		t.Fatalf("the box in the header is %+v", box)
+	}
+	if !screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: box.ID, Action: accessibility.Press}) ||
+		!slices.Equal(toggled, []bool{true}) {
+		t.Errorf("pressing the box asked for %v", toggled)
+	}
+	tree = screen.AccessibilityTree(w.Window)
+	if n := tree.Nodes[box.ID]; n == nil || n.Checked != check.On {
+		t.Errorf("after the press the box is %+v", n)
+	}
+	screen.Do(func() { table.Model = kvitui.NewBenchmarkTableModel(40); table.Refresh() })
+	for _, n := range screen.AccessibilityTree(w.Window).Nodes {
+		if n.Role == role.ColumnHeader && n.ColumnIndex == 1 && n.Name != "Select the rows shown" {
+			t.Errorf("an untitled Check column's header is %+v", n)
+		}
+	}
+}
+
 func TestTheKeyboardWalksTheRowsAndTicksTheirBoxes(t *testing.T) {
 	var table *kvitui.Table
 	var toggled, pressed, activated []int

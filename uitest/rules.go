@@ -20,7 +20,8 @@ import (
 // directories under dir whose job is to hold or apply design values; tests,
 // generated files, hidden directories and build output are not read. It
 // returns how many files it read, which a caller can hold to a floor: a
-// check that reads nothing passes.
+// check that reads nothing passes. The third rule, no unnamed geometry
+// value, is CheckGeometry.
 func CheckRules(t testing.TB, dir string, exempt ...string) int {
 	t.Helper()
 	files, err := goFiles(dir, exempt)

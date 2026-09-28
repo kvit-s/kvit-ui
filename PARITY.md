@@ -331,6 +331,7 @@ component draws it itself, cut off at its box.
   its marks, each named, and a Check cell leaves the naming to its box.
 - [x] `KvitTable` (`Table`, over a `TableModel`, with `BenchmarkTableModel`).
   Evidence: `TestTheHeaderSortsAndResizesFromTheKeyboard`,
+  `TestACheckColumnsHeaderIsNamedByItsTitleAndItsBoxByWhatItDoes`,
   `TestTheKeyboardWalksTheRowsAndTicksTheirBoxes`,
   `TestTickingABoxDoesNotAlsoOpenTheRow`,
   `TestACellCutShortIsShownWholeUnderThePointer`,
@@ -367,6 +368,11 @@ component draws it itself, cut off at its box.
     are public for an application to save with its view.
   - The model is told nothing about editing: the Qt table declares
     `editable` and never reads it.
+  - A Check column's header is named by the column's title, as in Qt, and
+    the box inside it is a node of its own, "Select the rows shown", which
+    says whether it is ticked and presses from a screen reader. A Check
+    column with no title, which the Qt header left unnamed, is named by its
+    box, because every control the keyboard stops on needs a name.
 
 ### Flow (17)
 
@@ -519,9 +525,21 @@ component draws it itself, cut off at its box.
   whose name starts with a dot and the directory it starts from is named
   "."; it now fails when it finds fewer than it should, and the four
   literals it then found are named design values.
-- [ ] No unnamed geometry value outside the design values: not checked by a
-  test yet, since a literal offset cannot be told from ordinary arithmetic
-  by reading the source
+- [x] No unnamed geometry value outside the design values
+  (`TestNoUnnamedGeometryValues`, through `uitest.CheckGeometry`, which an
+  application's tests call on its own source; `TestTheGeometryCheckCatchesNumbers`
+  plants the cases). It refuses a number other than zero given to geom's
+  constructors, or given to a position, size, spacing, radius or margin
+  field (`X`, `Width`, `HSpacing`, `Radius`, `Top` and the rest) in a
+  struct literal or an assignment: the Go form of the Qt gate's expression
+  over `x`, `width`, `spacing`, `radius` and the anchors' margins.
+  Arithmetic on a measure passes, as it did in Qt, and so does a
+  `TableColumn`'s width, which is in design pixels and passed through
+  `Px` by the table. It found two numbers in the gallery, now the page's
+  floor in design pixels and the named height of the screenshot screen. It
+  is separate from `CheckRules` so that each application takes it on when
+  its own screens pass it (on 2026-09-28 kvit-hub-go had 25 such numbers
+  and kvit-notes-go 34)
 - [x] Every interactive component giving screen readers a role and a name.
   Evidence: `TestEveryControlSaysWhatItIs`, which opens every page and
   checks every node that takes the focus or a press. It found two gaps,

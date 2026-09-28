@@ -27,6 +27,11 @@ func shotName(theme string, size int, page string) string {
 	return fmt.Sprintf("%s-%dpx-%s.png", theme, size, page)
 }
 
+// shotScreenHeight is the height of the headless screen the shots are drawn
+// on, in pixels: a screen rather than anything in a layout, tall enough for
+// the longest page at the largest interface size to be drawn whole.
+const shotScreenHeight = 16000
+
 // writeShots draws every page in every theme at each shot size, headlessly,
 // into dir. With compare set to the Qt gallery's shot directory, it also
 // writes compare/<name>, the Go image above the Qt one, for every name both
@@ -47,7 +52,7 @@ func writeShots(dir, compare string) ([]string, error) {
 	var startErr error
 	widest := tokens.NewInterface()
 	widest.SetFontSize(tokens.MaxInterfaceSize)
-	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: float32(widest.WidthDrawn()), Height: 16000},
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: float32(widest.WidthDrawn()), Height: shotScreenHeight},
 		unison.StartupFinishedCallback(func() {
 			g, startErr = newGallery(ui, "Foundations", nil)
 		}))
