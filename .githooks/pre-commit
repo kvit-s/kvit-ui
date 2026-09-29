@@ -1,5 +1,22 @@
 #!/usr/bin/env bash
-# Checks formatting, runs go vet and the headless tests before every commit.
+# Before every commit, checks the Go files the commit changes: gofmt on those
+# files and go vet on their packages. It takes a few seconds; the tests run
+# when asked, with ./build.sh --test, since a commit hook that ran them would
+# also run on every commit an agent turn makes in a track's copy.
 # Enabled by: git config core.hooksPath .githooks
 set -euo pipefail
-exec "$(git rev-parse --show-toplevel)/build.sh" --test
+cd "$(git rev-parse --show-toplevel)"
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go' | grep -v -e '^third_party/' -e '/third_party/' || true)
+[ -n "$files" ] || exit 0
+unformatted=$(gofmt -l $files)
+if [ -n "$unformatted" ]; then
+    echo "not formatted with gofmt:" >&2
+    echo "$unformatted" >&2
+    exit 1
+fi
+packages=$(for f in $files; do dirname "$f"; done | grep -v -e '^testdata$' -e '/testdata$' -e '/testdata/' | sort -u | sed 's|^|./|')
+[ -n "$packages" ] || exit 0
+# Git passes the hook the variables that locate this repository; the go
+# command runs git for build information, so they go.
+unset $(git rev-parse --local-env-vars)
+CGO_ENABLED=0 go vet $packages
