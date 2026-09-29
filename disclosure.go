@@ -57,9 +57,8 @@ func NewDisclosure(ui *UI, title string, content ...unison.Paneler) *Disclosure 
 	t.ringRadius = func() float32 { return 0 }
 	t.DrawCallback = t.draw
 	d.trigger = t
-	d.body = unison.NewPanel()
+	d.body = newSpillClip()
 	d.body.SetLayout(&unison.FlexLayout{Columns: 1})
-	ui.clipSpills(d.body)
 	for _, p := range content {
 		if p.AsPanel().LayoutData() == nil {
 			p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})

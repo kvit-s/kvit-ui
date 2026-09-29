@@ -31,15 +31,8 @@ type UI struct {
 	// Number. language.Und groups no digits, as the C locale does.
 	Locale   language.Tag
 	onChange []func()
-	// watched are the windows already drawing focus rings and watching keys.
-	watched map[*unison.Window]bool
 	// windows are the open Kvit windows, by the unison window they wrap.
 	windows map[*unison.Window]*Window
-	// spillHosts are the panels that draw what the components inside them
-	// draw past their own boxes.
-	spillHosts map[*unison.Panel]bool
-	// spillClips are the panels that clip those to their own boxes.
-	spillClips map[*unison.Panel]bool
 	// keyTurn is set while a window is handling a key press, so focus that
 	// moves then came from the keyboard.
 	keyTurn bool

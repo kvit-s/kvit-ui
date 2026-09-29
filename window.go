@@ -46,8 +46,9 @@ type Window struct {
 	railHovered, railFocused      bool
 	drawnWidth                    float32 // the sidebar's width as drawn, moving towards its target
 	easing                        bool
-	popups                        []*Popup // shown above everything, the last on top
-	scrim                         *scrim   // behind the topmost modal popup
+	popups                        []*Popup        // shown above everything, the last on top
+	scrim                         *scrim          // behind the topmost modal popup
+	spillHosts                    []*unison.Panel // the panels drawing what their components draw past their boxes
 }
 
 // NewWindow returns a shell window, the design width wide and 960 design
@@ -74,11 +75,11 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 		// hands out when the window opens is not the reader's doing.
 		w.setRail(w.railHovered, inside && (ui.keyTurn || w.railFocused))
 	}
-	ui.hostSpills(w.panel.AsPanel())
+	w.hostSpills(w.panel.AsPanel())
 	w.stage = unison.NewPanel()
 	w.stage.SetLayout(&unison.FlexLayout{Columns: 1, HAlign: align.Fill, VAlign: align.Fill})
 	w.stage.Accessibility.Role = role.None
-	ui.hostSpills(w.stage)
+	w.hostSpills(w.stage)
 	content := uw.Content()
 	content.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
 		painterFor(gc, ui).fill(content.ContentRect(true), ui.Theme.Tokens().WindowBackground)

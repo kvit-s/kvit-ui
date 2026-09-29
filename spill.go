@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"slices"
+
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/pathop"
@@ -11,48 +13,52 @@ import (
 // tick standing out of the bar. unison clips each panel's drawing to its box,
 // so the part drawn outside it is drawn by the nearest panel above it that
 // hosts spills, after everything in that panel. It is clipped where a Qt item
-// would clip it: at the view of a scroll panel it is in, and at a panel that
-// asks for it with clipSpills, as a disclosure's body does while it grows
-// open. drawSpill draws in the component's own coordinates.
+// would clip it: at the view of a scroll panel it is in, and at a spillClip,
+// as a disclosure's body is while it grows open. drawSpill draws in the
+// component's own coordinates.
 type spiller interface {
 	drawSpill(gc *unison.Canvas)
 }
 
-// hostSpills makes a panel draw the spills of the components inside it, over
-// its children and under anything the panel itself draws over them, such as
-// a Kvit panel's rules. The window does this for its body and its sidebar, so
-// a spill is drawn over the page it is on, and under the rail when the rail
-// opens over the page and under a popup.
-func (u *UI) hostSpills(host *unison.Panel) {
-	if u.spillHosts[host] {
+// hostSpills makes a panel of the window draw the spills of the components
+// inside it, over its children and under anything the panel itself draws
+// over them, such as a Kvit panel's rules. The window does this for its body
+// and its sidebar, so a spill is drawn over the page it is on, and under the
+// rail when the rail opens over the page and under a popup. The window keeps
+// its hosts, so they go with it when it closes.
+func (w *Window) hostSpills(host *unison.Panel) {
+	if slices.Contains(w.spillHosts, host) {
 		return
 	}
-	if u.spillHosts == nil {
-		u.spillHosts = map[*unison.Panel]bool{}
-	}
-	u.spillHosts[host] = true
+	w.spillHosts = append(w.spillHosts, host)
 	previous := host.DrawOverCallback
 	host.DrawOverCallback = func(gc *unison.Canvas, rect geom.Rect) {
-		u.drawSpills(gc, host, geom.Point{}, host.ContentRect(true))
+		drawSpills(gc, w.spillHosts, host, geom.Point{}, host.ContentRect(true))
 		if previous != nil {
 			previous(gc, rect)
 		}
 	}
 }
 
-// clipSpills makes a panel clip what the components inside it draw past their
-// boxes to its own box.
-func (u *UI) clipSpills(p *unison.Panel) {
-	if u.spillClips == nil {
-		u.spillClips = map[*unison.Panel]bool{}
-	}
-	u.spillClips[p] = true
+// spillClip is a panel that clips what the components inside it draw past
+// their boxes to its own box, as a disclosure's body does while it grows
+// open. It says so by what it is, rather than by being listed somewhere that
+// would keep it after it is gone.
+type spillClip struct {
+	unison.Panel
+}
+
+// newSpillClip returns an empty panel that clips the spills inside it.
+func newSpillClip() *unison.Panel {
+	p := &spillClip{}
+	p.Self = p
+	return p.AsPanel()
 }
 
 // clipsSpills reports whether a panel clips the spills inside it: a view of a
-// scroll panel, or one that asked to.
-func (u *UI) clipsSpills(p *unison.Panel) bool {
-	if u.spillClips[p] {
+// scroll panel, or a spillClip.
+func clipsSpills(p *unison.Panel) bool {
+	if _, ok := p.Self.(*spillClip); ok {
 		return true
 	}
 	if parent := p.Parent(); parent != nil {
@@ -64,10 +70,11 @@ func (u *UI) clipsSpills(p *unison.Panel) bool {
 
 // drawSpills draws the spills inside p, whose origin is at origin in the
 // host's coordinates and whose clipping containers, p among them, leave clip
-// showing. A panel inside another host is left to that host.
-func (u *UI) drawSpills(gc *unison.Canvas, p *unison.Panel, origin geom.Point, clip geom.Rect) {
+// showing. A panel inside another of the window's hosts is left to that
+// host.
+func drawSpills(gc *unison.Canvas, hosts []*unison.Panel, p *unison.Panel, origin geom.Point, clip geom.Rect) {
 	for _, c := range p.Children() {
-		if c.Hidden || u.spillHosts[c] {
+		if c.Hidden || slices.Contains(hosts, c) {
 			continue
 		}
 		frame := c.FrameRect()
@@ -80,11 +87,11 @@ func (u *UI) drawSpills(gc *unison.Canvas, p *unison.Panel, origin geom.Point, c
 			gc.Restore()
 		}
 		inner := clip
-		if u.clipsSpills(c) {
+		if clipsSpills(c) {
 			inner = clip.Intersect(geom.Rect{Point: at, Size: frame.Size})
 		}
 		if !inner.Empty() {
-			u.drawSpills(gc, c, at, inner)
+			drawSpills(gc, hosts, c, at, inner)
 		}
 	}
 }
@@ -93,8 +100,12 @@ func (u *UI) drawSpills(gc *unison.Canvas, p *unison.Panel, origin geom.Point, c
 // does, as outside a Kvit window, the component draws it itself, clipped to
 // its box.
 func (u *UI) spillHosted(p *unison.Panel) bool {
+	w := u.windowOf(p)
+	if w == nil {
+		return false
+	}
 	for a := p.Parent(); a != nil; a = a.Parent() {
-		if u.spillHosts[a] {
+		if slices.Contains(w.spillHosts, a) {
 			return true
 		}
 	}

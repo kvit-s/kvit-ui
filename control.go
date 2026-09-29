@@ -290,6 +290,10 @@ func (c *control) focusRing() (*unison.Panel, float32, bool) {
 	return c.AsPanel(), r, c.KeyboardFocus() && !c.noRing
 }
 
+// windowWatchedKey is the client-data key under which a window records that
+// it draws focus rings and watches keys.
+const windowWatchedKey = "kvitui.watched"
+
 // watchWindow makes a window draw the focus ring of whichever Kvit control
 // holds its keyboard focus, and tell the controls when a key is being
 // handled, so a control can tell focus moved by Tab from the focus the window
@@ -303,13 +307,14 @@ func (c *control) focusRing() (*unison.Panel, float32, bool) {
 // its own after Kvit controls are shown in the window has to call the one it
 // replaces.
 func (u *UI) watchWindow(w *unison.Window) {
-	if u.watched == nil {
-		u.watched = map[*unison.Window]bool{}
-	}
-	if u.watched[w] {
+	// The window is marked in its own client data rather than listed by the
+	// UI, which would keep every window that ever closed (menus, popovers
+	// and dialogs among them) with all its panels for the life of the
+	// program.
+	if w.ClientData()[windowWatchedKey] != nil {
 		return
 	}
-	u.watched[w] = true
+	w.ClientData()[windowWatchedKey] = true
 	previousKey := w.KeyDownCallback
 	w.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
 		// unison moves the focus for Tab after this returns, within the same
