@@ -13,7 +13,7 @@ import (
 )
 
 // CheckRules fails the test for every place in the Go files under dir that
-// writes a colour as a literal or a font size as a number, as the Qt library
+// writes a colour as a literal or a font size as a number, as the library
 // fails its build on them. A literal colour is right in the theme it was
 // picked in and wrong in the other three, and a numeric size stands still
 // when the reader changes the interface size. exempt names top-level

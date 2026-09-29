@@ -33,7 +33,7 @@ type entry struct {
 	specimens []specimen
 }
 
-// catalog is every component that has a page, in the Qt catalogue's order.
+// catalog is every component that has a page, in the catalogue's order.
 var catalog = []entry{
 	{
 		name:    "KvitLabel",
@@ -436,7 +436,7 @@ var catalog = []entry{
 	{
 		name:    "KvitFloatingView",
 		group:   "Feedback",
-		summary: "Detail about the one thing selected, held over the list rather than beside it: a centred card with a name and a close control, and the list dimmed behind. Unlike KvitPane it takes no width out of the layout, so the list keeps the whole window at every size; unlike KvitDialog it is closed rather than answered, and it floats over one region rather than over the window. From kvit-cash's copy of the Qt library.",
+		summary: "Detail about the one thing selected, held over the list rather than beside it: a centred card with a name and a close control, and the list dimmed behind. Unlike KvitPane it takes no width out of the layout, so the list keeps the whole window at every size; unlike KvitDialog it is closed rather than answered, and it floats over one region rather than over the window. From kvit-cash's copy of the library.",
 		specimens: []specimen{
 			{caption: "A record held over the list it came from", build: floatingRecord},
 		},
@@ -468,7 +468,7 @@ var catalog = []entry{
 	{
 		name:    "KvitNetFlow",
 		group:   "Data",
-		summary: "Two opposed series over the same periods, on one baseline and one scale, with what they come to drawn as a line. What comes in is drawn up from the baseline and what goes out is drawn down, so which of the two was larger in a period is a glance rather than a comparison between two strips an inch apart. Each column names its own period underneath, and the names thin out to whatever spacing they actually fit in. From kvit-cash's copy of the Qt library.",
+		summary: "Two opposed series over the same periods, on one baseline and one scale, with what they come to drawn as a line. What comes in is drawn up from the baseline and what goes out is drawn down, so which of the two was larger in a period is a glance rather than a comparison between two strips an inch apart. Each column names its own period underneath, and the names thin out to whatever spacing they actually fit in. From kvit-cash's copy of the library.",
 		specimens: []specimen{
 			{caption: "A year of money in and money out, netted off", build: netFlowYear},
 			{caption: "Daily columns, where the names thin out, and a period nobody measured", build: netFlowDays},

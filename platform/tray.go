@@ -1,14 +1,14 @@
 package platform
 
 // The icon in the desktop's notification area, its menu, and the desktop's
-// own notifications: the Qt apps' SystemTray (kvit-notes
+// own notifications: the apps' SystemTray (kvit-notes
 // src/platform/systemtray.h), which unison has no equivalent of. Each system
 // has its own backend: Shell_NotifyIcon on Windows (tray_windows.go),
 // StatusNotifierItem and dbusmenu over D-Bus on Linux (tray_linux.go), and
 // NSStatusItem with UNUserNotificationCenter on macOS (tray_darwin.go).
 // Elsewhere, and on a Linux desktop without a StatusNotifierWatcher (WSLg has
 // none), the tray reports that it is unavailable and shows nothing, while
-// the app can still ask for everything; Qt behaves the same way.
+// the app can still ask for everything;  behaves the same way.
 //
 // Everything here is called on unison's UI thread, and every callback is
 // made there: a backend reports from its own thread or from the D-Bus
@@ -22,7 +22,7 @@ import (
 )
 
 // Authorization is whether the desktop lets the app post notifications,
-// in the four states the Qt app knows.
+// in the four states the app knows.
 type Authorization int
 
 const (
@@ -270,7 +270,7 @@ func (t *Tray) RequestAuthorization() {
 
 // Notify posts a notification, and reports whether it was handed to the
 // desktop: it is when notifications are authorized and the icon shows, as
-// in the Qt app. Either way it is kept as LastNotification.
+// in the app. Either way it is kept as LastNotification.
 func (t *Tray) Notify(title, message, id string) bool {
 	n := Notification{Title: title, Message: message, ID: id}
 	t.mu.Lock()

@@ -117,7 +117,7 @@ func (p *Progress) draw(gc *unison.Canvas, _ geom.Rect) {
 // 160 ms, which reads as one bar moving rather than a bar redrawn, but only
 // when the bar is where the step before asked it to be. Long work reports its
 // progress from the thread that also draws, so between two reports a slide
-// gets little time and the shortfall compounds: the Qt library measured a
+// gets little time and the shortfall compounds: the library measured a
 // label reading 42 per cent over a bar drawing about 5. A step whose slide
 // never arrived jumps instead, so the bar is never more than one report
 // behind. The first value is drawn rather than slid to.

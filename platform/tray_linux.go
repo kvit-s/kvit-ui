@@ -1,6 +1,6 @@
 package platform
 
-// The notification area on Linux, over the session D-Bus, as Qt's own tray
+// The notification area on Linux, over the session D-Bus, as the own tray
 // does it: the icon is a StatusNotifierItem at /StatusNotifierItem,
 // registered with the desktop's org.kde.StatusNotifierWatcher; its menu is a
 // com.canonical.dbusmenu at /MenuBar, which the desktop draws itself; and a
@@ -9,7 +9,7 @@ package platform
 //
 // A session without a StatusNotifierWatcher, or with one that has no host
 // drawing the items, has no notification area: GNOME without its
-// AppIndicator extension, and WSLg. There the tray is unavailable, as Qt's
+// AppIndicator extension, and WSLg. There the tray is unavailable, as the
 // is.
 
 import (

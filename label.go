@@ -97,7 +97,7 @@ func (l *Label) draw(gc *unison.Canvas, _ geom.Rect) {
 	b := l.ContentRect(false)
 	lay := l.layout(b.Width)
 	_, h := lay.Size()
-	lay.Draw(gc, b.X, b.Y+(b.Height-h)/2) // vertically centred, as the Qt label is
+	lay.Draw(gc, b.X, b.Y+(b.Height-h)/2) // vertically centred, as the label is
 }
 
 // ProvideAccessibility describes the label to screen readers as static text.

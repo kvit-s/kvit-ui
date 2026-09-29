@@ -8,11 +8,11 @@ import (
 	"github.com/richardwilkes/unison/enums/pathop"
 )
 
-// spiller is a component that draws past its own box, as a Qt item can: a
+// spiller is a component that draws past its own box, as a item can: a
 // trend's axis values centred on its top and bottom gridlines, a gauge's pace
 // tick standing out of the bar. unison clips each panel's drawing to its box,
 // so the part drawn outside it is drawn by the nearest panel above it that
-// hosts spills, after everything in that panel. It is clipped where a Qt item
+// hosts spills, after everything in that panel. It is clipped where a item
 // would clip it: at the view of a scroll panel it is in, and at a spillClip,
 // as a disclosure's body is while it grows open. drawSpill draws in the
 // component's own coordinates.

@@ -8,7 +8,7 @@ import (
 	"github.com/richardwilkes/unison/enums/align"
 )
 
-// buildComponentPage lays out a component's page as the Qt gallery does: a
+// buildComponentPage lays out a component's page as the gallery does: a
 // view head with the name and the summary, and for each specimen its caption,
 // the live specimen in a frame, and its code.
 func buildComponentPage(ui *kvitui.UI, e entry) *unison.Panel {

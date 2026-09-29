@@ -48,15 +48,15 @@ type Options struct {
 	FontCacheDir string
 	// IgnoreDesktop leaves the desktop's appearance and locale out, so
 	// "system" is light, motion is on and numbers are written as under the C
-	// locale, with no digit grouping, which is what the Qt gallery's
+	// locale, with no digit grouping, which is what the gallery's
 	// screenshot set was taken under. Screenshots and tests want the same
 	// result on every machine.
 	IgnoreDesktop bool
 }
 
 // DefaultSettingsPath is where an application keeps kvit-ui's settings: the
-// same ui.json under the user's configuration directory that the Qt library
-// uses, so the Qt and Go versions of an app share them.
+// same ui.json under the user's configuration directory that the library
+// uses, so the and Go versions of an app share them.
 func DefaultSettingsPath(app string) string {
 	dir, err := os.UserConfigDir()
 	if err != nil {

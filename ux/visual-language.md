@@ -4,7 +4,7 @@
 
 Step 3 of the design programme in `ux/` produces static HTML mockups, rendered to PNG with
 headless Chromium, which the owner judges as images. A mockup proposes a change to the
-portfolio dashboard, a Qt/QML desktop application that shows where every recorded project
+portfolio dashboard, a desktop application that shows where every recorded project
 stands. For the owner to judge a proposal rather than a picture, the mockups have to look
 like the application they are changing: same colours, same type sizes, same row heights,
 same treatment of a measured figure and of a missing one. Otherwise every difference on
@@ -21,26 +21,23 @@ the two, they are never summed, and each owns a colour used for nothing else.
 
 ## Where the values come from
 
-The dashboard links `kvit-core` from the owner's document editor (checkout at
-`~/kvit-notes`) and shares its theme token system, so the two applications restyle from one
-source and look like one product. The colour tables are four C++ structs in
-`/home/sk/kvit-notes/src/platform/theme.cpp` — `lightTokens()`, `darkTokens()`,
-`sepiaTokens()`, `highContrastTokens()` — each filling the same `Theme::Tokens` struct
-declared in `theme.h`. The portfolio-specific colours (the two axis hues, discovery violet,
-the three signal severities, the hatch stroke) are defined there too, one value per theme,
-even though the editor itself never draws with them.
+The dashboard shares the document editor's theme token system, so the two
+applications restyle from one source and look like one product. The colour
+tables are the four themes (light, dark, sepia, high contrast) in the
+`tokens` package, each filling the same token struct; the
+portfolio-specific colours (the two axis hues, discovery violet, the three
+signal severities, the hatch stroke) are defined there too, one value per
+theme, even though the editor itself never draws with them.
 
-Type and spacing are not tokens in the application. Type is one base point size with integer
-offsets, from `/home/sk/kvit-notes/src/platform/typography.h`: `baseSize` defaults to 15 pt
-and every QML call site asks for `typography.baseSize - 4` or similar. Spacing, row heights
-and radii are literals in the dashboard's QML under
-`/home/sk/kvit-hub/dashboard/app/qml/`. The values in `tokens.css` were read out of those
-files, so a token there names a number that is really on screen.
+Type is one base size with integer offsets; spacing, row heights and radii
+are named values in the design system. The values in `tokens.css` are
+generated from those design values, so a token there names a number that is
+really on screen.
 
 ## Token map
 
-Every colour token keeps the application's name, kebab-cased. `Theme::windowBackground`
-becomes `--window-background`, `Theme::axisAttentionText` becomes `--axis-attention-text`.
+Every colour token keeps the application's name, kebab-cased. `WindowBackground`
+becomes `--window-background`, `AxisAttentionText` becomes `--axis-attention-text`.
 The table below gives the ones a mockup actually reaches for; the stylesheet carries the full
 set, including the five code-highlighting colours a mockup of the document panel would need.
 
@@ -139,20 +136,20 @@ One reader, one data set, a desktop window, no mobile target. The application op
 
 | Measure | CSS variable | px | Source |
 |---|---|---|---|
-| view outer margin | `--view-margin` | 16 | `LedgerView.qml` `anchors.margins` |
-| gap between columns | `--column-gap` | 14 | `LedgerView.qml` `columnSpacing` |
-| gap between stacked blocks | `--stack-gap` | 7 | `LedgerView.qml` `ColumnLayout.spacing` |
-| shell header | `--header-height` | 52 | `Main.qml` header |
-| breadcrumb strip | `--breadcrumb-height` | 34 | `Main.qml` |
-| project row | `--row-height` | 56 | `LedgerView.qml` delegate |
-| expanded milestone line | `--row-height-sub` | 48 | `LedgerView.qml` delegate |
-| disclosure or triage line | `--row-height-compact` | 24 | `LedgerView.qml` history line |
-| tab | `--tab-height` | 30 | `Main.qml` tab delegate |
-| milestone chip | `--chip-height` | 17 | `MilestoneChip.qml` |
-| kind tag, count chip | `--tag-height` | 16 | `LedgerView.qml` `KindTag`, `SignalChip.qml` |
-| confidence tag, bucket chip | `--pill-height` | 15 | `ConfidenceTag.qml`, `BucketChip.qml` |
-| compact axis bar | `--bar-height` | 7 | `AxisBar.qml`, `EffortJourney.qml` |
-| full axis bar | `--bar-height-wide` | 9 | `EffortJourney.qml` |
+| view outer margin | `--view-margin` | 16 | `LedgerView` `anchors.margins` |
+| gap between columns | `--column-gap` | 14 | `LedgerView` `columnSpacing` |
+| gap between stacked blocks | `--stack-gap` | 7 | `LedgerView` `ColumnLayout.spacing` |
+| shell header | `--header-height` | 52 | `Main` header |
+| breadcrumb strip | `--breadcrumb-height` | 34 | `Main` |
+| project row | `--row-height` | 56 | `LedgerView` delegate |
+| expanded milestone line | `--row-height-sub` | 48 | `LedgerView` delegate |
+| disclosure or triage line | `--row-height-compact` | 24 | `LedgerView` history line |
+| tab | `--tab-height` | 30 | `Main` tab delegate |
+| milestone chip | `--chip-height` | 17 | `MilestoneChip` |
+| kind tag, count chip | `--tag-height` | 16 | `LedgerView` `KindTag`, `SignalChip` |
+| confidence tag, bucket chip | `--pill-height` | 15 | `ConfidenceTag`, `BucketChip` |
+| compact axis bar | `--bar-height` | 7 | `AxisBar`, `EffortJourney` |
+| full axis bar | `--bar-height-wide` | 9 | `EffortJourney` |
 
 Radii are `--radius-bar` 2, `--radius-chip` 3, `--radius-control` 4, `--radius-card` 6,
 `--radius-pill` 8. Every separator is one pixel of `--border`; the rule under a column header

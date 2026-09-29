@@ -1,7 +1,7 @@
 // Package settings keeps per-user application settings in one JSON file:
 // theme, interface size, typography, option states. It writes the same
-// format as the Qt library's SettingsStore, a single indented JSON object, so
-// the Qt and Go versions of an app read each other's settings.
+// format as the library's SettingsStore, a single indented JSON object, so
+// the and Go versions of an app read each other's settings.
 package settings
 
 import (

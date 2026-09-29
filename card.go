@@ -17,10 +17,10 @@ import (
 //
 // Its outline is the ordinary border colour unless the card can be pressed,
 // in which case it is a control and takes the strong border colour, the
-// hover tint, and, as kvit-cash's copy of the Qt library adds, the chevron a
+// hover tint, and, as kvit-cash's copy of the library adds, the chevron a
 // pressable row carries, in its top corner. A press on something inside the
 // card that acts on a press of its own is that thing's, and not also the
-// card's. Unlike the Qt card, a pressable card also takes the keyboard focus
+// card's. Unlike the card, a pressable card also takes the keyboard focus
 // and opens on Return, Enter or Space.
 type Card struct {
 	control

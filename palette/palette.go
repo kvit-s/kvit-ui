@@ -53,7 +53,7 @@ func RGB8(r, g, b uint8) Color {
 }
 
 // Shade is the black a floating surface darkens what is behind it with, at
-// a share of its strength: the same in every theme, as the Qt library's
+// a share of its strength: the same in every theme, as the library's
 // spotlight and floating view draw it.
 var Shade = RGB8(0, 0, 0)
 
@@ -181,7 +181,7 @@ const (
 	Tritanopia                     // no short-wavelength cone: blue and green converge
 )
 
-// Deficiencies lists all three, in the order the Qt version checks them.
+// Deficiencies lists all three, in the order the version checks them.
 var Deficiencies = []Deficiency{Protanopia, Deuteranopia, Tritanopia}
 
 func (d Deficiency) String() string {
@@ -239,8 +239,8 @@ func ContrastRatio(a, b Color) float64 {
 	return (math.Max(la, lb) + 0.05) / (math.Min(la, lb) + 0.05)
 }
 
-// Darker divides the colour's HSV value by factor, as Qt's QColor::darker
-// does: 1.15 is Qt's pressed shade of a filled button.
+// Darker divides the colour's HSV value by factor, as the colour::darker
+// does: 1.15 is the pressed shade of a filled button.
 func (c Color) Darker(factor float64) Color {
 	if factor <= 0 {
 		return c

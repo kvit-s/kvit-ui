@@ -26,7 +26,7 @@ type Popup struct {
 	OnEscape func()
 	// Passive is a popup that only informs, such as a tooltip: it never has
 	// the focus, so Escape passes it by and goes to the popup under it, or to
-	// the window when there is none. In Qt a tooltip never takes the focus,
+	// the window when there is none. In  a tooltip never takes the focus,
 	// so Escape reached what was under it, such as the panel the control
 	// with the tooltip is in.
 	Passive bool
@@ -181,7 +181,7 @@ func (w *Window) popupPress(where geom.Point) bool {
 }
 
 // PlaceBeside is where a tooltip goes, in the order kvit-cash's copy of the
-// Qt library settled on, taking the first that fits: beside the anchor on its
+// library settled on, taking the first that fits: beside the anchor on its
 // trailing side, level with its top, since a row in a list has neighbours
 // above and below and none across; inside the anchor's own band, at its
 // trailing end, for a row as wide as its surface; then below it; then above.

@@ -15,10 +15,10 @@ import (
 )
 
 // shotSizes are the interface sizes the set is written at: the default, and
-// the two ends of the range, as the Qt gallery's size variants are.
+// the two ends of the range, as the gallery's size variants are.
 var shotSizes = []int{tokens.DefaultInterfaceSize, tokens.MinInterfaceSize, tokens.MaxInterfaceSize}
 
-// shotName names a screenshot as the Qt gallery does: "<theme>-<page>.png"
+// shotName names a screenshot as the gallery does: "<theme>-<page>.png"
 // at the default size, "<theme>-<size>px-<page>.png" otherwise.
 func shotName(theme string, size int, page string) string {
 	if size == tokens.DefaultInterfaceSize {
@@ -33,8 +33,8 @@ func shotName(theme string, size int, page string) string {
 const shotScreenHeight = 16000
 
 // writeShots draws every page in every theme at each shot size, headlessly,
-// into dir. With compare set to the Qt gallery's shot directory, it also
-// writes compare/<name>, the Go image above the Qt one, for every name both
+// into dir. With compare set to the gallery's shot directory, it also
+// writes compare/<name>, the Go image above the one, for every name both
 // have. It returns the files written.
 func writeShots(dir, compare string) ([]string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -44,7 +44,7 @@ func writeShots(dir, compare string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Motion is stilled for the run, as the Qt gallery stills it: a shot is
+	// Motion is stilled for the run, as the gallery stills it: a shot is
 	// taken as soon as the page is laid out, and anything that eases, such
 	// as the sidebar's width after a size change, would be caught partway.
 	ui.Theme.SetReducedMotion(true)
@@ -76,7 +76,7 @@ func writeShots(dir, compare string) ([]string, error) {
 					g.setPage(page)
 					ui.Theme.SetThemeID(theme)
 					ui.Interface.SetFontSize(size)
-					// The status bar says what is being written, as the Qt
+					// The status bar says what is being written, as the
 					// gallery's does during its own run.
 					g.activity = fmt.Sprintf("Writing screenshots: %s / %d px / %s", theme, size, page)
 					g.sync()
@@ -108,7 +108,7 @@ func writeShots(dir, compare string) ([]string, error) {
 }
 
 // fit sizes the window so the page shows in full: as wide as the design
-// width at the current interface size, which is the width the Qt gallery's
+// width at the current interface size, which is the width the gallery's
 // window takes and so where its pages wrap, and at least 960 tall, taller
 // when the page needs it.
 func (g *gallery) fit() {
@@ -134,11 +134,11 @@ func savePNG(path string, img image.Image) error {
 	return f.Close()
 }
 
-// writeComparison stacks the Go image above the Qt one of the same name.
+// writeComparison stacks the Go image above the one of the same name.
 func writeComparison(dir, qtDir, name string, goImg image.Image) error {
 	qf, err := os.Open(filepath.Join(qtDir, name))
 	if err != nil {
-		return nil // no Qt reference for this page
+		return nil // no  reference for this page
 	}
 	defer qf.Close()
 	qtImg, err := png.Decode(qf)

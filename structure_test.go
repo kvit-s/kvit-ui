@@ -16,7 +16,7 @@ import (
 )
 
 // The count is grouped by the reader's locale and uses a real plural, as
-// test_components.cpp checks for the Qt head.
+// test_components.cpp checks for the head.
 func TestTheViewHeadCountsInTheReadersLocale(t *testing.T) {
 	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
 	if err != nil {

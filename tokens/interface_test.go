@@ -51,12 +51,12 @@ func TestEveryValueIsTheIdentityAtTheDefault(t *testing.T) {
 		"BarHeight": 7, "BarHeightWide": 9, "IconSize": 18, "IconSizeSmall": 13,
 		"RadiusBar": 2, "RadiusChip": 3, "RadiusControl": 4, "RadiusCard": 6, "RadiusPill": 8,
 		"Hairline": 1, "FocusRingWidth": 2, "WidthFloor": 880, "WidthLaptop": 1100, "WidthDrawn": 1440,
-		// Added in kvit-cash's copy of the Qt library (722906e).
+		// Added in kvit-cash's copy of the library (722906e).
 		"HeightFloor": 600, "FloatingViewWidth": 720,
 	}
 	got := derived(tokens.NewInterface())
 	if len(got) != len(want) {
-		t.Errorf("Interface derives %d values, the Qt library and kvit-cash's copy %d", len(got), len(want))
+		t.Errorf("Interface derives %d values, want %d", len(got), len(want))
 	}
 	for name, w := range want {
 		if g, ok := got[name]; !ok || g != w {

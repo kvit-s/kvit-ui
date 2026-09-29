@@ -35,7 +35,7 @@ func Glyph(name string) (rune, bool) {
 	return r, ok
 }
 
-// MeaningNames lists the names a call site should be written in, in the Qt
+// MeaningNames lists the names a call site should be written in, in the
 // library's order.
 func MeaningNames() []string {
 	out := make([]string, len(meanings))

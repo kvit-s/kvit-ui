@@ -278,7 +278,7 @@ func (e *EmptyState) draw(gc *unison.Canvas, _ geom.Rect) {
 	at.icon.X += b.X
 	at.icon.Y += b.Y
 	// A box 28 design pixels square, with the glyph no larger than the icon
-	// size, as the Qt icon caps it.
+	// size, as the icon caps it.
 	symbol(min(at.icon.Width, float32(m.IconSize())), at.icon)
 	title, detail := e.layouts(e.detailWidth(b.Width))
 	title.Draw(gc, b.X+at.title.X, b.Y+at.title.Y)

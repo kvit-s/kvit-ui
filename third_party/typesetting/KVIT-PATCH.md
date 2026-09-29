@@ -60,6 +60,5 @@ github.com/go-text/typesetting:
 > width on non-space glyphs after shaping, or the last glyph of a line
 > loses its advance.
 
-**Updating go-text.** Copy the new release here the way this one was
-copied (see the `rsync` command in kvit-ui-go's migration-log entry for
-2026-09-26), reapply the patch, and run `tools/check-all.sh`.
+**Updating go-text.** Copy the new release over this directory, reapply the
+patch, and run `tools/check-all.sh`.

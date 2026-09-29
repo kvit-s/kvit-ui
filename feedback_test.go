@@ -119,7 +119,7 @@ func TestAPopoverClosesOnEscapeAndGivesTheFocusBack(t *testing.T) {
 
 // A tooltip never has the focus, so Escape passes it by: over an open
 // popover it closes the popover rather than stopping at the tooltip, as in
-// Qt. A popup that is not a tooltip and has no Escape of its own still stops
+// . A popup that is not a tooltip and has no Escape of its own still stops
 // it, so the control with the focus gets the key, as the typeahead's field
 // does to close its list.
 func TestEscapePassesATooltipByToThePopupUnderIt(t *testing.T) {

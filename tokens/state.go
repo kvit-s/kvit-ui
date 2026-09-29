@@ -23,7 +23,7 @@ type Appearance interface {
 	ReducedMotion() bool
 }
 
-// The setting keys, the same as the Qt library's so both read one file.
+// The setting keys, the same as the library's so both read one file.
 const (
 	keyThemeID           = "theme.id"
 	keyAccent            = "theme.accent"

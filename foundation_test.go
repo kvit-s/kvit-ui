@@ -188,7 +188,7 @@ func TestTheFocusRingShowsForTheKeyboardOnly(t *testing.T) {
 		return false
 	}
 	// A window hands its first control the focus when it becomes active.
-	// That came from neither the keyboard nor the pointer, and Qt draws no
+	// That came from neither the keyboard nor the pointer, and  draws no
 	// ring for it.
 	var auto bool
 	screen.Do(func() { auto = a.Focused() && a.KeyboardFocus() })

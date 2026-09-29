@@ -32,7 +32,7 @@ func (p painter) outline(r geom.Rect, radius, width float32, c palette.Color) {
 }
 
 // roundTint fills a rounded rectangle with a colour at a share of its
-// strength, over whatever is below it, as Qt.alpha does.
+// strength, over whatever is below it, as .alpha does.
 func (p painter) roundTint(r geom.Rect, radius float32, c palette.Color, share float32) {
 	p.gc.DrawRoundedRect(r, geom.NewSize(radius, radius), Color(c).SetAlphaIntensity(share).Paint(p.gc, r, paintstyle.Fill))
 }

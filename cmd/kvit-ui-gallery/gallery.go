@@ -12,13 +12,13 @@ import (
 	"github.com/richardwilkes/unison/enums/mod"
 )
 
-// The gallery's window, as the Qt gallery draws it: 1440 × 960.
+// The gallery's window, as the gallery draws it: 1440 × 960.
 const (
 	windowWidth  = 1440
 	windowHeight = 960
 )
 
-// group is one section of the sidebar: the component groups of the Qt
+// group is one section of the sidebar: the component groups of the
 // library's catalogue. A component without a page yet is listed greyed.
 type group struct {
 	name  string
@@ -61,7 +61,7 @@ func buildPage(ui *kvitui.UI, name string) *unison.Panel {
 }
 
 // gallery is the window and the state it shows. It is built from the
-// library's own components, as the Qt gallery is: a Window holding a Header
+// library's own components, as the gallery is: a Window holding a Header
 // with the theme and size controls, a sidebar of section headings and rows
 // under a filter field, the page in a Region, and a StatusBar.
 type gallery struct {

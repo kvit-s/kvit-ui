@@ -3,7 +3,7 @@ package tokens
 import "math"
 
 // FontRole is the entry of the document's type scale a run of text is set at.
-// The order and values match the Qt library's enumeration, since a role
+// The order and values match the library's enumeration, since a role
 // crosses into other code as an int.
 type FontRole int
 

@@ -20,7 +20,7 @@ import (
 // comparing two bars an inch apart with no common line. Each column names its
 // period underneath, and the names thin out to whatever spacing they fit in,
 // counted back from the newest column so the end of the series is always
-// named. It is kvit-cash's addition to the Qt library (its Cash flow widget).
+// named. It is kvit-cash's addition to the library (its Cash flow widget).
 type NetFlow struct {
 	unison.Panel
 	ui *UI

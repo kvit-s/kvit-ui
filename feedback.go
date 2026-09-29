@@ -503,7 +503,7 @@ func (l dialogLayout) arrange(r geom.Rect, set bool) float32 {
 	put(d.title, geom.NewRect(r.X+margin, r.Y+margin+(ch-tp.Height)/2, max(0, inner-cp.Width-gap), tp.Height))
 	y := r.Y + margin + ch + margin
 	// The detail and the content a loose space apart; the content keeps its
-	// place, and the gap before it, even when it is empty, as in Qt.
+	// place, and the gap before it, even when it is empty, as in .
 	loose := float32(m.SpaceLoose())
 	if !d.detail.Hidden {
 		_, dp, _ := d.detail.Sizes(geom.NewSize(inner, 0))

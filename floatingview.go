@@ -24,7 +24,7 @@ import (
 // every press and the wheel. Its card is the height of the region less the
 // view margin, whatever it holds scrolls inside it, and its title stays put
 // above what scrolls. Escape closes it from wherever the keyboard is. It is
-// kvit-cash's addition to the Qt library.
+// kvit-cash's addition to the library.
 type FloatingView struct {
 	unison.Panel
 	ui *UI

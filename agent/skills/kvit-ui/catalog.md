@@ -1604,7 +1604,7 @@ func NewStepper(ui *UI, label string, from, to int) *Stepper
 | `To` | `int` | From and To are the ends of the range; Step is how far a press moves. |
 | `Step` | `int` | From and To are the ends of the range; Step is how far a press moves. |
 | `OnChange` | `func(value int)` | OnChange runs after a press changes the value, with the new value. |
-| `Follow` | `func() int` | Follow, when set, gives the value from whatever owns it, read before every layout, so the stepper shows the owner's value when it changes elsewhere, as a binding does in QML. |
+| `Follow` | `func() int` | Follow, when set, gives the value from whatever owns it, read before every layout, so the stepper shows the owner's value when it changes elsewhere, as a binding does in view markup. |
 
 *The interface-size row, pointed at the right setting*
 
@@ -2061,7 +2061,7 @@ func dialogDestructive(ui *kvitui.UI) unison.Paneler {
 
 ### KvitFloatingView
 
-Detail about the one thing selected, held over the list rather than beside it: a centred card with a name and a close control, and the list dimmed behind. Unlike KvitPane it takes no width out of the layout, so the list keeps the whole window at every size; unlike KvitDialog it is closed rather than answered, and it floats over one region rather than over the window. From kvit-cash's copy of the Qt library.
+Detail about the one thing selected, held over the list rather than beside it: a centred card with a name and a close control, and the list dimmed behind. Unlike KvitPane it takes no width out of the layout, so the list keeps the whole window at every size; unlike KvitDialog it is closed rather than answered, and it floats over one region rather than over the window. From kvit-cash's copy of the library.
 
 ```go
 func NewFloatingView(ui *UI, title string, body unison.Paneler) *FloatingView
@@ -2201,7 +2201,7 @@ func sparkWithHole(ui *kvitui.UI) unison.Paneler {
 
 ### KvitNetFlow
 
-Two opposed series over the same periods, on one baseline and one scale, with what they come to drawn as a line. What comes in is drawn up from the baseline and what goes out is drawn down, so which of the two was larger in a period is a glance rather than a comparison between two strips an inch apart. Each column names its own period underneath, and the names thin out to whatever spacing they actually fit in. From kvit-cash's copy of the Qt library.
+Two opposed series over the same periods, on one baseline and one scale, with what they come to drawn as a line. What comes in is drawn up from the baseline and what goes out is drawn down, so which of the two was larger in a period is a glance rather than a comparison between two strips an inch apart. Each column names its own period underneath, and the names thin out to whatever spacing they actually fit in. From kvit-cash's copy of the library.
 
 ```go
 func NewNetFlow(ui *UI, ins, outs []float64, periods ...string) *NetFlow
@@ -2679,7 +2679,7 @@ ShowMenuAt opens a menu of items with its top left corner at the bottom left of 
 ```go
 func menuOpened(ui *kvitui.UI) unison.Paneler {
     stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
-    // Opened at the stage's top left once it is in a window, as the Qt page
+    // Opened at the stage's top left once it is in a window, as the page
     // opens its menu.
     whenShown(stage, func() {
         ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{

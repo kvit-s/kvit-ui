@@ -4,7 +4,7 @@ package platform
 // bindings as the tray is (tray_darwin.go, whose helpers it uses). A panel
 // shows no title bar, so the title is also its message, the line of text
 // above the files. The filters are a pop-up button in the panel's accessory
-// view, below the file list, as the Qt dialog put them; choosing one sets
+// view, below the file list, as the dialog put them; choosing one sets
 // the file types the panel lets through.
 //
 // This file is compiled for darwin/arm64 and darwin/amd64 on Linux and has

@@ -2,7 +2,7 @@ package platform
 
 // The notification area on macOS: an NSStatusItem in the menu bar with an
 // NSMenu, which opens on a click as menu bar items do, and
-// UNUserNotificationCenter for notifications, as the Qt app's
+// UNUserNotificationCenter for notifications, as the app's
 // systemtray_mac.mm has them. It calls Objective-C through purego's runtime
 // bindings without cgo, the way unison's internal/cocoa does.
 //
@@ -251,7 +251,7 @@ func (t *macTray) authorization() Authorization { return t.auth }
 
 // requestAuthorization puts up macOS's question. A false answer can mean
 // either denied or not yet decided, so the stored answer is read again
-// afterwards, as the Qt app does.
+// afterwards, as the app does.
 func (t *macTray) requestAuthorization() {
 	if t.center == 0 {
 		return

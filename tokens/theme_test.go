@@ -110,15 +110,15 @@ func TestSystemResolvesToLightOrDark(t *testing.T) {
 }
 
 // Every colour field of Tokens is set by every table: the generator lists the
-// names the Qt tables set, and a field missing from them would be black.
+// names the tables set, and a field missing from them would be black.
 func TestTablesAreCompleteAndDistinct(t *testing.T) {
 	colorType := reflect.TypeOf(palette.Color{})
 	typ := reflect.TypeOf(tokens.Tokens{})
-	set := tokens.QtTokenNames()
+	set := tokens.TokenNames()
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
 		if f.Type == colorType && f.Name != "OnAccent" && !slices.Contains(set, f.Name) {
-			t.Errorf("Tokens.%s is not set by the Qt tables", f.Name)
+			t.Errorf("Tokens.%s is not set by the tables", f.Name)
 		}
 	}
 	for _, id := range tokens.BuiltInThemes() {
@@ -147,7 +147,7 @@ func TestTablesAreCompleteAndDistinct(t *testing.T) {
 	}
 }
 
-// A coarse legibility floor on plain (not linearised) luminance, as the Qt
+// A coarse legibility floor on plain (not linearised) luminance, as the
 // test states it.
 func TestDarkAndSepiaKeepContrast(t *testing.T) {
 	lum := func(c palette.Color) float64 { return 0.2126*c.R + 0.7152*c.G + 0.0722*c.B }
@@ -254,7 +254,7 @@ func toUpper(s string) string {
 	return string(b)
 }
 
-// The keyboard focus ring is held to WCAG's 3:1 non-text floor. The Qt test
+// The keyboard focus ring is held to WCAG's 3:1 non-text floor. The  test
 // linearises with WCAG 2.0's 0.03928 threshold, reproduced here.
 func wcag20Ratio(a, b palette.Color) float64 {
 	lin := func(c float64) float64 {

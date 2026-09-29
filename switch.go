@@ -94,7 +94,7 @@ func (s *Switch) slide() {
 	unison.InvokeTaskAfter(step, 16*time.Millisecond)
 }
 
-// focusRing puts the ring around the track, as the Qt switch draws it.
+// focusRing puts the ring around the track, as the switch draws it.
 func (s *Switch) focusRing() (*unison.Panel, float32, bool) {
 	return s.track, float32(s.ui.Interface.Px(16)) / 2, s.KeyboardFocus()
 }
@@ -157,7 +157,7 @@ func (s *Switch) drawLabel(gc *unison.Canvas, _ geom.Rect) {
 }
 
 // ProvideAccessibility describes the switch as a box that is ticked or not,
-// as the Qt switch is described.
+// as the switch is described.
 func (s *Switch) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	n := b.Node()
 	if n.Role == role.Auto {

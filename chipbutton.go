@@ -22,7 +22,7 @@ import (
 // It has three states beside its tone. Current marks the chip whose
 // destination is already open: the selection tint, an accent edge and bold
 // words. Selectable makes it a quick filter that is on or off, as kvit-cash's
-// copy of the Qt library adds: a control's height, filled with the accent
+// copy of the library adds: a control's height, filled with the accent
 // when Selected. And UnavailableReason says why it cannot be pressed; it
 // stays in the tab order with its fill gone, so the one chip with something
 // to explain is not the one a reader cannot reach.

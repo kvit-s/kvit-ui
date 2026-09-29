@@ -64,7 +64,7 @@ The gallery opens a window, which needs a desktop. Under WSL,
 ## Every component, or every screen
 
 The screenshot pass. One image per page per theme, at three interface sizes,
-under the Qt gallery's file names.
+under the gallery's file names.
 
 ```
 ./build.sh --shots                                  # into build/shots
@@ -72,10 +72,8 @@ go run ./cmd/kvit-ui-gallery --shots <directory>    # anywhere
 ```
 
 It runs headless, with no window and no desktop. `./build.sh --shots` also
-stacks each image above the Qt gallery's image of the same page, from
-`~/kvit-qt-reference/kvit-ui-0a0b210`, in `build/shots/compare/`: those
-screenshots are the reference for parity, and cannot be made again once Qt
-is gone.
+stacks each image above the reference image of the same page, from
+`~/kvit-reference/kvit-ui-0a0b210`, in `build/shots/compare/`.
 
 The names are stable on purpose. What gets reviewed after a change to a
 design value is the difference from the previous run, not the whole set

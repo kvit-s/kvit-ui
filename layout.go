@@ -207,14 +207,14 @@ func (a *atLeast) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, pr
 
 // FullWidth makes a panel take the width the row, column or frame it sits in
 // has to spare, centred on the height, which is what `width: parent.width`
-// or `Layout.fillWidth: true` says in QML.
+// or `Layout.fillWidth: true` says in view markup.
 func FullWidth[T unison.Paneler](p T) T {
 	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Middle, HGrab: true})
 	return p
 }
 
 // At puts a panel at a point inside a panel the width of the container and
-// the given height, as `x:` and `y:` do in QML.
+// the given height, as `x:` and `y:` do in view markup.
 func At(ui *UI, x, y, height Measure, child unison.Paneler) *unison.Panel {
 	p := unison.NewPanel()
 	p.AddChild(child)
@@ -248,7 +248,7 @@ func Left[T unison.Paneler](p T) T {
 }
 
 // Centred puts a panel in the middle of the room it is given, which is what
-// `anchors.centerIn: parent` says in QML.
+// `anchors.centerIn: parent` says in view markup.
 func Centred[T unison.Paneler](p T) T {
 	p.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Middle, VAlign: align.Middle, HGrab: true, VGrab: true})
 	return p

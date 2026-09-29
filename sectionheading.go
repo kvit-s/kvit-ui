@@ -177,7 +177,7 @@ type headingParts struct {
 	chevron, name, countText, kind, count, action geom.Rect
 }
 
-// arrange lays the bar out as Qt's row does: a space in from each end, parts
+// arrange lays the bar out as the row does: a space in from each end, parts
 // a stack gap apart, the empty room (or the kind, when there is one) taking
 // what is left, and the action an extra stack gap from what is before it.
 func (h *SectionHeading) arrange(b geom.Rect) headingParts {

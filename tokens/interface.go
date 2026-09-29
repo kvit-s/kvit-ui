@@ -157,7 +157,7 @@ func (m *Interface) PaneWidth() int    { return m.Px(392) }
 
 // FloatingViewWidth is the width of a view floated over a list: wider than
 // the pane, because it takes no width out of the layout (kvit-cash's copy of
-// the Qt library).
+// the library).
 func (m *Interface) FloatingViewWidth() int { return m.Px(720) }
 
 func (m *Interface) HeaderHeight() int     { return m.Px(52) }

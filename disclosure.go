@@ -19,7 +19,7 @@ import (
 // both follow the reduced-motion setting.
 //
 // Sections that share a Group behave as an accordion: opening one closes the
-// others in the same window. The Qt disclosure declares the same property,
+// others in the same window. The  disclosure declares the same property,
 // and leaves the closing to its callers.
 type Disclosure struct {
 	unison.Panel

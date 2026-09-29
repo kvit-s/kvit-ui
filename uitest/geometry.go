@@ -11,8 +11,8 @@ import (
 
 // CheckGeometry fails the test for every place in the Go files under dir that
 // writes a position, a size, a spacing, a radius or a margin as a bare
-// number, as the Qt library's build refused an "unnamed geometry value" in
-// QML. A number there stands still when the reader changes the interface
+// number, as the library's build refused an "unnamed geometry value" in
+// view markup. A number there stands still when the reader changes the interface
 // size, while everything taken from Interface, or given in design pixels to
 // Px, moves with it. exempt, the files read and the return value are as for
 // CheckRules. It is a check of its own rather than part of CheckRules so that
@@ -47,8 +47,8 @@ var (
 	geometryConstructors = map[string]bool{"NewRect": true, "NewSize": true, "NewPoint": true, "NewInsets": true,
 		"NewUniformInsets": true, "NewHorizontalInsets": true, "NewVerticalInsets": true}
 	// geometryFields are the struct fields that hold a position, a size, a
-	// spacing, a radius or a margin: the properties the Qt gate named in
-	// QML (x, width, spacing, radius, the anchors' margins and the rest).
+	// spacing, a radius or a margin: the properties the gate named in
+	// view markup (x, width, spacing, radius, the anchors' margins and the rest).
 	geometryFields = map[string]bool{"X": true, "Y": true, "Width": true, "Height": true, "HSpacing": true,
 		"VSpacing": true, "Radius": true, "Top": true, "Left": true, "Bottom": true, "Right": true}
 	// designPixelTypes are the library's structs whose sizes are design

@@ -10,7 +10,7 @@ import (
 )
 
 // FileDialog is the system's own dialog for choosing files to open, with the
-// title and the named filters a Qt FileDialog has. unison's OpenDialog has
+// title and the named filters a FileDialog has. unison's OpenDialog has
 // neither: it cannot be given a title, and it names its filters itself from
 // bare extensions ("All Readable Files", "sqlite Files", "All Files" on
 // Windows). This one is shown with the system's own API on each desktop, as
@@ -19,10 +19,11 @@ import (
 //     SetFileTypes;
 //   - macOS: NSOpenPanel, with the title as its message, since a panel shows
 //     no title bar, and the filters in a pop-up below the file list, as the
-//     Qt dialog put them;
+//     dialog put them;
 //   - Linux: kdialog in a KDE session and zenity elsewhere, as unison
-//     chooses; with neither installed, unison's own dialog, which shows
-//     neither the title nor the filters' names.
+//     chooses; with neither installed, the desktop's portal FileChooser,
+//     which draws the same GTK dialog; with no portal either, unison's own
+//     dialog, which shows neither the title nor the filters' names.
 //
 // In a headless session (tests) it is unison's own dialog, drawn on the
 // headless screen, so a test never opens a window on the desktop.
@@ -31,7 +32,7 @@ type FileDialog struct {
 	// workspace".
 	Title string
 	// NameFilters are the filters the reader chooses among, the first in
-	// force when the dialog opens. Each is written as Qt's FileDialog takes
+	// force when the dialog opens. Each is written as the dialog takes
 	// it: a name with its patterns in parentheses, "Kvit Cash workspace
 	// (*.sqlite)", or patterns alone, "*.csv *.tsv". "*" matches every file.
 	// None offers every file.
@@ -41,6 +42,9 @@ type FileDialog struct {
 	Folder string
 	// Multiple lets the reader choose several files.
 	Multiple bool
+	// Directories picks folders instead of files, such as the Add project
+	// chooser. The filters do not apply to it.
+	Directories bool
 }
 
 // Open shows the dialog over the active window and waits for the reader,
@@ -58,10 +62,14 @@ func (d FileDialog) Open() []string {
 func (d FileDialog) openWithUnison() []string {
 	picker := unison.NewOpenDialog()
 	picker.SetAllowsMultipleSelection(d.Multiple)
+	picker.SetCanChooseFiles(!d.Directories)
+	picker.SetCanChooseDirectories(d.Directories)
 	if d.Folder != "" {
 		picker.SetInitialDirectory(d.Folder)
 	}
-	picker.SetAllowedExtensions(d.extensions()...)
+	if !d.Directories {
+		picker.SetAllowedExtensions(d.extensions()...)
+	}
 	if !picker.RunModal() {
 		return nil
 	}
@@ -75,13 +83,12 @@ type nameFilter struct {
 	patterns []string
 }
 
-// qtNameFilter is Qt's own reading of a name filter
-// (qplatformdialoghelper.cpp): a name, then the patterns in the last
+// nameFilterPattern reads a name filter: a name, then the patterns in the last
 // parentheses.
-var qtNameFilter = regexp.MustCompile(`^(.*)\(([a-zA-Z0-9_.,*? +;#\-\[\]@\{\}/!<>\$%&=^~:\|]*)\)$`)
+var nameFilterPattern = regexp.MustCompile(`^(.*)\(([a-zA-Z0-9_.,*? +;#\-\[\]@\{\}/!<>\$%&=^~:\|]*)\)$`)
 
 // filters are the dialog's name filters as labels and patterns. The label
-// is the whole string, parentheses and all, as Qt shows it on every system.
+// is the whole string, parentheses and all, as shown on every system.
 // A filter with no patterns matches every file.
 func (d FileDialog) filters() []nameFilter {
 	out := make([]nameFilter, 0, len(d.NameFilters))
@@ -91,7 +98,7 @@ func (d FileDialog) filters() []nameFilter {
 			continue
 		}
 		patterns := f
-		if m := qtNameFilter.FindStringSubmatch(f); m != nil {
+		if m := nameFilterPattern.FindStringSubmatch(f); m != nil {
 			patterns = m[2]
 		}
 		fields := strings.Fields(patterns)
@@ -157,7 +164,8 @@ func (d FileDialog) fileTypes() [][2]string {
 }
 
 // zenityArgs are zenity's arguments for the dialog; with several files
-// chosen, zenity writes one to a line.
+// chosen, zenity writes one to a line. A folder picker takes --directory
+// and no filters.
 func (d FileDialog) zenityArgs() []string {
 	args := []string{"--file-selection"}
 	if d.Title != "" {
@@ -168,6 +176,10 @@ func (d FileDialog) zenityArgs() []string {
 	}
 	if d.Multiple {
 		args = append(args, "--multiple", "--separator=\n")
+	}
+	if d.Directories {
+		args = append(args, "--directory")
+		return args
 	}
 	for _, f := range d.filters() {
 		args = append(args, "--file-filter="+f.label+" | "+strings.Join(f.patterns, " "))
@@ -183,7 +195,11 @@ func (d FileDialog) kdialogArgs() []string {
 	if d.Title != "" {
 		args = append(args, "--title", d.Title)
 	}
-	args = append(args, "--getopenfilename")
+	if d.Directories {
+		args = append(args, "--getexistingdirectory")
+	} else {
+		args = append(args, "--getopenfilename")
+	}
 	if d.Multiple {
 		args = append(args, "--multiple", "--separate-output")
 	}
@@ -192,6 +208,9 @@ func (d FileDialog) kdialogArgs() []string {
 		folder = "."
 	}
 	args = append(args, withSeparator(folder))
+	if d.Directories {
+		return args
+	}
 	if filters := d.filters(); len(filters) > 0 {
 		lines := make([]string, len(filters))
 		for i, f := range filters {

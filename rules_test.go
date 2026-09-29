@@ -9,7 +9,7 @@ import (
 	"github.com/kvit-s/kvit-ui/uitest"
 )
 
-// The library's rules, as the Qt version enforces them with qmllint and its
+// The library's rules, as the version enforces them with viewlint and its
 // tests: outside the packages that define design values, no colour is
 // written as a literal and no font size as a number. Checked: the root
 // package (the components) and every command. Exempt: the packages whose job

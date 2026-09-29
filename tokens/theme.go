@@ -208,7 +208,7 @@ func (t Tokens) Surfaces() []palette.Color {
 	return []palette.Color{t.WindowBackground, t.PanelBackground, t.ListBackground, t.ChipBackground}
 }
 
-// QtTokenNames lists the tokens the Qt library's tables set, as the
+// TokenNames lists the tokens the library's tables set, as the
 // generator found them; every colour field of Tokens but OnAccent is among
 // them.
-func QtTokenNames() []string { return append([]string(nil), qtTokenNames...) }
+func TokenNames() []string { return append([]string(nil), tokenNames...) }
