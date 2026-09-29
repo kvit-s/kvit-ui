@@ -10,6 +10,8 @@ package platform
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -99,17 +101,22 @@ func (d FileDialog) runPortalDialog(conn *dbus.Conn) portalOutcome {
 	signals := make(chan *dbus.Signal, 8)
 	conn.Signal(signals)
 	defer conn.RemoveSignal(signals)
+	// The match is added before the call, so a Response arriving while the
+	// call returns is still caught; the loop below keeps only this
+	// dialog's handle.
+	if err := conn.AddMatchSignal(dbus.WithMatchSender(portalDest),
+		dbus.WithMatchInterface(portalRequest), dbus.WithMatchMember("Response")); err != nil {
+		errs.Log(err, "dialog", d.Title)
+		return portalOutcome{shown: true}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), portalCallTimeout)
 	var handle dbus.ObjectPath
-	err := conn.Object(portalDest, portalPath).CallWithContext(ctx, portalFileChooser+".OpenFile", 0, "", d.Title, options).Store(&handle)
+	err := conn.Object(portalDest, portalPath).CallWithContext(ctx,
+		portalFileChooser+".OpenFile", 0, "", d.Title, options).Store(&handle)
 	cancel()
 	if err != nil {
 		errs.Log(err, "dialog", d.Title)
 		return portalOutcome{}
-	}
-	if err := conn.AddMatchSignal(dbus.WithMatchSender(portalDest), dbus.WithMatchInterface(portalRequest), dbus.WithMatchMember("Response"), dbus.WithMatchObjectPath(handle)); err != nil {
-		errs.Log(err, "dialog", d.Title)
-		return portalOutcome{shown: true}
 	}
 	for s := range signals {
 		if s.Path != handle || s.Name != portalRequest+".Response" {
@@ -136,10 +143,33 @@ func (d FileDialog) runPortalDialog(conn *dbus.Conn) portalOutcome {
 	return portalOutcome{shown: true}
 }
 
+// isWSL reports whether the program runs under Windows Subsystem for Linux:
+// the environment names the distribution, and the kernel names Microsoft.
+// There the portal's dialog shows the Windows files while the program works
+// with the Linux ones, so the portal is skipped and unison's own dialog,
+// which opens where the program is, is used instead.
+func isWSL() bool {
+	if os.Getenv("WSL_DISTRO_NAME") != "" || os.Getenv("WSL_INTEROP") != "" {
+		return true
+	}
+	for _, file := range []string{"/proc/sys/kernel/osrelease", "/proc/version"} {
+		if release, err := os.ReadFile(file); err == nil {
+			lowered := strings.ToLower(string(release))
+			if strings.Contains(lowered, "microsoft") || strings.Contains(lowered, "wsl") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // portalConnection connects to the session bus and reports whether the
-// portal can show this dialog: no bus or portal, or a portal from before
-// folders could be chosen, is none.
+// portal can show this dialog: no bus or portal, a portal from before
+// folders could be chosen, or Windows Subsystem for Linux, is none.
 func portalConnection(directories bool) (*dbus.Conn, bool) {
+	if isWSL() {
+		return nil, false
+	}
 	conn, err := dbus.ConnectSessionBus()
 	if err != nil {
 		return nil, false

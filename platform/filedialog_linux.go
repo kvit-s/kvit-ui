@@ -12,8 +12,10 @@ import (
 )
 
 // openNative runs kdialog in a KDE session and zenity elsewhere, the order
-// unison's own picker tries them in, and unison's own dialog when neither
-// is installed.
+// unison's own picker tries them in; with neither installed, the desktop's
+// portal FileChooser, which draws the system's own GTK dialog, except under
+// Windows Subsystem for Linux, where the portal is skipped; with no portal
+// either, unison's own dialog.
 func (d FileDialog) openNative() []string {
 	kdialog, _ := exec.LookPath("kdialog")
 	zenity, _ := exec.LookPath("zenity")
@@ -24,6 +26,9 @@ func (d FileDialog) openNative() []string {
 		return runExternalDialog(exec.Command(zenity, d.zenityArgs()...), d.Multiple)
 	case kdialog != "":
 		return runExternalDialog(exec.Command(kdialog, d.kdialogArgs()...), d.Multiple)
+	}
+	if paths, ok := d.openWithPortal(); ok {
+		return paths
 	}
 	return d.openWithUnison()
 }

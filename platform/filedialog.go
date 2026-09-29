@@ -22,8 +22,9 @@ import (
 //     dialog put them;
 //   - Linux: kdialog in a KDE session and zenity elsewhere, as unison
 //     chooses; with neither installed, the desktop's portal FileChooser,
-//     which draws the same GTK dialog; with no portal either, unison's own
-//     dialog, which shows neither the title nor the filters' names.
+//     which draws the same GTK dialog, except under Windows Subsystem for
+//     Linux, where the portal is skipped; with no portal either, unison's
+//     own dialog, which shows neither the title nor the filters' names.
 //
 // In a headless session (tests) it is unison's own dialog, drawn on the
 // headless screen, so a test never opens a window on the desktop.
