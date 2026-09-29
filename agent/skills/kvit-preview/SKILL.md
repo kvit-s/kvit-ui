@@ -71,9 +71,7 @@ under the gallery's file names.
 go run ./cmd/kvit-ui-gallery --shots <directory>    # anywhere
 ```
 
-It runs headless, with no window and no desktop. `./build.sh --shots` also
-stacks each image above the reference image of the same page, from
-`~/kvit-reference/kvit-ui-0a0b210`, in `build/shots/compare/`.
+It runs headless, with no window and no desktop.
 
 The names are stable on purpose. What gets reviewed after a change to a
 design value is the difference from the previous run, not the whole set

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -33,10 +32,8 @@ func shotName(theme string, size int, page string) string {
 const shotScreenHeight = 16000
 
 // writeShots draws every page in every theme at each shot size, headlessly,
-// into dir. With compare set to the gallery's shot directory, it also
-// writes compare/<name>, the Go image above the one, for every name both
-// have. It returns the files written.
-func writeShots(dir, compare string) ([]string, error) {
+// into dir. It returns the files written.
+func writeShots(dir string) ([]string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
@@ -93,11 +90,6 @@ func writeShots(dir, compare string) ([]string, error) {
 				written = append(written, name)
 				// Escape closes a menu a specimen opened.
 				screen.KeyPress(unison.KeyEscape, 0)
-				if compare != "" {
-					if err := writeComparison(dir, compare, name, img); err != nil {
-						return written, err
-					}
-				}
 			}
 		}
 	}
@@ -132,25 +124,4 @@ func savePNG(path string, img image.Image) error {
 		return err
 	}
 	return f.Close()
-}
-
-// writeComparison stacks the Go image above the one of the same name.
-func writeComparison(dir, qtDir, name string, goImg image.Image) error {
-	qf, err := os.Open(filepath.Join(qtDir, name))
-	if err != nil {
-		return nil // no  reference for this page
-	}
-	defer qf.Close()
-	qtImg, err := png.Decode(qf)
-	if err != nil {
-		return err
-	}
-	gb, qb := goImg.Bounds(), qtImg.Bounds()
-	out := image.NewNRGBA(image.Rect(0, 0, max(gb.Dx(), qb.Dx()), gb.Dy()+qb.Dy()+8))
-	draw.Draw(out, image.Rect(0, 0, gb.Dx(), gb.Dy()), goImg, gb.Min, draw.Src)
-	draw.Draw(out, image.Rect(0, gb.Dy()+8, qb.Dx(), gb.Dy()+8+qb.Dy()), qtImg, qb.Min, draw.Src)
-	if err := os.MkdirAll(filepath.Join(dir, "compare"), 0o755); err != nil {
-		return err
-	}
-	return savePNG(filepath.Join(dir, "compare", name), out)
 }

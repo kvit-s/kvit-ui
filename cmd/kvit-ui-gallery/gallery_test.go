@@ -34,7 +34,7 @@ func TestShots(t *testing.T) {
 	logged := newWarnings()
 	previous := slog.Default()
 	slog.SetDefault(slog.New(logged))
-	written, err := writeShots(dir, os.Getenv("KVIT_QT_SHOTS"))
+	written, err := writeShots(dir)
 	slog.SetDefault(previous)
 	if err != nil {
 		t.Fatal(err)

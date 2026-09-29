@@ -8,14 +8,11 @@
 #   ./build.sh --win         build the gallery for Windows onto D: and start it there
 #   ./build.sh --win-smoke   the same, but it closes itself after 6 s; prints when it
 #                            drew its first frame and how much memory Windows gave it
-#   ./build.sh --shots       write the gallery's screenshot set into build/shots, and
-#                            stack each image above the gallery's of the same name
-#                            into build/shots/compare
+#   ./build.sh --shots       write the gallery's screenshot set into build/shots
 #   ./build.sh --run         start the gallery here (needs a display)
 #
 # Everything builds with cgo off. KVIT_WIN_DIR overrides where Windows builds go
-# (default /mnt/d/projects/kvit-ui-go); KVIT_REF_SHOTS where the gallery's
-# screenshots are (default ~/kvit-reference/kvit-ui-0a0b210).
+# (default /mnt/d/projects/kvit-ui-go).
 set -euo pipefail
 cd "$(dirname "$0")"
 export CGO_ENABLED=0
@@ -81,11 +78,8 @@ if [ $win = 1 ]; then
 fi
 
 if [ $shots = 1 ]; then
-    ref=${KVIT_REF_SHOTS:-$HOME/kvit-reference/kvit-ui-0a0b210}
     rm -rf build/shots
-    compare=()
-    [ -d "$ref" ] && compare=(--compare "$ref")
-    build/kvit-ui-gallery --shots build/shots "${compare[@]}"
+    build/kvit-ui-gallery --shots build/shots
 fi
 
 if [ $run = 1 ]; then

@@ -46,7 +46,7 @@ lacks `SetFaceLoader`, so the build fails and the missing line is visible.
 kerning, emoji sequences or right-to-left ordering.
 
 **Screenshots.** `./build.sh --shots` writes the screenshot set to
-`build/shots/compare/`.
+`build/shots/`.
 
 ## Writing a component
 
@@ -80,7 +80,7 @@ kerning, emoji sequences or right-to-left ordering.
 ./build.sh --cross       # also the gallery for Windows, macOS (both) and Linux
 ./build.sh --win # the gallery for Windows onto D:, started on the Windows desktop
 ./build.sh --win-smoke   # the same, closing after 6 s, with first-frame time and memory
-./build.sh --shots       # the screenshot set into build/shots/compare/
+./build.sh --shots       # the screenshot set into build/shots/
 tools/check-all.sh       # ./build.sh --test in every Kvit Go repository
 ```
 

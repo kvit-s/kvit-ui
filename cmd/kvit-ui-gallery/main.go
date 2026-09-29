@@ -6,7 +6,6 @@
 //	kvit-ui-gallery --page Foundations --theme dark   one page, one theme
 //	kvit-ui-gallery --interface-size 16               at a chosen size
 //	kvit-ui-gallery --shots DIR                       write the screenshot set and exit
-//	kvit-ui-gallery --shots DIR --compare QTDIR       also stack each shot on the one
 //	kvit-ui-gallery --smoke 3s                        close after 3 s, printing when the first frame was drawn
 //
 // In the window, Ctrl+1 to Ctrl+4 choose a theme and Ctrl+plus, Ctrl+minus
@@ -34,7 +33,6 @@ func main() {
 	theme := flag.String("theme", "", "light, dark, sepia, highContrast or system (default: the saved choice)")
 	size := flag.Int("interface-size", 0, "the interface size in pixels, 10 to 24 (default: the saved choice)")
 	shots := flag.String("shots", "", "write the screenshot set into this directory and exit")
-	compare := flag.String("compare", "", "with --shots: a reference shot directory, to stack each shot above its reference one")
 	smoke := flag.Duration("smoke", 0, "close the window after this long, printing when its first frame was drawn")
 	heapProfile := flag.String("heap-profile", "", "with --smoke: write a heap profile to this file halfway through")
 	catalogFile := flag.String("catalog", "", "write the vocabulary skill's component catalogue to this file and exit, from a checkout of the library ("+catalogPath+" there)")
@@ -49,7 +47,7 @@ func main() {
 	}
 
 	if *shots != "" {
-		written, err := writeShots(*shots, *compare)
+		written, err := writeShots(*shots)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
