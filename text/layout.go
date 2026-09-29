@@ -82,9 +82,10 @@ type Options struct {
 	// baseline the font's ascent below the line's top and the rest of the
 	// height under the text, and LineHeight is ignored. That is how Qt's text
 	// documents space the lines of a paragraph set to a proportional line
-	// height, which Kvit's editor gives its blocks: at 14 px and 1.3 the
-	// lines are 18.2 px apart, where LineHeight's rule, which follows Qt's
-	// labels, puts them 23 px apart.
+	// height, which Kvit's editor gives its blocks: the lines are the line
+	// height times the font's own line height apart, 1.3 × 17 = 22.1 px at
+	// 14 px DejaVu Sans, not rounded up, where LineHeight's rule, which
+	// follows Qt's labels, rounds that up to 23 and centres the text in it.
 	Pitch float32
 	// Grid, when above zero, puts each character at a multiple of this
 	// width from the start of its line, one cell per character, as a
