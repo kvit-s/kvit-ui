@@ -191,6 +191,10 @@ func (f *Field) initField(ui *UI, multi bool) {
 				return true
 			}
 		}
+		if (key == unison.KeyBackspace || key == unison.KeyDelete) && deletesWord(mods) {
+			deleteWord(e, key == unison.KeyDelete)
+			return true
+		}
 		return keyDown(key, mods, repeat)
 	}
 	for _, id := range []int{unison.CutItemID, unison.PasteItemID, unison.DeleteItemID} {

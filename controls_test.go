@@ -8,6 +8,7 @@ import (
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
 	"github.com/richardwilkes/unison/enums/check"
+	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/role"
 	"golang.org/x/text/language"
 )
@@ -338,5 +339,56 @@ func TestAReadOnlyTextAreaTakesNoTyping(t *testing.T) {
 	}
 	if n := screen.AccessibilityNodeFor(a.Edit()); n == nil || n.Role != role.TextArea || !n.ReadOnly || n.Name != "Source" {
 		t.Errorf("the text area's node: %+v", n)
+	}
+}
+
+// Ctrl+Backspace and Ctrl+Delete take a word in a field and in a text area,
+// with OnChange told; plain Backspace takes a character, and a read-only
+// field takes nothing.
+func TestCtrlBackspaceAndDeleteTakeAWordInAField(t *testing.T) {
+	var name, fixed *kvitui.Field
+	var area *kvitui.TextArea
+	var changes []string
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		name, fixed, area = kvitui.NewField(ui), kvitui.NewField(ui), kvitui.NewTextArea(ui)
+		name.SetText("hello big world")
+		name.OnChange = func(s string) { changes = append(changes, s) }
+		fixed.SetText("stays put")
+		fixed.ReadOnly = true
+		area.SetText("first line\nsecond")
+		return []unison.Paneler{name, fixed, area}
+	})
+	screen.Click(screen.PanelCenter(name.Edit()))
+	screen.Do(func() { name.Edit().SetSelectionToEnd() })
+	screen.KeyPress(unison.KeyBackspace, mod.Control)
+	screen.Sync()
+	if got := name.Text(); got != "hello big " {
+		t.Errorf("Ctrl+Backspace left %q", got)
+	}
+	if len(changes) == 0 || changes[len(changes)-1] != "hello big " {
+		t.Errorf("OnChange saw %q", changes)
+	}
+	screen.KeyPress(unison.KeyBackspace, 0)
+	screen.Do(func() { name.Edit().SetSelectionTo(0) })
+	screen.KeyPress(unison.KeyDelete, mod.Control)
+	screen.Sync()
+	if got := name.Text(); got != " big" {
+		t.Errorf("Backspace then Ctrl+Delete left %q", got)
+	}
+
+	screen.Click(screen.PanelCenter(fixed.Edit()))
+	screen.KeyPress(unison.KeyBackspace, mod.Control)
+	screen.Sync()
+	if got := fixed.Text(); got != "stays put" {
+		t.Errorf("a read-only field was changed to %q", got)
+	}
+
+	screen.Click(screen.PanelCenter(area.Edit()))
+	screen.Do(func() { area.Edit().SetSelectionTo(len("first line\n")) })
+	screen.KeyPress(unison.KeyBackspace, mod.Control)
+	screen.KeyPress(unison.KeyBackspace, mod.Control)
+	screen.Sync()
+	if got := area.Text(); got != "first second" {
+		t.Errorf("Ctrl+Backspace twice from a line's start left %q", got)
 	}
 }
