@@ -32,15 +32,31 @@ func TestAWordDeleteStopsAtTheWordAndTheLine(t *testing.T) {
 // Ctrl takes a word on Windows and Linux and Option on macOS; AltGr (Ctrl
 // with Alt) and plain keys do not.
 func TestTheWordDeleteKeyFollowsThePlatform(t *testing.T) {
-	saved := optionDeletesWord
-	defer func() { optionDeletesWord = saved }()
-	optionDeletesWord = false
+	saved := optionIsWordKey
+	defer func() { optionIsWordKey = saved }()
+	optionIsWordKey = false
 	if !deletesWord(mod.Control) || !deletesWord(mod.Control|mod.Shift) || deletesWord(mod.Control|mod.Option) ||
 		deletesWord(mod.Option) || deletesWord(0) {
 		t.Error("on Windows and Linux only Ctrl should take a word")
 	}
-	optionDeletesWord = true
+	optionIsWordKey = true
 	if !deletesWord(mod.Option) || deletesWord(mod.OSMenuCommand()) || deletesWord(0) {
 		t.Error("on macOS only Option should take a word")
+	}
+}
+
+// Ctrl+arrow moves by word on Windows and Linux; on macOS the arrows are
+// left to unison, whose keys are macOS's own.
+func TestCtrlArrowsMoveByWordOffMacOS(t *testing.T) {
+	saved := optionIsWordKey
+	defer func() { optionIsWordKey = saved }()
+	optionIsWordKey = false
+	if !ctrlMovesByWord(mod.Control) || !ctrlMovesByWord(mod.Control|mod.Shift) ||
+		ctrlMovesByWord(mod.Control|mod.Option) || ctrlMovesByWord(mod.Option) || ctrlMovesByWord(0) {
+		t.Error("on Windows and Linux only Ctrl should move by word")
+	}
+	optionIsWordKey = true
+	if ctrlMovesByWord(mod.Control) {
+		t.Error("on macOS the arrows are unison's")
 	}
 }

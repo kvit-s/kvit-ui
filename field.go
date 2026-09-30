@@ -195,6 +195,9 @@ func (f *Field) initField(ui *UI, multi bool) {
 			deleteWord(e, key == unison.KeyDelete)
 			return true
 		}
+		if (key == unison.KeyLeft || key == unison.KeyRight) && ctrlMovesByWord(mods) {
+			mods = mods&^mod.Control | mod.Option
+		}
 		return keyDown(key, mods, repeat)
 	}
 	for _, id := range []int{unison.CutItemID, unison.PasteItemID, unison.DeleteItemID} {

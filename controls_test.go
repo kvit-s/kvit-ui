@@ -1,6 +1,7 @@
 package kvitui_test
 
 import (
+	"runtime"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
@@ -390,5 +391,38 @@ func TestCtrlBackspaceAndDeleteTakeAWordInAField(t *testing.T) {
 	screen.Sync()
 	if got := area.Text(); got != "first second" {
 		t.Errorf("Ctrl+Backspace twice from a line's start left %q", got)
+	}
+}
+
+// On Windows and Linux, Ctrl+Left and Ctrl+Right move by word in a field,
+// with Shift selecting, rather than to the line's start and end.
+func TestCtrlArrowsMoveByWordInAField(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("macOS keeps unison's own arrow keys")
+	}
+	var f *kvitui.Field
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		f = kvitui.NewField(ui)
+		f.SetText("one two three")
+		return []unison.Paneler{f}
+	})
+	screen.Click(screen.PanelCenter(f.Edit()))
+	selection := func() (start, end int) {
+		screen.Do(func() { start, end = f.Edit().Selection() })
+		return start, end
+	}
+	screen.Do(func() { f.Edit().SetSelectionToEnd() })
+	screen.KeyPress(unison.KeyLeft, mod.Control)
+	if start, end := selection(); start != 8 || end != 8 {
+		t.Errorf("Ctrl+Left went to %d-%d, want the start of \"three\"", start, end)
+	}
+	screen.KeyPress(unison.KeyLeft, mod.Control|mod.Shift)
+	if start, end := selection(); start != 4 || end != 8 {
+		t.Errorf("Ctrl+Shift+Left selected %d-%d, want \"two \"", start, end)
+	}
+	screen.Do(func() { f.Edit().SetSelectionTo(0) })
+	screen.KeyPress(unison.KeyRight, mod.Control)
+	if start, end := selection(); start != 3 || end != 3 {
+		t.Errorf("Ctrl+Right went to %d-%d, want the end of \"one\"", start, end)
 	}
 }

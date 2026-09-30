@@ -8,21 +8,30 @@ import (
 	"github.com/richardwilkes/unison/enums/mod"
 )
 
-// Deleting a word in a field or text area. unison's field deletes one
-// character whatever the modifiers, so the word keys are taken before it
-// sees them. A word is letters, digits and "_", as for the field's own
+// The word keys in a field or text area. unison's field deletes one
+// character whatever the modifiers, and on every system gives Ctrl+Left and
+// Ctrl+Right macOS's Command+arrow meaning, the start and end of the line,
+// moving by word only with Option. So the word keys are taken before it sees
+// them. A word is letters, digits and "_", as for the field's own
 // Option+arrow moves.
 
-// optionDeletesWord is whether Option, rather than Ctrl, makes Backspace and
-// Delete take a word, as on macOS. The tests set it.
-var optionDeletesWord = runtime.GOOS == "darwin"
+// optionIsWordKey is whether Option, rather than Ctrl, is the key that
+// deletes and moves by word, as on macOS. The tests set it.
+var optionIsWordKey = runtime.GOOS == "darwin"
+
+// ctrlMovesByWord reports whether Left or Right with mods moves by word
+// where unison's field would go to the line's start or end: Ctrl on Windows
+// and Linux. Such a key is handed to the field as Option+arrow.
+func ctrlMovesByWord(mods mod.Modifiers) bool {
+	return !optionIsWordKey && mods.ControlDown() && !mods.OptionDown()
+}
 
 // deletesWord reports whether Backspace or Delete with mods takes a word:
 // Ctrl on Windows and Linux, Option on macOS. AltGr, which arrives as Ctrl
 // with Alt, does not.
 func deletesWord(mods mod.Modifiers) bool {
 	ctrl, alt := mods.OSMenuCommandDown(), mods.OptionDown()
-	if optionDeletesWord {
+	if optionIsWordKey {
 		return alt && !ctrl
 	}
 	return ctrl && !alt
