@@ -62,7 +62,7 @@ func TestAnUnknownNameResolvesToNothing(t *testing.T) {
 	}
 }
 
-func TestTheEditorsLiteralsAllHaveSomewhereToGo(t *testing.T) {
+func TestTheSymbolNamesTheAppsUseAllResolve(t *testing.T) {
 	for _, n := range []string{"chevron-right", "chevron-left", "close", "plus", "sidebar", "list", "search", "note", "tag",
 		"messages-square", "message-square", "send", "chevron-down", "zoom-in", "zoom-out", "pencil", "check", "archive", "rotate-ccw"} {
 		if _, ok := icons.Glyph(n); !ok {

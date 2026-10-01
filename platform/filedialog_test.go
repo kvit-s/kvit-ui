@@ -14,7 +14,7 @@ var workspacePicker = FileDialog{
 
 // A name filter's whole string is what the reader sees, and its patterns are
 // what is in its last parentheses, or the whole string when it has none.
-func TestNameFiltersAreReadAsQtReadsThem(t *testing.T) {
+func TestANameFilterShowsItsWholeStringAndMatchesItsLastParentheses(t *testing.T) {
 	d := FileDialog{NameFilters: []string{"Kvit Cash workspace (*.sqlite)", "All files (*)", "*.csv *.tsv",
 		"Statements (bank (2024)) (*.ofx *.qfx)", " ", "Nothing ()"}}
 	want := []nameFilter{

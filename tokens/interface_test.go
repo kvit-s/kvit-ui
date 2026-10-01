@@ -26,7 +26,7 @@ func derived(m *tokens.Interface) map[string]int {
 	return out
 }
 
-func TestDefaultReproducesTheOldLiterals(t *testing.T) {
+func TestTheDefaultSizeLeavesDesignPixelsUnscaled(t *testing.T) {
 	m := tokens.NewInterface()
 	if m.FontSize() != 12 || m.Scale() != 1 {
 		t.Fatalf("default size %d, scale %v", m.FontSize(), m.Scale())
