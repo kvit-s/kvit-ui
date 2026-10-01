@@ -1,5 +1,5 @@
 // Command kvit-ui-gallery shows every kvit-ui component with its states, in
-// each theme and at each interface size, as the library's gallery does.
+// each theme and at each interface size.
 // Pages not built yet are listed greyed.
 //
 //	kvit-ui-gallery                                   browse

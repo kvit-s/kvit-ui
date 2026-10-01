@@ -36,7 +36,7 @@ func Glyph(name string) (rune, bool) {
 }
 
 // MeaningNames lists the names a call site should be written in, in the
-// library's order.
+// order of the meanings table in catalog_gen.go.
 func MeaningNames() []string {
 	out := make([]string, len(meanings))
 	for i, m := range meanings {

@@ -2,9 +2,9 @@ package platform
 
 // The notification area on macOS: an NSStatusItem in the menu bar with an
 // NSMenu, which opens on a click as menu bar items do, and
-// UNUserNotificationCenter for notifications, as the app's
-// systemtray_mac.mm has them. It calls Objective-C through purego's runtime
-// bindings without cgo, the way unison's internal/cocoa does.
+// UNUserNotificationCenter for notifications. It calls Objective-C through
+// purego's runtime bindings without cgo, the way unison's internal/cocoa
+// does.
 //
 // This file is compiled for darwin/arm64 and darwin/amd64 on Linux and has
 // not yet run on a Mac, as none was available when it was written.
@@ -251,7 +251,7 @@ func (t *macTray) authorization() Authorization { return t.auth }
 
 // requestAuthorization puts up macOS's question. A false answer can mean
 // either denied or not yet decided, so the stored answer is read again
-// afterwards, as the app does.
+// afterwards.
 func (t *macTray) requestAuthorization() {
 	if t.center == 0 {
 		return

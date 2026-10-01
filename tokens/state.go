@@ -23,7 +23,8 @@ type Appearance interface {
 	ReducedMotion() bool
 }
 
-// The setting keys, the same as the library's so both read one file.
+// The setting keys. They are the keys the Kvit versions built with Qt
+// wrote, so a settings file those versions saved is read.
 const (
 	keyThemeID           = "theme.id"
 	keyAccent            = "theme.accent"

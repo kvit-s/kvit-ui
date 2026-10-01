@@ -368,8 +368,8 @@ func (l statusLayout) PerformLayout(target *unison.Panel) {
 		facts.width = l.factsWidth()
 		slots = append(slots, facts)
 	}
-	// The controls' place is always there, as in , which keeps a space
-	// before the right margin whether or not it holds anything.
+	// The controls' place is always there, which keeps a space before the
+	// right margin whether or not it holds anything.
 	slots = append(slots, slot{panels: []*unison.Panel{s.controls}, width: l.pref(s.controls).Width})
 	fixed := space * float32(len(slots)-1)
 	fills := 0
@@ -395,7 +395,7 @@ func (l statusLayout) PerformLayout(target *unison.Panel) {
 // place sets the panels of a slot side by side from x, a space apart, each
 // centred on the bar's height; the one panel of a filling slot takes the
 // slot's width. The space between groups, and before the overflow link, is
-// the leading space each carries in .
+// that same space.
 func (l statusLayout) place(sl slot, x, width float32, r geom.Rect) {
 	space := float32(l.s.ui.Interface.Space())
 	for _, p := range sl.panels {

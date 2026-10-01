@@ -13,12 +13,12 @@ import (
 )
 
 // CheckRules fails the test for every place in the Go files under dir that
-// writes a colour as a literal or a font size as a number, as the library
-// fails its build on them. A literal colour is right in the theme it was
-// picked in and wrong in the other three, and a numeric size stands still
-// when the reader changes the interface size. exempt names top-level
-// directories under dir whose job is to hold or apply design values; tests,
-// generated files, hidden directories and build output are not read. It
+// writes a colour as a literal or a font size as a number. A literal colour
+// is right in the theme it was picked in and wrong in the other three, and a
+// numeric size stands still when the reader changes the interface size.
+// exempt names top-level directories under dir whose job is to hold or apply
+// design values; tests, files whose names end in _gen.go, hidden directories
+// and build output are not read. It
 // returns how many files it read, which a caller can hold to a floor: a
 // check that reads nothing passes. The third rule, no unnamed geometry
 // value, is CheckGeometry.

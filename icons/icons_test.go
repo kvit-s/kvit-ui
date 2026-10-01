@@ -8,8 +8,6 @@ import (
 	"github.com/kvit-s/kvit-ui/icons"
 )
 
-// Ported from kvit-ui's tests/test_icons.cpp.
-
 func TestEveryMeaningNameResolves(t *testing.T) {
 	names := icons.MeaningNames()
 	if len(names) <= 40 {

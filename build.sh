@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds kvit-ui-go: every package, and the gallery into build/.
+# Builds kvit-ui: every package, and the gallery into build/.
 #
 #   ./build.sh               build
 #   ./build.sh --test        also check formatting, run go vet and the headless tests

@@ -110,7 +110,7 @@ const (
 	trayIconID = 1
 	// balloonTimer tells a balloon's click apart from a click on the icon
 	// made while the balloon shows, which Windows also reports as the
-	// balloon's;  waits the same way.
+	// balloon's.
 	balloonTimer = 1
 	balloonWait  = 80 * time.Millisecond
 )

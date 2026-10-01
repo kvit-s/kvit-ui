@@ -1,16 +1,15 @@
 package platform
 
-// The notification area on Linux, over the session D-Bus, as the own tray
-// does it: the icon is a StatusNotifierItem at /StatusNotifierItem,
-// registered with the desktop's org.kde.StatusNotifierWatcher; its menu is a
-// com.canonical.dbusmenu at /MenuBar, which the desktop draws itself; and a
-// notification is org.freedesktop.Notifications' Notify, whose click comes
-// back as its ActionInvoked signal with the "default" action.
+// The notification area on Linux, over the session D-Bus: the icon is a
+// StatusNotifierItem at /StatusNotifierItem, registered with the desktop's
+// org.kde.StatusNotifierWatcher; its menu is a com.canonical.dbusmenu at
+// /MenuBar, which the desktop draws itself; and a notification is
+// org.freedesktop.Notifications' Notify, whose click comes back as its
+// ActionInvoked signal with the "default" action.
 //
 // A session without a StatusNotifierWatcher, or with one that has no host
 // drawing the items, has no notification area: GNOME without its
-// AppIndicator extension, and WSLg. There the tray is unavailable, as the
-// is.
+// AppIndicator extension, and WSLg. There the tray is unavailable.
 
 import (
 	"context"

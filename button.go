@@ -25,13 +25,11 @@ const (
 	ButtonPrimary
 	// ButtonQuiet has the chip ground and a hairline of the faint border, for
 	// a dense strip where a row of full outlines would read as a fence. It is
-	// drawn as pressable at rest rather than only once the pointer is on it,
-	// as kvit-cash's copy of the library draws it.
+	// drawn as pressable at rest rather than only once the pointer is on it.
 	ButtonQuiet
 	// ButtonFlat has no ground and no outline at rest, only the hover tint
 	// under the pointer and the selection tint while pressed or checked, for
-	// a toolbar of many buttons told apart by their words, as Kvit's
-	// toolbar draws them (Toolbar, BarBackground).
+	// a toolbar of many buttons told apart by their words.
 	ButtonFlat
 )
 

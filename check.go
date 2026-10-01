@@ -55,8 +55,7 @@ func (c *Check) toggle() {
 	}
 }
 
-// focusRing puts the ring around the box, not the label, as the check
-// draws it.
+// focusRing puts the ring around the box, not the label.
 func (c *Check) focusRing() (*unison.Panel, float32, bool) {
 	return c.box, float32(c.ui.Interface.RadiusBar()), c.KeyboardFocus()
 }
@@ -70,9 +69,8 @@ func (c *Check) label() *text.Layout {
 	return ui.Fonts.Layout([]text.Span{{Text: c.Text, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}}, text.Options{})
 }
 
-// checkPadding is the space on each side of a check box, the padding
-// Quick's own style gives its CheckBox, which KvitCheck keeps. It is six
-// pixels at every interface size, as the style's is.
+// checkPadding is the space on each side of a check box. It is six pixels
+// at every interface size.
 const checkPadding = 6
 
 type checkLayout struct{ c *Check }

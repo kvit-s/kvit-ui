@@ -118,10 +118,10 @@ func TestAPopoverClosesOnEscapeAndGivesTheFocusBack(t *testing.T) {
 }
 
 // A tooltip never has the focus, so Escape passes it by: over an open
-// popover it closes the popover rather than stopping at the tooltip, as in
-// . A popup that is not a tooltip and has no Escape of its own still stops
-// it, so the control with the focus gets the key, as the typeahead's field
-// does to close its list.
+// popover it closes the popover rather than stopping at the tooltip. A
+// popup that is not a tooltip and has no Escape of its own still stops it,
+// so the control with the focus gets the key, as the typeahead's field does
+// to close its list.
 func TestEscapePassesATooltipByToThePopupUnderIt(t *testing.T) {
 	var opener *kvitui.Button
 	var pop *kvitui.Popover

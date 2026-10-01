@@ -13,8 +13,6 @@ import (
 	"github.com/kvit-s/kvit-ui/tokens"
 )
 
-// Ported from kvit-ui's tests/test_theme.cpp.
-
 // fakeAppearance stands in for the desktop: no machine running the tests has
 // high contrast turned on, and what matters is on this side of the platform.
 type fakeAppearance struct {
@@ -109,8 +107,9 @@ func TestSystemResolvesToLightOrDark(t *testing.T) {
 	}
 }
 
-// Every colour field of Tokens is set by every table: the generator lists the
-// names the tables set, and a field missing from them would be black.
+// Every colour field of Tokens is set by every table: tokenNames in
+// tables_gen.go lists the names the tables set, and a field missing from them
+// would be black.
 func TestTablesAreCompleteAndDistinct(t *testing.T) {
 	colorType := reflect.TypeOf(palette.Color{})
 	typ := reflect.TypeOf(tokens.Tokens{})
@@ -147,8 +146,7 @@ func TestTablesAreCompleteAndDistinct(t *testing.T) {
 	}
 }
 
-// A coarse legibility floor on plain (not linearised) luminance, as the
-// test states it.
+// A coarse legibility floor on plain (not linearised) luminance.
 func TestDarkAndSepiaKeepContrast(t *testing.T) {
 	lum := func(c palette.Color) float64 { return 0.2126*c.R + 0.7152*c.G + 0.0722*c.B }
 	abs := func(v float64) float64 { return max(v, -v) }
@@ -254,8 +252,8 @@ func toUpper(s string) string {
 	return string(b)
 }
 
-// The keyboard focus ring is held to WCAG's 3:1 non-text floor. The  test
-// linearises with WCAG 2.0's 0.03928 threshold, reproduced here.
+// The keyboard focus ring is held to WCAG's 3:1 non-text floor, computed
+// with WCAG 2.0's linearisation threshold of 0.03928.
 func wcag20Ratio(a, b palette.Color) float64 {
 	lin := func(c float64) float64 {
 		if c <= 0.03928 {

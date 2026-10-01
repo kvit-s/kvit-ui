@@ -63,8 +63,8 @@ func TestShots(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		// As wide as the design width at the shot's interface size, as the
-		//  set is, and at least the gallery's usual height.
+		// As wide as the design width at the shot's interface size, and at
+		// least the gallery's usual height.
 		m := tokens.NewInterface()
 		for _, size := range shotSizes {
 			if strings.Contains(name, fmt.Sprintf("-%dpx-", size)) {
@@ -123,8 +123,8 @@ func TestPagesFollowTheInterfaceSize(t *testing.T) {
 	}
 }
 
-// A sample the gallery only shows is still run, as the gallery test runs
-// the window's sample, so it cannot drift from what compiles and works.
+// A sample the gallery only shows is still run, so it cannot drift from
+// what compiles and works.
 func TestTheSourceOnlySamplesRun(t *testing.T) {
 	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
 	if err != nil {

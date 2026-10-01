@@ -90,10 +90,10 @@ func (s *SlimRow) texts() (name, kind, phrase *text.Layout) {
 	return lay(s.Name, RoleBody, InkTextPrimary), lay(s.Kind, RoleSmall, InkTextFaint), lay(s.Phrase, RoleSmall, InkTextMuted)
 }
 
-// arrange lays the line out across a width, as the row does: margins a
-// near space in, parts a space apart, the name at most 45% of the row and
-// the kind at most a quarter, the phrase taking what is left, and the figure
-// at its natural width at the end.
+// arrange lays the line out across a width: margins a near space in, parts
+// a space apart, the name at most 45% of the row and the kind at most a
+// quarter, the phrase taking what is left, and the figure at its natural
+// width at the end.
 func (s *SlimRow) arrange(b geom.Rect) slimLine {
 	m := s.ui.Interface
 	row := s.ContentRect(true).Width

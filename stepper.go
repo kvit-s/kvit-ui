@@ -28,7 +28,7 @@ type Stepper struct {
 	OnChange func(value int)
 	// Follow, when set, gives the value from whatever owns it, read before
 	// every layout, so the stepper shows the owner's value when it changes
-	// elsewhere, as a binding does in view markup.
+	// elsewhere.
 	Follow func() int
 
 	minus, plus *IconButton

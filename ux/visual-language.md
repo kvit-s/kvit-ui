@@ -36,42 +36,42 @@ really on screen.
 
 ## Token map
 
-Every colour token keeps the application's name, kebab-cased. `WindowBackground`
+Every colour token keeps its field name in `Tokens`, kebab-cased. `WindowBackground`
 becomes `--window-background`, `AxisAttentionText` becomes `--axis-attention-text`.
 The table below gives the ones a mockup actually reaches for; the stylesheet carries the full
 set, including the five code-highlighting colours a mockup of the document panel would need.
 
-| Application token | CSS variable | dark (default) | light |
+| `Tokens` field | CSS variable | dark (default) | light |
 |---|---|---|---|
-| `windowBackground` | `--window-background` | `#1e1e1e` | `#ffffff` |
-| `panelBackground` | `--panel-background` | `#252526` | `#f4f4f4` |
-| `listBackground` | `--list-background` | `#212122` | `#fafafa` |
-| `popupBackground` | `--popup-background` | `#2d2d30` | `#ffffff` |
-| `chipBackground` | `--chip-background` | `#37373a` | `#f2f2f0` |
-| `textPrimary` | `--text-primary` | `#e8e8e8` | `#1a1a1a` |
-| `textSecondary` | `--text-secondary` | `#c8c8c8` | `#555555` |
-| `textMuted` | `--text-muted` | `#a8a8a8` | `#666666` |
-| `textFaint` | `--text-faint` | `#848484` | `#999999` |
-| `border` | `--border` | `#3c3c3c` | `#dddddd` |
-| `borderStrong` | `--border-strong` | `#5a5a5a` | `#b0b0b0` |
-| `hoverTint` | `--hover-tint` | `#333336` | `#ebebeb` |
-| `focusTint` | `--focus-tint` | `#263544` | `#eaf2fb` |
-| `focusRing` | `--focus-ring` | `#58a6ff` | `#1f6feb` |
-| `selectionTint` | `--selection-tint` | `#2d4356` | `#dce8f5` |
-| `accent` | `--accent` | `#5c9fe0` | `#4a90d9` |
-| `link` | `--link` | `#6fb1ff` | `#2970c8` |
-| `danger` | `--danger` | `#e06c60` | `#b3261e` |
-| `success` | `--success` | `#5abd82` | `#27ae60` |
-| `warning` | `--warning` | `#e0a34c` | `#f39c12` |
-| `axisAttention` | `--axis-attention` | `#d9a04c` | `#d99a3d` |
-| `axisAttentionText` | `--axis-attention-text` | `#e6b877` | `#b06a10` |
-| `axisAgent` | `--axis-agent` | `#4aa3a3` | `#4aa3a3` |
-| `axisAgentText` | `--axis-agent-text` | `#7cc7c4` | `#1f7a7a` |
-| `scopeDiscovered` | `--scope-discovered` | `#a37fd4` | `#8a5cc0` |
-| `signalHard` | `--signal-hard` | `#e06c60` | `#c0392b` |
-| `signalSoft` | `--signal-soft` | `#e0a34c` | `#d99a3d` |
-| `signalHygiene` | `--signal-hygiene` | `#a37fd4` | `#8a5cc0` |
-| `hatchAlt` | `--hatch-alt` | `#1e1e1e` | `#ffffff` |
+| `WindowBackground` | `--window-background` | `#1e1e1e` | `#ffffff` |
+| `PanelBackground` | `--panel-background` | `#252526` | `#f4f4f4` |
+| `ListBackground` | `--list-background` | `#212122` | `#fafafa` |
+| `PopupBackground` | `--popup-background` | `#2d2d30` | `#ffffff` |
+| `ChipBackground` | `--chip-background` | `#37373a` | `#f2f2f0` |
+| `TextPrimary` | `--text-primary` | `#e8e8e8` | `#1a1a1a` |
+| `TextSecondary` | `--text-secondary` | `#c8c8c8` | `#555555` |
+| `TextMuted` | `--text-muted` | `#a8a8a8` | `#666666` |
+| `TextFaint` | `--text-faint` | `#848484` | `#999999` |
+| `Border` | `--border` | `#3c3c3c` | `#dddddd` |
+| `BorderStrong` | `--border-strong` | `#5a5a5a` | `#b0b0b0` |
+| `HoverTint` | `--hover-tint` | `#333336` | `#ebebeb` |
+| `FocusTint` | `--focus-tint` | `#263544` | `#eaf2fb` |
+| `FocusRing` | `--focus-ring` | `#58a6ff` | `#1f6feb` |
+| `SelectionTint` | `--selection-tint` | `#2d4356` | `#dce8f5` |
+| `Accent` | `--accent` | `#5c9fe0` | `#4a90d9` |
+| `Link` | `--link` | `#6fb1ff` | `#2970c8` |
+| `Danger` | `--danger` | `#e06c60` | `#b3261e` |
+| `Success` | `--success` | `#5abd82` | `#27ae60` |
+| `Warning` | `--warning` | `#e0a34c` | `#f39c12` |
+| `AxisAttention` | `--axis-attention` | `#d9a04c` | `#d99a3d` |
+| `AxisAttentionText` | `--axis-attention-text` | `#e6b877` | `#b06a10` |
+| `AxisAgent` | `--axis-agent` | `#4aa3a3` | `#4aa3a3` |
+| `AxisAgentText` | `--axis-agent-text` | `#7cc7c4` | `#1f7a7a` |
+| `ScopeDiscovered` | `--scope-discovered` | `#a37fd4` | `#8a5cc0` |
+| `SignalHard` | `--signal-hard` | `#e06c60` | `#c0392b` |
+| `SignalSoft` | `--signal-soft` | `#e0a34c` | `#d99a3d` |
+| `SignalHygiene` | `--signal-hygiene` | `#a37fd4` | `#8a5cc0` |
+| `HatchAlt` | `--hatch-alt` | `#1e1e1e` | `#ffffff` |
 
 Two pairs deserve a note. Each axis has a **bar hue** and a **text hue**: the bar hue is what
 a filled bar is painted with, and the text hue is a shifted version legible as small type on
@@ -101,21 +101,23 @@ Light is a class away. Put `theme-light`, `theme-dark`, `theme-sepia` or `theme-
 
 ## Type
 
-The application's scale is one base size with integer point offsets. The stylesheet converts
-each step at 96 dpi (points × 4/3) and gives it a role name, so a mockup asks for a role
-rather than doing arithmetic.
+The type scale is seven roles, each a size in pixels at the default interface size of 12,
+taken from `Interface` in the `tokens` package. A mockup asks for a role rather than doing
+arithmetic.
 
-| Application | CSS variable | px | Where it is used |
+| Interface role | CSS variable | px | Where it is used |
 |---|---|---|---|
-| `baseSize + 4` | `--type-title` | 25 | page title, the load-failure message |
-| `baseSize + 2` | `--type-page` | 23 | the shell wordmark |
-| `baseSize + 1` | `--type-heading` | 21 | section heading |
-| `baseSize` | `--type-name` | 20 | project name, popover title |
-| `baseSize - 2` | `--type-body` | 17 | prose, tab labels |
-| `baseSize - 3` | `--type-row` | 16 | the dominant row text, and the page default |
-| `baseSize - 4` | `--type-secondary` | 15 | descriptions, figures, column headings |
-| `baseSize - 5` | `--type-small` | 13 | chip labels, the axis legend, sub-lines |
-| `baseSize - 6` | `--type-micro` | 12 | kind tags, counts |
+| `Caption` | `--type-caption` | 10 | kind tags, counts |
+| `Small` | `--type-small` | 11 | chip labels, sub-lines |
+| `Body` | `--type-body` | 12 | row text, prose |
+| `Strong` | `--type-strong` | 13 | a name, an emphasised row |
+| `Title` | `--type-title` | 15 | a section heading |
+| `Headline` | `--type-headline` | 17 | a pane title, the wordmark |
+| `Display` | `--type-display` | 20 | a page title |
+
+The stylesheet also keeps kvit-hub's older type names on the same scale, for the mockups
+drawn before the seven roles: `--type-micro` 10, `--type-secondary` 11, `--type-row` 12,
+`--type-name` 13, `--type-heading` 15 and `--type-page` 17. New work uses the seven roles.
 
 Families are local, since no mockup may fetch anything over the network. `--font-ui` is
 `Ubuntu, "Ubuntu Sans", "DejaVu Sans", system-ui, sans-serif`, because Ubuntu is the family
@@ -134,22 +136,22 @@ steps of separation between a title and the data under it.
 One reader, one data set, a desktop window, no mobile target. The application opens at
 1400×900 and refuses to go below 1280×600; the mockups render at 1440×960.
 
-| Measure | CSS variable | px | Source |
+| Measure | CSS variable | px | `Interface` method |
 |---|---|---|---|
-| view outer margin | `--view-margin` | 16 | `LedgerView` `anchors.margins` |
-| gap between columns | `--column-gap` | 14 | `LedgerView` `columnSpacing` |
-| gap between stacked blocks | `--stack-gap` | 7 | `LedgerView` `ColumnLayout.spacing` |
-| shell header | `--header-height` | 52 | `Main` header |
-| breadcrumb strip | `--breadcrumb-height` | 34 | `Main` |
-| project row | `--row-height` | 56 | `LedgerView` delegate |
-| expanded milestone line | `--row-height-sub` | 48 | `LedgerView` delegate |
-| disclosure or triage line | `--row-height-compact` | 24 | `LedgerView` history line |
-| tab | `--tab-height` | 30 | `Main` tab delegate |
-| milestone chip | `--chip-height` | 17 | `MilestoneChip` |
-| kind tag, count chip | `--tag-height` | 16 | `LedgerView` `KindTag`, `SignalChip` |
-| confidence tag, bucket chip | `--pill-height` | 15 | `ConfidenceTag`, `BucketChip` |
-| compact axis bar | `--bar-height` | 7 | `AxisBar`, `EffortJourney` |
-| full axis bar | `--bar-height-wide` | 9 | `EffortJourney` |
+| view outer margin | `--view-margin` | 16 | `ViewMargin` |
+| gap between columns | `--column-gap` | 14 | `ColumnGap` |
+| gap between stacked blocks | `--stack-gap` | 7 | `StackGap` |
+| shell header | `--header-height` | 52 | `HeaderHeight` |
+| breadcrumb strip | `--breadcrumb-height` | 34 | `BreadcrumbHeight` |
+| project row | `--row-height` | 56 | `RowHeight` |
+| expanded milestone line | `--row-height-sub` | 48 | `RowHeightSub` |
+| disclosure or triage line | `--row-height-compact` | 24 | `RowHeightCompact` |
+| tab | `--tab-height` | 30 | `TabHeight` |
+| milestone chip | `--chip-height` | 17 | `ChipHeight` |
+| kind tag, count chip | `--tag-height` | 16 | `TagHeight` |
+| confidence tag, bucket chip | `--pill-height` | 15 | `PillHeight` |
+| compact axis bar | `--bar-height` | 7 | `BarHeight` |
+| full axis bar | `--bar-height-wide` | 9 | `BarHeightWide` |
 
 Radii are `--radius-bar` 2, `--radius-chip` 3, `--radius-control` 4, `--radius-card` 6,
 `--radius-pill` 8. Every separator is one pixel of `--border`; the rule under a column header
@@ -173,7 +175,7 @@ they never stack or sum.
 
 The number is `.figure`: `--type-secondary`, tabular numerals so a column aligns, tinted with
 the axis's text hue when it belongs to an axis. Precision is whole hours at 10 h and above
-and one decimal below, matching `fmt.js`. Tenths of an hour on a 200-hour project are digit
+and one decimal below. Tenths of an hour on a 200-hour project are digit
 noise, and the exact value belongs in a tooltip.
 
 An upper bound adds the hatch. Apply `.is-bounded` to the spent segment and prefix the label

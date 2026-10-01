@@ -156,8 +156,7 @@ func (m *Interface) RailWidth() int    { return m.Px(48) } // the sidebar collap
 func (m *Interface) PaneWidth() int    { return m.Px(392) }
 
 // FloatingViewWidth is the width of a view floated over a list: wider than
-// the pane, because it takes no width out of the layout (kvit-cash's copy of
-// the library).
+// the pane, because it takes no width out of the layout.
 func (m *Interface) FloatingViewWidth() int { return m.Px(720) }
 
 func (m *Interface) HeaderHeight() int     { return m.Px(52) }
@@ -200,5 +199,5 @@ func (m *Interface) WidthDrawn() int  { return m.Px(1440) }
 // HeightFloor is the shortest window the chrome holds: a header, a status
 // bar and enough body for a list to be a list. It is the window's minimum
 // height, named because a check of what a surface does at the smallest
-// window has to know what that is (kvit-cash's copy of kvit-ui, 722906e).
+// window has to know what that is.
 func (m *Interface) HeightFloor() int { return m.Px(600) }

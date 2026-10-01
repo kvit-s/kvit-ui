@@ -24,9 +24,8 @@ func square(side int, c color.Color) image.Image {
 	return img
 }
 
-// The menu's lines run their callbacks by text, as the tray's
-// triggerAction ran its signals by name; separators and disabled lines are
-// never run.
+// The menu's lines run their callbacks by text; separators and disabled
+// lines are never run.
 func TestTheMenuRunsTheLineChosen(t *testing.T) {
 	tray, _ := syncTray(Authorized)
 	var ran []string
@@ -85,7 +84,7 @@ func TestTheBackendSeesTheIconOnlyWhileShown(t *testing.T) {
 }
 
 // A notification reaches the desktop only when authorized and while the
-// icon shows, and is recorded either way (the tray's rule).
+// icon shows, and is recorded either way.
 func TestNotificationsNeedAuthorizationAndTheIcon(t *testing.T) {
 	tray, b := syncTray(Authorized)
 	if tray.Notify("Kvit", "Before the icon", "") {

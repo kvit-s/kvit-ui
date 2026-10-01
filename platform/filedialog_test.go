@@ -5,16 +5,15 @@ import (
 	"testing"
 )
 
-// Kvit Cash's workspace picker, as its  FileDialog was written.
+// Kvit Cash's workspace picker.
 var workspacePicker = FileDialog{
 	Title:       "Open a Kvit Cash workspace",
 	NameFilters: []string{"Kvit Cash workspace (*.sqlite)", "All files (*)"},
 	Folder:      "/home/reader/finance",
 }
 
-// A name filter is read as  reads it: the whole string is what the reader
-// sees, and the patterns are what is in its last parentheses, or the whole
-// string when it has none.
+// A name filter's whole string is what the reader sees, and its patterns are
+// what is in its last parentheses, or the whole string when it has none.
 func TestNameFiltersAreReadAsQtReadsThem(t *testing.T) {
 	d := FileDialog{NameFilters: []string{"Kvit Cash workspace (*.sqlite)", "All files (*)", "*.csv *.tsv",
 		"Statements (bank (2024)) (*.ofx *.qfx)", " ", "Nothing ()"}}

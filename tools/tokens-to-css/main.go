@@ -1,8 +1,7 @@
 // Command tokens-to-css writes ux/tokens.css: the design values as CSS
 // variables, for drawing a screen as a static HTML page before it is built,
 // so a drawing is judged in the colours and sizes the application will use.
-// The file is the one the library's tool of the same name writes, and its
-// test requires the two to be equal byte for byte.
+// Its test fails when ux/tokens.css differs from what it writes.
 //
 //	go run ./tools/tokens-to-css > ux/tokens.css
 package main
@@ -37,7 +36,7 @@ var themes = []struct{ id, selector string }{
 	{tokens.HighContrast, ".theme-contrast"},
 }
 
-// The colours in groups, as the tool writes them.
+// The colours in the groups the stylesheet lists them under.
 var groups = []struct {
 	heading string
 	members []string

@@ -128,7 +128,7 @@ func (g *RadioGroup) arrow(from *radioOption, key unison.KeyCode) bool {
 	return true
 }
 
-// focusRing puts the ring around the circle, as the radio button draws it.
+// focusRing puts the ring around the circle.
 func (o *radioOption) focusRing() (*unison.Panel, float32, bool) {
 	return o.circle, float32(o.ui.Interface.Px(16)) / 2, o.KeyboardFocus()
 }

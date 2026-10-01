@@ -15,8 +15,8 @@ import (
 	"golang.org/x/text/language"
 )
 
-// The count is grouped by the reader's locale and uses a real plural, as
-// test_components.cpp checks for the head.
+// The view head's count is grouped by the reader's locale and uses a real
+// plural.
 func TestTheViewHeadCountsInTheReadersLocale(t *testing.T) {
 	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
 	if err != nil {
@@ -83,7 +83,7 @@ func TestTheViewHeadIsARowTallWithItsControlsAtTheRight(t *testing.T) {
 		head := full.FrameRect()
 		b := full.RectFromRoot(export.RectToRoot(export.ContentRect(true)))
 		// The head keeps the view margin inside its own edges, as the rest of
-		// a region does (kvit-cash's copy of kvit-ui, d32c373).
+		// a region does.
 		if right, want := b.Right(), head.Width-float32(ui.Interface.ViewMargin()); right < want-0.5 || right > want+0.5 {
 			t.Errorf("the control ends at %.1f, want the view margin in from the right edge, %.1f", right, want)
 		}

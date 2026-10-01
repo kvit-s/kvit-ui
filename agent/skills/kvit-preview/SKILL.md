@@ -21,8 +21,8 @@ A proposal for a screen, before any Go is written. Static HTML against the
 shared stylesheets, rendered headless at the size the design assumes.
 
 ```
-kvit-ui-go/ux/render.sh                  # every mockup in the directory
-kvit-ui-go/ux/render.sh today-a.html     # just these
+kvit-ui/ux/render.sh                  # every mockup in the directory
+kvit-ui/ux/render.sh today-a.html     # just these
 ```
 
 PNGs land in `renders/` beside the source. The viewport is 1440×960, which is

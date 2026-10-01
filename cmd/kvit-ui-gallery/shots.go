@@ -14,10 +14,10 @@ import (
 )
 
 // shotSizes are the interface sizes the set is written at: the default, and
-// the two ends of the range, as the gallery's size variants are.
+// the two ends of the range.
 var shotSizes = []int{tokens.DefaultInterfaceSize, tokens.MinInterfaceSize, tokens.MaxInterfaceSize}
 
-// shotName names a screenshot as the gallery does: "<theme>-<page>.png"
+// shotName names a screenshot: "<theme>-<page>.png"
 // at the default size, "<theme>-<size>px-<page>.png" otherwise.
 func shotName(theme string, size int, page string) string {
 	if size == tokens.DefaultInterfaceSize {
@@ -41,9 +41,9 @@ func writeShots(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Motion is stilled for the run, as the gallery stills it: a shot is
-	// taken as soon as the page is laid out, and anything that eases, such
-	// as the sidebar's width after a size change, would be caught partway.
+	// Motion is stilled for the run: a shot is taken as soon as the page is
+	// laid out, and anything that eases, such as the sidebar's width after a
+	// size change, would be caught partway.
 	ui.Theme.SetReducedMotion(true)
 	var g *gallery
 	var startErr error
@@ -73,8 +73,7 @@ func writeShots(dir string) ([]string, error) {
 					g.setPage(page)
 					ui.Theme.SetThemeID(theme)
 					ui.Interface.SetFontSize(size)
-					// The status bar says what is being written, as the
-					// gallery's does during its own run.
+					// The status bar says which shot is being written.
 					g.activity = fmt.Sprintf("Writing screenshots: %s / %d px / %s", theme, size, page)
 					g.sync()
 					g.fit()

@@ -90,9 +90,9 @@ func TestATrendSaysWhenItIsEmpty(t *testing.T) {
 	}
 }
 
-// A  item draws past its own box and unison clips each panel to its box, so
-// what a Kvit component draws outside it, like a gauge's pace tick standing
-// out of the bar, is drawn by the window over the page.
+// unison clips each panel to its box, so what a Kvit component draws
+// outside it, like a gauge's pace tick standing out of the bar, is drawn by
+// the window over the page.
 func TestAGaugesPaceTickStandsOutOfTheBar(t *testing.T) {
 	var gauge *kvitui.Gauge
 	screen, ui, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {

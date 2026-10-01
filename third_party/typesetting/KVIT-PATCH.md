@@ -1,10 +1,10 @@
 # go-text/typesetting v0.3.5, with one change
 
 This is go-text/typesetting v0.3.5 (`github.com/go-text/typesetting`),
-without its tests and test data, used by kvit-ui-go through a `replace`
-line in `go.mod`. Every app that uses kvit-ui-go needs the same line:
+without its tests and test data, used by kvit-ui through a `replace`
+line in `go.mod`. Every app that uses kvit-ui needs the same line:
 
-    replace github.com/go-text/typesetting => ../kvit-ui-go/third_party/typesetting
+    replace github.com/go-text/typesetting => ../kvit-ui/third_party/typesetting
 
 **The change.** `fontscan.FontMap` gains `SetFaceLoader`, which lets a
 caller decide how a system font is loaded once the map has chosen it. The

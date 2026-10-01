@@ -48,7 +48,7 @@ func NewSpotlight(ui *UI, target unison.Paneler, title, detail string) *Spotligh
 	s.title.Role, s.title.Weight = RoleStrong, text.Bold
 	s.words = NewLabel(ui, "")
 	s.words.Role, s.words.Ink, s.words.Wrap = RoleSmall, InkTextSecondary, true
-	// The  card's column is the card's padding narrower again than the
+	// The card's column is the card's padding narrower again than the
 	// room inside the card, so its words wrap that much sooner.
 	twice := func(m *tokens.Interface) int { return 2 * m.SpaceLoose() }
 	s.title.SetBorder(Insets(ui, nil, nil, nil, twice))

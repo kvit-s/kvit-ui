@@ -1,4 +1,4 @@
-# kvit-ui-go
+# kvit-ui
 
 This repository is kvit-ui, the component library and design values that every
 Kvit desktop app draws with. It is built on the unison toolkit
@@ -9,10 +9,10 @@ Kvit desktop app draws with. It is built on the unison toolkit
 | Package | What it holds |
 |---|---|
 | `palette` | Colours and the colour science the design values are checked with: OKLab/OKLCH, perceptual distance, colour-vision simulation, WCAG contrast, chart-ramp rules |
-| `tokens` | `Theme` (four colour tables, overrides, reduced motion, following the desktop), `Interface` (everything derived from the 10–24 px interface size), `Typography` (document text). `tables_gen.go` is generated |
+| `tokens` | `Theme` (four colour tables, overrides, reduced motion, following the desktop), `Interface` (everything derived from the 10–24 px interface size), `Typography` (document text). `tables_gen.go` holds the four colour tables and is edited by hand |
 | `settings` | The settings file (`ui.json`) |
 | `platform` | What the desktop says about dark mode, high contrast and reduced motion; the tray icon, its menu and notifications (`tray.go`, with a backend per system: Shell_NotifyIcon on Windows, StatusNotifierItem and dbusmenu over D-Bus on Linux, NSStatusItem and UNUserNotificationCenter on macOS through purego, compiled but not yet run on a Mac); the file dialog with a title and named filters, which unison's `OpenDialog` cannot be given (`filedialog.go`: IFileOpenDialog on Windows, zenity or kdialog on Linux, NSOpenPanel on macOS, compiled but not yet run on a Mac) |
-| `icons` | The embedded Phosphor font and its names. `catalog_gen.go` is generated |
+| `icons` | The embedded Phosphor font and its names. `catalog_gen.go` holds the glyph and meaning tables and is edited by hand |
 | `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas, and room kept in a line for something the caller draws over the text, such as a typeset formula (`Style.Box`, placed with `CaretAt` and `Layout.LineBaseline`) |
 | root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
 | `uitest` | Headless test helpers for the library and the applications: a Kvit window in a chosen theme and interface size (`Open`), a screen reader's view of it, the check that every control has a role and a name (`CheckNamed`), and the checks on a program's source for colour literals and numeric font sizes (`CheckRules`) and for unnamed geometry values (`CheckGeometry`) |
@@ -34,9 +34,9 @@ A test fails when any of them is out of date.
 **go-text is a patched copy.** `third_party/typesetting` is go-text v0.3.5
 with one addition, a font-loader option in its font finder, used through a
 `replace` line in `go.mod`. `KVIT-PATCH.md` there says what, why and when
-it goes away. Every app built on kvit-ui-go needs the same line:
+it goes away. Every app built on kvit-ui needs the same line:
 
-    replace github.com/go-text/typesetting => ../kvit-ui-go/third_party/typesetting
+    replace github.com/go-text/typesetting => ../kvit-ui/third_party/typesetting
 
 Without it the app still compiles against go-text's own release, which
 lacks `SetFaceLoader`, so the build fails and the missing line is visible.
@@ -95,7 +95,7 @@ not run the tests, so run `./build.sh --test` before committing work
 
 ## Conventions
 
-- **Module path.** It is `github.com/kvit-s/kvit-ui`. Apps use it through a `replace` line in their `go.mod`, pointing at `../kvit-ui-go`.
+- **Module path.** It is `github.com/kvit-s/kvit-ui`. Apps use it through a `replace` line in their `go.mod`, pointing at `../kvit-ui`.
 - **unison version.** One version is used across all the Kvit Go
   repositories. Change it only with `tools/bump-unison.sh <version>`, which
   moves every repository and then runs `tools/check-all.sh`. unison is a 0.x

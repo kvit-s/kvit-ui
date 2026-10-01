@@ -1,8 +1,7 @@
 // Package tokens holds the design values every Kvit app draws with: the
 // colours of four themes (Theme), the chrome's type scale and geometry, all
 // derived from one interface size (Interface), and the document's text
-// settings (Typography). It is the Go port of kvit-ui's src/tokens, and uses
-// the same setting keys, so both versions read the same settings file.
+// settings (Typography).
 //
 // Nothing here draws. The root kvitui package applies these values to unison.
 package tokens
@@ -208,7 +207,6 @@ func (t Tokens) Surfaces() []palette.Color {
 	return []palette.Color{t.WindowBackground, t.PanelBackground, t.ListBackground, t.ChipBackground}
 }
 
-// TokenNames lists the tokens the library's tables set, as the
-// generator found them; every colour field of Tokens but OnAccent is among
-// them.
+// TokenNames lists the tokens the four tables in tables_gen.go set; every
+// colour field of Tokens but OnAccent is among them.
 func TokenNames() []string { return append([]string(nil), tokenNames...) }

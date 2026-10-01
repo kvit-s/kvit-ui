@@ -9,17 +9,15 @@ import (
 	"github.com/richardwilkes/unison"
 )
 
-// FileDialog is the system's own dialog for choosing files to open, with the
-// title and the named filters a FileDialog has. unison's OpenDialog has
-// neither: it cannot be given a title, and it names its filters itself from
-// bare extensions ("All Readable Files", "sqlite Files", "All Files" on
-// Windows). This one is shown with the system's own API on each desktop, as
-// unison's is:
+// FileDialog is the system's own dialog for choosing files to open, with a
+// title and named filters. unison's OpenDialog has neither: it cannot be
+// given a title, and it names its filters itself from bare extensions ("All
+// Readable Files", "sqlite Files", "All Files" on Windows). This one is shown
+// with the system's own API on each desktop, as unison's is:
 //   - Windows: the common item dialog (IFileOpenDialog), with SetTitle and
 //     SetFileTypes;
 //   - macOS: NSOpenPanel, with the title as its message, since a panel shows
-//     no title bar, and the filters in a pop-up below the file list, as the
-//     dialog put them;
+//     no title bar, and the filters in a pop-up below the file list;
 //   - Linux: kdialog in a KDE session and zenity elsewhere, as unison
 //     chooses; with neither installed, the desktop's portal FileChooser,
 //     which draws the same GTK dialog, except under Windows Subsystem for
@@ -33,9 +31,9 @@ type FileDialog struct {
 	// workspace".
 	Title string
 	// NameFilters are the filters the reader chooses among, the first in
-	// force when the dialog opens. Each is written as the dialog takes
-	// it: a name with its patterns in parentheses, "Kvit Cash workspace
-	// (*.sqlite)", or patterns alone, "*.csv *.tsv". "*" matches every file.
+	// force when the dialog opens. Each is a name with its patterns in
+	// parentheses, "Kvit Cash workspace (*.sqlite)", or patterns alone,
+	// "*.csv *.tsv". "*" matches every file.
 	// None offers every file.
 	NameFilters []string
 	// Folder is where the dialog opens; unset, the system's choice, which is
@@ -89,7 +87,7 @@ type nameFilter struct {
 var nameFilterPattern = regexp.MustCompile(`^(.*)\(([a-zA-Z0-9_.,*? +;#\-\[\]@\{\}/!<>\$%&=^~:\|]*)\)$`)
 
 // filters are the dialog's name filters as labels and patterns. The label
-// is the whole string, parentheses and all, as shown on every system.
+// is the whole string, parentheses and all, and is what every system shows.
 // A filter with no patterns matches every file.
 func (d FileDialog) filters() []nameFilter {
 	out := make([]nameFilter, 0, len(d.NameFilters))

@@ -49,8 +49,7 @@ func command(key unison.KeyCode) unison.KeyBinding {
 
 func menuOpened(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
-	// Opened at the stage's top left once it is in a window, as the page
-	// opens its menu.
+	// Opened at the stage's top left once it is in a window.
 	whenShown(stage, func() {
 		ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
 			{Text: "Open", Symbol: "file", Key: command(unison.KeyO)},

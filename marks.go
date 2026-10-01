@@ -412,8 +412,8 @@ func NewDot(ui *UI) *Dot {
 			s = float32(d.Size.Of(ui))
 		}
 		if d.Shape == ShapeDiamond {
-			// A square of that side turned on its corner, which  draws
-			// past the dot's box; unison clips to the box, so the box grows.
+			// A square of that side turned on its corner reaches past the
+			// dot's box; unison clips to the box, so the box grows.
 			s *= float32(math.Sqrt2)
 		}
 		size := geom.NewSize(s, s)

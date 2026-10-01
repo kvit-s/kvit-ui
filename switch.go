@@ -94,7 +94,7 @@ func (s *Switch) slide() {
 	unison.InvokeTaskAfter(step, 16*time.Millisecond)
 }
 
-// focusRing puts the ring around the track, as the switch draws it.
+// focusRing puts the ring around the track.
 func (s *Switch) focusRing() (*unison.Panel, float32, bool) {
 	return s.track, float32(s.ui.Interface.Px(16)) / 2, s.KeyboardFocus()
 }
@@ -156,8 +156,7 @@ func (s *Switch) drawLabel(gc *unison.Canvas, _ geom.Rect) {
 	l.Draw(gc, r.X+float32(checkPadding+m.Px(28)+m.Space()), r.Y+(r.Height-h)/2)
 }
 
-// ProvideAccessibility describes the switch as a box that is ticked or not,
-// as the switch is described.
+// ProvideAccessibility describes the switch as a box that is ticked or not.
 func (s *Switch) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	n := b.Node()
 	if n.Role == role.Auto {

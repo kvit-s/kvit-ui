@@ -24,7 +24,7 @@ import (
 // cannot tell what the marks are. So while the pointer rests on the rail, or
 // the keyboard is anywhere inside it, it opens to the full sidebar, over the
 // body rather than pushing it aside, so the screen being read does not move
-// underneath the reader (kvit-cash's copy of kvit-ui, 364c3dc).
+// underneath the reader.
 type Window struct {
 	*unison.Window
 	ui *UI

@@ -17,8 +17,8 @@ import (
 // a NumberField is for that. The value is always drawn beside it, because a
 // slider whose position is its only output makes the reader estimate.
 //
-// The value stands to the right of the slider's box, as the slider draws
-// it, so a slider in a row wants room after it.
+// The value stands to the right of the slider's box, so a slider in a row
+// wants room after it.
 type Slider struct {
 	control
 	// Label names the value, for a screen reader.
@@ -50,8 +50,7 @@ func NewSlider(ui *UI, label string, value float64) *Slider {
 		return geom.NewSize(float32(m.Px(60)), h), geom.NewSize(float32(m.Px(180)), h), geom.NewSize(unison.DefaultMaxSize, h)
 	})
 	s.DrawCallback = s.draw
-	// The ring goes around the handle, as the slider draws it, and the
-	// slider draws it itself.
+	// The ring goes around the handle, and the slider draws it itself.
 	s.noRing = true
 	down := s.MouseDownCallback
 	s.MouseDownCallback = func(where geom.Point, button, clicks int, mods mod.Modifiers) bool {
@@ -76,8 +75,8 @@ func NewSlider(ui *UI, label string, value float64) *Slider {
 	return s
 }
 
-// track is the groove's extent, the slider's whole width: the slider,
-// unlike its check box, has no padding at its ends.
+// track is the groove's extent, the slider's whole width, with no padding at
+// its ends.
 func (s *Slider) track() geom.Rect { return s.ContentRect(false) }
 
 // position is where the value is along the range, 0 to 1.

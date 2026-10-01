@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Runs ./build.sh --test in every Kvit Go repository on this machine, so a
-# change to kvit-ui-go is checked against every app that uses it before it is
+# change to kvit-ui is checked against every app that uses it before it is
 # committed. The repositories checked are the directories ~/kvit-* whose go.mod
-# declares a module under github.com/kvit-s/ and requires unison. That finds
-# the -go repositories during the migration and the switched ones after it,
-# and leaves out Kvit's other Go projects, such as kvit-coder.
+# declares a module under github.com/kvit-s/ and requires unison, which leaves
+# out Kvit's other Go projects, such as kvit-coder.
 #
 #   tools/check-all.sh
 set -uo pipefail

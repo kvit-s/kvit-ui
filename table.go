@@ -984,9 +984,9 @@ func (t *Table) headerName(column int) string {
 
 // ProvideAccessibility describes the header as a row of column headers, with
 // the focus on the one the cursor is on. A Check column's header holds its
-// box as a node of its own, as the header cell held a KvitCheck: the
-// header is named by the column's title and the box by what it does, and
-// the box, not the header, says whether it is ticked.
+// box as a node of its own: the header is named by the column's title and
+// the box by what it does, and the box, not the header, says whether it is
+// ticked.
 func (h *tableHeader) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	t := h.t
 	n := b.Node()

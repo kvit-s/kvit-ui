@@ -53,7 +53,7 @@ func (u *UI) Size(r TypeRole) int {
 // only when the focus arrived from the keyboard. A ring on every click is
 // noise; a keyboard user needs to see where they are. The focus a window
 // hands its first control when it opens came from neither, and shows no
-// ring either, as in .
+// ring either.
 type control struct {
 	unison.Panel
 	ui            *UI
@@ -299,9 +299,9 @@ const windowWatchedKey = "kvitui.watched"
 // handled, so a control can tell focus moved by Tab from the focus the window
 // hands out when it opens.
 //
-// The ring sits outside the control's own box, as the library draws it,
-// and unison clips each panel's drawing to its bounds, so it is drawn by the
-// window over everything, clipped to the area the control's container shows.
+// The ring sits outside the control's own box, and unison clips each
+// panel's drawing to its bounds, so it is drawn by the window over
+// everything, clipped to the area the control's container shows.
 //
 // The key watch wraps the window's KeyDownCallback. An application that sets
 // its own after Kvit controls are shown in the window has to call the one it

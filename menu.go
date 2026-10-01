@@ -19,10 +19,9 @@ import (
 // MenuItem is one line of a menu opened with ShowMenu.
 type MenuItem struct {
 	// Text is what the line says. An "&" before a letter makes it the line's
-	// access key, as in the library's menus: "Open &Folder…" is drawn
-	// with the F underlined and chosen by typing F while the menu is open.
-	// "&&" is an ampersand. macOS, which has no access keys, draws the words
-	// without the marker.
+	// access key: "Open &Folder…" is drawn with the F underlined and chosen
+	// by typing F while the menu is open. "&&" is an ampersand. macOS, which
+	// has no access keys, draws the words without the marker.
 	Text string
 	// Key is the shortcut shown at the right of the line, which is how a menu
 	// teaches that there is a faster way; the zero value shows none.
@@ -84,9 +83,9 @@ var menuIDs = 0x40000000
 
 // ShowMenu opens a menu of items under anchor, and returns the function that
 // closes it. On Windows and Linux it is the Kvit menu, drawn in the window's
-// popup layer as the library's is: symbols, a destructive line in the
-// danger colour, explanations as tooltips, and the arrow keys, Home, End,
-// Return and Escape. On macOS it is the system's own menu, which draws only
+// popup layer, with symbols, a destructive line in the danger colour,
+// explanations as tooltips, and the arrow keys, Home, End, Return and
+// Escape. On macOS it is the system's own menu, which draws only
 // the words, the tick and the shortcut.
 func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) (closeMenu func()) {
 	return u.ShowMenuAt(anchor, anchor.AsPanel().ContentRect(true), title, items)
@@ -111,8 +110,8 @@ func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, item
 func (u *UI) nativeMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) func() {
 	f := unison.DefaultMenuFactory()
 	m := nativeMenu(f, title, items)
-	// No line is lit until the pointer or an arrow key reaches one, as the
-	// menu opens.
+	// No line is lit when the menu opens, until the pointer or an arrow key
+	// reaches one.
 	m.Popup(owner.AsPanel().RectToRoot(part), -1)
 	return m.Dispose
 }

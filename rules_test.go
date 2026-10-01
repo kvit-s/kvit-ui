@@ -9,11 +9,10 @@ import (
 	"github.com/kvit-s/kvit-ui/uitest"
 )
 
-// The library's rules, as the version enforces them with viewlint and its
-// tests: outside the packages that define design values, no colour is
-// written as a literal and no font size as a number. Checked: the root
-// package (the components) and every command. Exempt: the packages whose job
-// is to hold or apply design values.
+// The library's rules: outside the packages that define design values, no
+// colour is written as a literal and no font size as a number. Checked: the
+// root package (the components) and every command. Exempt: the packages
+// whose job is to hold or apply design values.
 func TestNoColourLiteralsOrNumericFontSizes(t *testing.T) {
 	// The components and the gallery at the least.
 	if n := uitest.CheckRules(t, ".", "palette", "tokens", "text", "settings", "platform", "icons", "tools"); n < 50 {

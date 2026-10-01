@@ -932,10 +932,9 @@ func (t *Trend) gridline(plot geom.Rect, i, lines int) float32 {
 }
 
 // drawSpill draws each gridline's value down the left, centred on its line,
-// so the top and bottom values stand half a line past the trend's box, and
-// the bottom gridline, which lies on the line below the box, as the trend
-// places it. Values are rounded half away from zero, as the trend's
-// toFixed rounds them.
+// so the top and bottom values stand half a line past the trend's box; the
+// bottom gridline lies on the line below the box. Values are rounded half
+// away from zero.
 func (t *Trend) drawSpill(gc *unison.Canvas) {
 	ui, m := t.ui, t.ui.Interface
 	r, plot := t.ContentRect(false), t.plot()

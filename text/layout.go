@@ -80,12 +80,11 @@ type Options struct {
 	Align Alignment
 	// Pitch, when above zero, makes every line exactly this tall, with its
 	// baseline the font's ascent below the line's top and the rest of the
-	// height under the text, and LineHeight is ignored. That is how the text
-	// documents space the lines of a paragraph set to a proportional line
-	// height, which Kvit's editor gives its blocks: the lines are the line
-	// height times the font's own line height apart, 1.3 × 17 = 22.1 px at
-	// 14 px DejaVu Sans, not rounded up, where LineHeight's rule, which
-	// follows the labels, rounds that up to 23 and centres the text in it.
+	// height under the text, and LineHeight is ignored. It is for a paragraph
+	// set to a proportional line height, which Kvit's editor gives its
+	// blocks: the lines are the line height times the font's own line height
+	// apart, 1.3 × 17 = 22.1 px at 14 px DejaVu Sans, not rounded up, where
+	// LineHeight's rule rounds that up to 23 and centres the text in it.
 	Pitch float32
 	// Grid, when above zero, puts each character at a multiple of this
 	// width from the start of its line, one cell per character, as a
@@ -270,8 +269,7 @@ func (f *Fonts) layout(spans []Span, opt Options) *Layout {
 
 // lineBox is a line's height and the distance from its top to its baseline.
 // The natural height is rounded up to a whole pixel before the multiplier,
-// and the baseline to the nearest, as the native text rendering does, so
-// lines stack at whole pixels and a block of text is as tall here as designed.
+// and the baseline to the nearest, so lines stack at whole pixels.
 func lineBox(ascent, descent, lineMult float32) (height, baseline float32) {
 	natural := ascent + descent
 	height = float32(math.Ceil(math.Ceil(float64(natural)) * float64(lineMult)))

@@ -38,8 +38,8 @@ func (u *UI) CountPhrase(n int, singular, plural string) string {
 
 // toFixed writes a number with a fixed count of decimal places, rounding a
 // half away from zero as JavaScript's toFixed does, where Go's formatting
-// rounds it to even: a value of 0.5 shown with no decimals is "1", and
-// the Go page has to say the same.
+// rounds it to even: 0.5 shown with no decimals is "1" here, where fmt
+// writes "0".
 func toFixed(v float64, places int) string {
 	scale := math.Pow(10, float64(places))
 	r := math.Round(v*scale) / scale

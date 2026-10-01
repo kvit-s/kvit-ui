@@ -9,8 +9,6 @@ import (
 	"github.com/kvit-s/kvit-ui/tokens"
 )
 
-// Ported from kvit-ui's tests/test_palette.cpp.
-
 func TestOklchRoundTrips(t *testing.T) {
 	for _, h := range []string{"#000000", "#ffffff", "#c0392b", "#2970c8", "#e0a34c", "#6f7178", "#971c4b"} {
 		c := palette.Hex(h)

@@ -9,8 +9,6 @@ import (
 	"github.com/kvit-s/kvit-ui/tokens"
 )
 
-// Ported from kvit-ui's tests/test_interfacemetrics.cpp and test_density.cpp.
-
 // derived lists every value Interface derives from the interface size: each
 // method that takes nothing and returns an int, apart from the size itself.
 func derived(m *tokens.Interface) map[string]int {
@@ -51,7 +49,6 @@ func TestEveryValueIsTheIdentityAtTheDefault(t *testing.T) {
 		"BarHeight": 7, "BarHeightWide": 9, "IconSize": 18, "IconSizeSmall": 13,
 		"RadiusBar": 2, "RadiusChip": 3, "RadiusControl": 4, "RadiusCard": 6, "RadiusPill": 8,
 		"Hairline": 1, "FocusRingWidth": 2, "WidthFloor": 880, "WidthLaptop": 1100, "WidthDrawn": 1440,
-		// Added in kvit-cash's copy of the library (722906e).
 		"HeightFloor": 600, "FloatingViewWidth": 720,
 	}
 	got := derived(tokens.NewInterface())
@@ -139,7 +136,8 @@ func TestTheScalesAreOrderedAtEverySize(t *testing.T) {
 	}
 }
 
-// kvit-hub's density tokens each have a value here to move to.
+// The density tokens of the Kvit Hub version built with Qt (viewMargin,
+// typeTitle and the rest) each have a value here.
 func TestEveryKvitHubTokenHasAHome(t *testing.T) {
 	got := derived(tokens.NewInterface())
 	for hub, name := range map[string]string{

@@ -12,7 +12,7 @@ import (
 	"github.com/richardwilkes/unison/enums/mod"
 )
 
-// The gallery's window, as the gallery draws it: 1440 × 960.
+// The gallery's window: 1440 × 960.
 const (
 	windowWidth  = 1440
 	windowHeight = 960
@@ -61,9 +61,9 @@ func buildPage(ui *kvitui.UI, name string) *unison.Panel {
 }
 
 // gallery is the window and the state it shows. It is built from the
-// library's own components, as the gallery is: a Window holding a Header
-// with the theme and size controls, a sidebar of section headings and rows
-// under a filter field, the page in a Region, and a StatusBar.
+// library's own components: a Window holding a Header with the theme and
+// size controls, a sidebar of section headings and rows under a filter
+// field, the page in a Region, and a StatusBar.
 type gallery struct {
 	ui       *kvitui.UI
 	wnd      *kvitui.Window

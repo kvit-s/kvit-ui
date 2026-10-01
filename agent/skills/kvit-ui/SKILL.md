@@ -5,7 +5,7 @@ description: The shared interface vocabulary for the kvit desktop applications, 
 
 # Building a screen in the kvit estate
 
-The kvit desktop applications share one interface layer, `kvit-ui-go` (module
+The kvit desktop applications share one interface layer, `kvit-ui` (module
 `github.com/kvit-s/kvit-ui`, imported as `kvitui`), built on the unison
 toolkit. It has three parts: the design values (colours, type sizes, spacing
 and density as named values), a vocabulary of components built from them,
@@ -176,7 +176,7 @@ approved by looking at it rather than by reading a description of it.
 
 **3. Build it in Go from the components.** Assemble it; do not redraw it. If
 a screen needs something the vocabulary does not have, that is a component
-to add to `kvit-ui-go` rather than a shape to draw in the application — say
+to add to `kvit-ui` rather than a shape to draw in the application — say
 so rather than building it there.
 
 **4. Finish with a screenshot run in four themes.** `./build.sh --shots` in
