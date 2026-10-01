@@ -12,7 +12,7 @@
 #   ./build.sh --run         start the gallery here (needs a display)
 #
 # Everything builds with cgo off. KVIT_WIN_DIR overrides where Windows builds go
-# (default /mnt/d/projects/kvit-ui-go).
+# (default /mnt/d/projects/kvit-ui).
 set -euo pipefail
 cd "$(dirname "$0")"
 export CGO_ENABLED=0
@@ -56,7 +56,7 @@ if [ $cross = 1 ]; then
 fi
 
 if [ $win = 1 ]; then
-    dest=${KVIT_WIN_DIR:-/mnt/d/projects/kvit-ui-go}
+    dest=${KVIT_WIN_DIR:-/mnt/d/projects/kvit-ui}
     mkdir -p "$dest"
     GOOS=windows GOARCH=amd64 go build -o "$dest/kvit-ui-gallery.exe" ./cmd/kvit-ui-gallery
     if [ $smoke = 0 ]; then
