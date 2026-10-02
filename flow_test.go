@@ -93,6 +93,34 @@ func TestARadioGroupIsOneStopAndTheArrowsChoose(t *testing.T) {
 	}
 }
 
+// Each option's circle lies inside the option at every interface size. Where
+// the label's line is shorter than the circle, a circle centred on the line
+// reached above the option, and the clip to the option's box cut off its top.
+func TestARadioGroupsCirclesAreWhole(t *testing.T) {
+	var g *kvitui.RadioGroup
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		g = kvitui.NewRadioGroup(ui, "Theme",
+			kvitui.RadioOption{Value: "dark", Label: "Dark", Detail: "Dark background"},
+			kvitui.RadioOption{Value: "light", Label: "Light"})
+		g.Current = "dark"
+		return []unison.Paneler{kvitui.FullWidth(g)}
+	})
+	for size := 10; size <= 24; size++ {
+		screen.Do(func() {
+			ui.Interface.SetFontSize(size)
+			w.Content().MarkForLayoutRecursively()
+			w.ValidateLayout()
+			for _, opt := range g.Children() {
+				box := opt.ContentRect(false)
+				circle := opt.Children()[0].FrameRect()
+				if circle.Y < box.Y || circle.Bottom() > box.Bottom() {
+					t.Errorf("at %d px the circle %v reaches outside its option %v", size, circle, box)
+				}
+			}
+		})
+	}
+}
+
 func TestAProgressBarSaysHowFarThroughWhat(t *testing.T) {
 	var known, unknown *kvitui.Progress
 	screen, _, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {

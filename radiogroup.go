@@ -156,6 +156,16 @@ func (o *radioOption) layouts(width float32) (label, detail *text.Layout) {
 	return label, detail
 }
 
+// line is the height of the first line, which holds the circle and the
+// label side by side and is as tall as the taller of the two. The label's
+// line is shorter than the circle at every interface size, and a circle
+// centred on it alone reached above the option, where unison's clip to the
+// option's box cut its top off.
+func (o *radioOption) line(label *text.Layout) float32 {
+	_, lh := label.Size()
+	return max(lh, float32(o.ui.Interface.Px(16)))
+}
+
 type radioLayout struct{ o *radioOption }
 
 func (l radioLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
@@ -165,13 +175,13 @@ func (l radioLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, pref
 		width = max(1, hint.Width-o.indent())
 	}
 	label, detail := o.layouts(width)
-	w, h := label.Size()
+	w, _ := label.Size()
+	h := o.line(label)
 	if detail != nil {
 		dw, dh := detail.Size()
 		w = max(w, dw)
 		h += float32(o.ui.Interface.SpaceTight()) + dh
 	}
-	h = max(h, float32(o.ui.Interface.Px(16)))
 	return geom.NewSize(o.indent(), h), geom.NewSize(o.indent()+w, h), geom.NewSize(unison.DefaultMaxSize, h)
 }
 
@@ -179,11 +189,10 @@ func (l radioLayout) PerformLayout(target *unison.Panel) {
 	o := l.o
 	r := target.ContentRect(false)
 	label, _ := o.layouts(max(1, r.Width-o.indent()))
-	_, lh := label.Size()
 	s := float32(o.ui.Interface.Px(16))
 	// Centred on the first line rather than on the option, which with a
 	// line of detail under it is two lines tall.
-	o.circle.SetFrameRect(geom.NewRect(r.X, r.Y+(lh-s)/2, s, s))
+	o.circle.SetFrameRect(geom.NewRect(r.X, r.Y+(o.line(label)-s)/2, s, s))
 }
 
 func (o *radioOption) drawCircle(gc *unison.Canvas, _ geom.Rect) {
@@ -205,10 +214,11 @@ func (o *radioOption) draw(gc *unison.Canvas, _ geom.Rect) {
 	r := o.ContentRect(false)
 	x := r.X + o.indent()
 	label, detail := o.layouts(max(1, r.Width-o.indent()))
-	label.Draw(gc, x, r.Y)
+	line := o.line(label)
+	_, lh := label.Size()
+	label.Draw(gc, x, r.Y+(line-lh)/2)
 	if detail != nil {
-		_, lh := label.Size()
-		detail.Draw(gc, x, r.Y+lh+float32(o.ui.Interface.SpaceTight()))
+		detail.Draw(gc, x, r.Y+line+float32(o.ui.Interface.SpaceTight()))
 	}
 }
 
