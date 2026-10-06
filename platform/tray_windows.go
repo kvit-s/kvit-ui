@@ -103,7 +103,6 @@ const (
 	smMenuDropAlignment = 40
 	smCxSmIcon          = 49
 
-	biBitfields  = 3
 	dibRGBColors = 0
 
 	// trayIconID is the icon's number among this window's icons; there is one.

@@ -34,8 +34,6 @@ const windowsClipboardTimeout = 10 * time.Second
 // for when PATH does not include Windows' own folders.
 const windowsPowerShell = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
 
-var pngSignature = []byte("\x89PNG\r\n\x1a\n")
-
 // underWSL and runPowerShell are replaced by the tests.
 var (
 	underWSL      = isWSL
