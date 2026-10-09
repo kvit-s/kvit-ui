@@ -413,7 +413,9 @@ func (m *menu) open(owner unison.Paneler, part geom.Rect) {
 	}
 	m.previous = w.CurrentFocus()
 	below := func() geom.Rect { return partIn(owner, part) }
-	m.hide = w.Show(&Popup{Panel: m, Anchor: owner, OnEscape: m.close, OnPressOutside: m.close,
+	// A press on the part the menu hangs from, such as a select's chevron,
+	// closes it and does not open it again.
+	m.hide = w.Show(&Popup{Panel: m, Anchor: owner, OnEscape: m.close, OnPressOutside: m.close, OpenedFrom: below,
 		Place: func(bounds geom.Rect, size geom.Size) geom.Rect {
 			a := below()
 			x, y := a.X, a.Bottom()

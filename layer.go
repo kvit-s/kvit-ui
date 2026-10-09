@@ -29,8 +29,14 @@ type Popup struct {
 	// the window when there is none.
 	Passive bool
 	// OnPressOutside runs when the pointer is pressed outside it; the press
-	// still reaches whatever is under the pointer unless the popup is modal.
+	// still reaches whatever is under the pointer unless the popup is modal,
+	// or it lands in OpenedFrom.
 	OnPressOutside func()
+	// OpenedFrom, when set, is the part of the window the popup was opened
+	// from, such as a menu's button, in the window's content coordinates. A
+	// press there runs OnPressOutside and goes no further: reaching the
+	// button, it would open the popup again as soon as it closed.
+	OpenedFrom func() geom.Rect
 	// Anchor, when set, is what the popup belongs to: once it is no longer in
 	// the window, as when the page holding it is replaced, the popup goes too.
 	Anchor unison.Paneler
@@ -160,7 +166,7 @@ func (w *Window) popupKeys(key unison.KeyCode) bool {
 }
 
 // popupPress tells the popups a press landed outside them. It returns true to
-// stop the press, which a modal popup does.
+// stop the press, which a press on the part a popup was opened from does.
 func (w *Window) popupPress(where geom.Point) bool {
 	for i := len(w.popups) - 1; i >= 0; i-- {
 		p := w.popups[i]
@@ -169,7 +175,12 @@ func (w *Window) popupPress(where geom.Point) bool {
 			return false
 		}
 		if p.OnPressOutside != nil {
+			// Measured before the popup closes, since closing lays the window out again.
+			onOpener := p.OpenedFrom != nil && where.In(p.OpenedFrom())
 			p.OnPressOutside()
+			if onOpener {
+				return true
+			}
 		}
 		if p.Modal {
 			return false // the scrim takes it

@@ -449,6 +449,43 @@ func TestAMenuIsWorkedFromTheKeyboard(t *testing.T) {
 	})
 }
 
+// A press on a select whose list is open closes the list and leaves it
+// closed, and the next press opens it again. A press anywhere else closes
+// the list and still reaches what it landed on.
+func TestPressingAnOpenSelectClosesItsList(t *testing.T) {
+	var s *kvitui.Select
+	var other *kvitui.Button
+	pressed := 0
+	screen, _, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		s = kvitui.NewSelect(ui, "Machine",
+			kvitui.Option{Value: "here", Label: "This PC"}, kvitui.Option{Value: "cloud", Label: "Cloud"})
+		other = kvitui.NewButton(ui, "Other")
+		other.OnClick = func() { pressed++ }
+		// Beside the select, where its list does not cover it.
+		return []unison.Paneler{kvitui.Left(kvitui.Row(ui, kvitui.SizeSpace, s, other))}
+	})
+	// The chevron sits at the select's right end, as wide as it is tall.
+	var chevron geom.Point
+	screen.Do(func() {
+		r := s.ContentRect(false)
+		chevron = geom.NewPoint(r.Right()-r.Height/2, r.Y+r.Height/2)
+	})
+	chevron = screen.PanelPoint(s, chevron)
+	open := func() bool { return len(nodes(screen, w, role.Menu)) == 1 }
+	for i, want := range []bool{true, false, true} {
+		screen.Click(chevron)
+		screen.Sync()
+		if open() != want {
+			t.Fatalf("press %d on the chevron left the list open: %v", i+1, open())
+		}
+	}
+	screen.Click(screen.PanelCenter(other))
+	screen.Sync()
+	if open() || pressed != 1 {
+		t.Errorf("a press elsewhere left the list open: %v, and pressed that button %d times", open(), pressed)
+	}
+}
+
 // The Menu key, Shift+F10 and a right-click open a context menu: a field's
 // editing commands, and a table header's column menu.
 func TestContextMenusOpenFromTheKeyboardAndThePointer(t *testing.T) {
