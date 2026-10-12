@@ -16,7 +16,7 @@ Kvit desktop app draws with. It is built on the unison toolkit
 | `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas, and room kept in a line for something the caller draws over the text, such as a typeset formula (`Style.Box`, placed with `CaretAt` and `Layout.LineBaseline`) |
 | root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
 | `uitest` | Headless test helpers for the library and the applications: a Kvit window in a chosen theme and interface size (`Open`), a screen reader's view of it, the check that every control has a role and a name (`CheckNamed`), and the checks on a program's source for colour literals and numeric font sizes (`CheckRules`) and for unnamed geometry values (`CheckGeometry`) |
-| `cmd/kvit-ui-gallery` | The gallery, its screenshot mode, and `--catalog`, which writes the skill's component catalogue |
+| `cmd/kvit-ui-gallery` | The gallery, its screenshot mode, `--catalog`, which writes the skill's component catalogue, and its icon (`icons/kvit-ui-gallery.svg`, with the pictures drawn from it and the Windows resources in `winres/`) |
 | `agent/skills` | The two agent skills, `kvit-ui` (the vocabulary, with the generated `catalog.md`) and `kvit-preview` |
 | `ux` | The drawing layer for proposing a screen as HTML: `tokens.css`, written by `tools/tokens-to-css`, and the hand-written `frame.css`, `render.sh`, `PATTERN.md` and `visual-language.md` |
 | `third_party/typesetting` | go-text v0.3.5 with one patch (see below) |
@@ -30,6 +30,15 @@ go run ./cmd/kvit-ui-gallery --catalog agent/skills/kvit-ui/catalog.md
 ```
 
 A test fails when any of them is out of date.
+
+The gallery's icon is drawn from `cmd/kvit-ui-gallery/icons/kvit-ui-gallery.svg`.
+After editing it, rewrite the pictures and the Windows resource file, and
+commit what they write; no test checks these against the SVG:
+
+```sh
+go run ./tools/appicon
+cmd/kvit-ui-gallery/winres/make-syso.sh
+```
 
 **go-text is a patched copy.** `third_party/typesetting` is go-text v0.3.5
 with one addition, a font-loader option in its font finder, used through a
@@ -78,7 +87,7 @@ kerning, emoji sequences or right-to-left ordering.
 ./build.sh               # build every package and build/kvit-ui-gallery
 ./build.sh --test        # also gofmt check, go vet and the headless tests
 ./build.sh --cross       # also the gallery for Windows, macOS (both) and Linux
-./build.sh --win # the gallery for Windows onto D:, started on the Windows desktop
+./build.sh --win         # the gallery for Windows onto D:, started on the Windows desktop (only from WSL)
 ./build.sh --win-smoke   # the same, closing after 6 s, with first-frame time and memory
 ./build.sh --shots       # the screenshot set into build/shots/
 tools/check-all.sh       # ./build.sh --test in every Kvit Go repository
@@ -90,7 +99,13 @@ not run the tests, so run `./build.sh --test` before committing work
 (`git config core.hooksPath .githooks` enables the hook in a fresh clone).
 
 - **Tests run headless.** They use `unison.StartHeadless`, which runs the real event loop against an in-memory screen, with input injection, screenshots and screen-reader assertions. Tests never open a window on the desktop.
-- **Looking at something in a real window** is done on Windows with `./build.sh --win`, since this machine is WSL on Windows and Windows is the main platform.
+- **Looking at something in a real window.** Windows is the main platform.
+  `./build.sh --win` builds the gallery onto D: and starts it on the Windows
+  desktop, which works only from WSL on a Windows machine. This machine runs
+  Ubuntu directly, with no Windows and no D:, so `--win` fails here at its
+  first step. Here, `./build.sh --cross` writes the Windows executable to
+  `build/windows-amd64/` for running on a Windows machine, and
+  `./build.sh --run` starts the gallery on this machine's own display.
 - **cgo is always off,** and every build must stay cross-compilable.
 
 ## Conventions
