@@ -74,6 +74,7 @@ func main() {
 	unison.Start(
 		unison.ThemeChangedCallback(ui.Appearance.Refresh),
 		unison.StartupFinishedCallback(func() {
+			setTitleIcons()
 			var g *gallery
 			var err error
 			g, err = newGallery(ui, *page, func() {
