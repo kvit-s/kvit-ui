@@ -2044,8 +2044,9 @@ func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog
 | `OnAccept` | `func()` | OnAccept and OnReject run when the dialog is answered. |
 | `OnReject` | `func()` | OnAccept and OnReject run when the dialog is answered. |
 | `OnMove` | `func(x, y int)` | OnMove runs when the reader lets go of the dialog after dragging it, with where its top-left corner is now, as Position gives it. |
+| `ConfirmKeepsOpen` | `bool` | ConfirmKeepsOpen leaves the dialog open when it is confirmed, for an answer the application checks and may refuse, saying why in the dialog; Close takes it away once the answer is taken. |
 
-Methods: `Accept`, `MoveTo`, `Open`, `Position`.
+Methods: `Accept`, `Close`, `MoveTo`, `Open`, `Position`.
 
 *A destructive confirmation*
 

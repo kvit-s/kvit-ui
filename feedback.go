@@ -395,6 +395,10 @@ type Dialog struct {
 	// OnMove runs when the reader lets go of the dialog after dragging it,
 	// with where its top-left corner is now, as Position gives it.
 	OnMove func(x, y int)
+	// ConfirmKeepsOpen leaves the dialog open when it is confirmed, for an
+	// answer the application checks and may refuse, saying why in the
+	// dialog; Close takes it away once the answer is taken.
+	ConfirmKeepsOpen bool
 
 	title   *Label
 	close   *IconButton
@@ -483,7 +487,9 @@ func (d *Dialog) finish() {
 }
 
 func (d *Dialog) accept() {
-	d.finish()
+	if !d.ConfirmKeepsOpen {
+		d.finish()
+	}
 	if d.OnAccept != nil {
 		d.OnAccept()
 	}
