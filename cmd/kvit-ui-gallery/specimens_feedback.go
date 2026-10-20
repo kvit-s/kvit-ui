@@ -72,6 +72,26 @@ func dialogDestructive(ui *kvitui.UI) unison.Paneler {
 	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(210), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), confirm))))
 }
 
+func dialogMoved(ui *kvitui.UI) unison.Paneler {
+	// An application keeps where the reader left the dialog in its own
+	// settings and gives it back the next time; this page keeps it for as
+	// long as the gallery runs.
+	var x, y int
+	left := false
+	export := kvitui.NewButton(ui, "Export the ledger")
+	export.OnClick = func() {
+		ask := kvitui.NewDialog(ui, "Export the ledger?")
+		ask.Detail = "Drag this dialog by its title to move it. It opens again where you leave it."
+		ask.ConfirmText = "Export"
+		if left {
+			ask.MoveTo(kvitui.Px(x), kvitui.Px(y))
+		}
+		ask.OnMove = func(nx, ny int) { x, y, left = nx, ny, true }
+		ask.Open(ui.WindowOf(export))
+	}
+	return kvitui.Left(export)
+}
+
 func floatingRecord(ui *kvitui.UI) unison.Paneler {
 	// Shown over a stand-in list, which is what a floating view is always
 	// over: the card is centred on the region it floats in, and the region is

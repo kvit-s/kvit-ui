@@ -429,9 +429,10 @@ var catalog = []entry{
 	{
 		name:    "KvitDialog",
 		group:   "Feedback",
-		summary: "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape.",
+		summary: "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape. An open dialog moves when its title row is dragged, staying inside the window; it opens in the middle unless the application says where with MoveTo, and OnMove tells the application where the reader left it, for it to keep.",
 		specimens: []specimen{
 			{caption: "A destructive confirmation", build: dialogDestructive},
+			{caption: "Opened from a button, moved by its title row, and opened again where it was left", build: dialogMoved},
 		},
 	},
 	{

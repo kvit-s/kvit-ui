@@ -373,8 +373,12 @@ func (n *Notice) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 // anything. There are three ways out, found by different readers: the close
 // symbol beside the title, the cancel button, and Escape.
 //
-// A Dialog is a panel; Open shows it modal in the middle of a Kvit window,
-// and it can also be placed on a page as it is.
+// A Dialog is a panel; Open shows it modal in a Kvit window, and it can also
+// be placed on a page as it is. An open dialog moves when the reader drags
+// its title row, as a window does, so it can be pulled off what it covers.
+// It opens in the middle of the window unless MoveTo says where, and OnMove
+// tells the application where the reader left it, to keep and give back to
+// MoveTo the next time.
 type Dialog struct {
 	unison.Panel
 	ui *UI
@@ -388,6 +392,9 @@ type Dialog struct {
 	Destructive bool
 	// OnAccept and OnReject run when the dialog is answered.
 	OnAccept, OnReject func()
+	// OnMove runs when the reader lets go of the dialog after dragging it,
+	// with where its top-left corner is now, as Position gives it.
+	OnMove func(x, y int)
 
 	title   *Label
 	close   *IconButton
@@ -396,6 +403,15 @@ type Dialog struct {
 	cancel  *Button
 	confirm *Button
 	hide    func()
+	// Where the top-left corner goes, from the window's top-left corner;
+	// nil puts the dialog in the middle.
+	x, y Measure
+	// A drag of the title row: where the pointer was pressed and where the
+	// dialog's top-left corner was then, both in the window's content
+	// coordinates, and whether it has moved the dialog yet.
+	dragging     bool
+	grab, grabAt geom.Point
+	moved        bool
 }
 
 // NewDialog returns a dialog asking a question, holding content under its
@@ -433,20 +449,20 @@ func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog {
 		d.confirm.Danger = d.Destructive
 	}})
 	d.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) { drawSurface(gc, ui, d.ContentRect(true)) }
+	d.MouseDownCallback = d.mouseDown
+	d.MouseDragCallback = d.mouseDrag
+	d.MouseUpCallback = d.mouseUp
 	return d
 }
 
-// Open shows the dialog modal in the middle of the window, and gives the
-// keyboard to the confirming button unless the dialog is destructive.
+// Open shows the dialog modal, in the middle of the window or where MoveTo
+// put it, and gives the keyboard to the confirming button unless the dialog
+// is destructive.
 func (d *Dialog) Open(window *Window) {
 	if d.hide != nil {
 		return
 	}
-	d.hide = window.Show(&Popup{Panel: d, Place: func(bounds geom.Rect, _ geom.Size) geom.Rect {
-		w := float32(d.ui.Interface.Px(420))
-		_, pref, _ := d.Sizes(geom.NewSize(w, 0))
-		return PlaceCentred(nil)(bounds, geom.NewSize(w, pref.Height))
-	}, Modal: true, OnEscape: d.reject})
+	d.hide = window.Show(&Popup{Panel: d, Place: d.place, Modal: true, OnEscape: d.reject})
 	unison.InvokeTask(func() {
 		switch {
 		case !d.Destructive && d.ConfirmText != "":

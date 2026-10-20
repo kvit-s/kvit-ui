@@ -2028,7 +2028,7 @@ func noticeForms(ui *kvitui.UI) unison.Paneler {
 
 ### KvitDialog
 
-A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape.
+A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape. An open dialog moves when its title row is dragged, staying inside the window; it opens in the middle unless the application says where with MoveTo, and OnMove tells the application where the reader left it, for it to keep.
 
 ```go
 func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog
@@ -2043,8 +2043,9 @@ func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog
 | `Destructive` | `bool` | Destructive draws the confirming button in the danger colour and takes away the keyboard default. |
 | `OnAccept` | `func()` | OnAccept and OnReject run when the dialog is answered. |
 | `OnReject` | `func()` | OnAccept and OnReject run when the dialog is answered. |
+| `OnMove` | `func(x, y int)` | OnMove runs when the reader lets go of the dialog after dragging it, with where its top-left corner is now, as Position gives it. |
 
-Methods: `Accept`, `Open`.
+Methods: `Accept`, `MoveTo`, `Open`, `Position`.
 
 *A destructive confirmation*
 
@@ -2056,6 +2057,30 @@ func dialogDestructive(ui *kvitui.UI) unison.Paneler {
     confirm.Detail = "They will be removed from every report. This cannot be undone."
     confirm.ConfirmText, confirm.Destructive = "Delete them", true
     return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(210), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), confirm))))
+}
+```
+
+*Opened from a button, moved by its title row, and opened again where it was left*
+
+```go
+func dialogMoved(ui *kvitui.UI) unison.Paneler {
+    // An application keeps where the reader left the dialog in its own
+    // settings and gives it back the next time; this page keeps it for as
+    // long as the gallery runs.
+    var x, y int
+    left := false
+    export := kvitui.NewButton(ui, "Export the ledger")
+    export.OnClick = func() {
+        ask := kvitui.NewDialog(ui, "Export the ledger?")
+        ask.Detail = "Drag this dialog by its title to move it. It opens again where you leave it."
+        ask.ConfirmText = "Export"
+        if left {
+            ask.MoveTo(kvitui.Px(x), kvitui.Px(y))
+        }
+        ask.OnMove = func(nx, ny int) { x, y, left = nx, ny, true }
+        ask.Open(ui.WindowOf(export))
+    }
+    return kvitui.Left(export)
 }
 ```
 

@@ -201,6 +201,107 @@ func TestADialogHasToBeAnsweredFirst(t *testing.T) {
 	}
 }
 
+// An open dialog moves when its title row is dragged, and only then; it
+// stays inside the window however far it is dragged; OnMove reports where
+// the reader left it, and MoveTo opens the next one there. Its close symbol
+// answers it as the cancel button and Escape do.
+func TestADialogMovesByItsTitleRow(t *testing.T) {
+	var dialog *kvitui.Dialog
+	var moves [][2]int
+	rejected := 0
+	screen, ui, w := windowSession(t, func(*kvitui.UI) []unison.Paneler { return nil })
+	m := ui.Interface
+	open := func(x, y kvitui.Measure) {
+		screen.Do(func() {
+			dialog = kvitui.NewDialog(ui, "Export the ledger?")
+			dialog.Detail = "Every account, as one file."
+			dialog.OnMove = func(x, y int) { moves = append(moves, [2]int{x, y}) }
+			dialog.OnReject = func() { rejected++ }
+			if x != nil {
+				dialog.MoveTo(x, y)
+			}
+			dialog.Open(w)
+		})
+		screen.Sync()
+	}
+	frame := func() (r geom.Rect) {
+		screen.Do(func() { r = dialog.FrameRect() })
+		return r
+	}
+	var bounds geom.Rect
+	screen.Do(func() { bounds = w.Content().ContentRect(false) })
+	// A point on the title, and one on the detail below the title row.
+	title := func() geom.Point {
+		return screen.PanelPoint(dialog, geom.NewPoint(float32(m.ViewMargin()), float32(m.ViewMargin()+m.ControlHeight()/2)))
+	}
+	detail := func() geom.Point {
+		return screen.PanelPoint(dialog, geom.NewPoint(float32(m.ViewMargin()), float32(2*m.ViewMargin()+m.ControlHeight()+m.SpaceTight())))
+	}
+
+	open(nil, nil)
+	centred := frame()
+	if mid := bounds.Center(); abs(centred.Center().X-mid.X) > 1 || abs(centred.Center().Y-mid.Y) > 1 {
+		t.Fatalf("a dialog with no position opened at %v, not in the middle of %v", centred, bounds)
+	}
+	if _, _, placed := dialog.Position(); placed {
+		t.Error("a dialog in the middle says it has a position")
+	}
+	at := detail()
+	screen.Drag(at, geom.NewPoint(at.X-120, at.Y-80), 4)
+	if frame() != centred || len(moves) != 0 {
+		t.Errorf("a drag on the detail moved the dialog to %v and reported %v", frame(), moves)
+	}
+	at = title()
+	screen.Drag(at, geom.NewPoint(at.X-120, at.Y-80), 4)
+	moved := frame()
+	if abs(moved.X-(centred.X-120)) > 1 || abs(moved.Y-(centred.Y-80)) > 1 {
+		t.Fatalf("dragging the title row 120 left and 80 up moved the dialog from %v to %v", centred, moved)
+	}
+	// At the default interface size a design pixel is a pixel.
+	if len(moves) != 1 || moves[0] != [2]int{int(moved.X), int(moved.Y)} {
+		t.Errorf("one drag to %v reported %v", moved.Point, moves)
+	}
+	at = title()
+	screen.Drag(at, geom.NewPoint(at.X+3000, at.Y+3000), 4)
+	pinned := frame()
+	if abs(pinned.Right()-bounds.Right()) > 1 || abs(pinned.Bottom()-bounds.Bottom()) > 1 {
+		t.Errorf("dragged far past the corner, the dialog is at %v, not in the corner of %v", pinned, bounds)
+	}
+	// Back again, the press is under the pointer as it was at the start.
+	screen.Drag(title(), at, 4)
+	if back := frame(); abs(back.X-moved.X) > 1 || abs(back.Y-moved.Y) > 1 {
+		t.Errorf("dragged back, the dialog is at %v, not at %v", back, moved)
+	}
+
+	// The close symbol is at the end of the title row.
+	screen.Click(screen.PanelPoint(dialog, geom.NewPoint(frame().Width-float32(m.ViewMargin()+m.SpaceTight()), float32(m.ViewMargin()+m.ControlHeight()/2))))
+	if rejected != 1 || len(w.Popups()) != 0 {
+		t.Fatalf("the close symbol rejected the dialog %d times and left %d popups", rejected, len(w.Popups()))
+	}
+
+	last := moves[len(moves)-1]
+	open(kvitui.Px(last[0]), kvitui.Px(last[1]))
+	if again := frame(); again.Point != geom.NewPoint(float32(last[0]), float32(last[1])) {
+		t.Errorf("a dialog moved to %v opened at %v", last, again.Point)
+	}
+	// The position is in design pixels, so the dialog keeps its place at a
+	// larger interface size, where everything is larger.
+	screen.Do(func() { m.SetFontSize(18) })
+	screen.Sync()
+	if x, y, _ := dialog.Position(); x != last[0] || y != last[1] || abs(frame().X-float32(m.Px(last[0]))) > 1 {
+		t.Errorf("at 18 px the dialog is at %v, position %d,%d, after %v at 12 px", frame().Point, x, y, last)
+	}
+	screen.Do(func() { m.SetFontSize(12) })
+	screen.KeyPress(unison.KeyEscape, 0)
+
+	open(kvitui.Px(5000), kvitui.Px(-200))
+	if far := frame(); abs(far.Right()-bounds.Right()) > 1 || far.Y != bounds.Y {
+		t.Errorf("a dialog moved far out of the window opened at %v, not inside %v", far, bounds)
+	}
+}
+
+func abs(v float32) float32 { return max(v, -v) }
+
 func TestAToastWithoutAnActionGoesAndOneWithAnActionStays(t *testing.T) {
 	var plain, undo *kvitui.Toast
 	gone := map[*kvitui.Toast]bool{}
