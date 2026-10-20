@@ -30,7 +30,10 @@ type UI struct {
 	// Locale is the language and region numbers are written for; see
 	// Number. language.Und groups no digits, as the C locale does.
 	Locale   language.Tag
-	onChange []func()
+	onChange []changeHook
+	// checkHooksAt is how many hooks there are when the next one added
+	// first drops those whose owner has gone (addChangeHook).
+	checkHooksAt int
 	// windows are the open Kvit windows, by the unison window they wrap.
 	windows map[*unison.Window]*Window
 	// keyTurn is set while a window is handling a key press, so focus that
@@ -107,13 +110,64 @@ func New(opt Options) (*UI, error) {
 
 // OnChanged calls fn after the theme, the interface size or the typography
 // changed and unison has been told; a component that caches anything derived
-// from them drops it here.
-func (u *UI) OnChanged(fn func()) { u.onChange = append(u.onChange, fn) }
+// from them drops it here. fn is kept for as long as the UI, and with it
+// whatever it holds, so a component made and thrown away many times over the
+// UI's life uses OnChangedWhile.
+func (u *UI) OnChanged(fn func()) { u.addChangeHook(changeHook{fn: fn}) }
+
+// OnChangedWhile calls fn after the theme, the interface size or the
+// typography changed, as OnChanged does, for as long as alive reports true,
+// and then lets go of both. It is for a component made and thrown away many
+// times over the UI's life, such as an editor drawing one turn of a
+// conversation: the component holds itself weakly in fn and reports in alive
+// whether it is still in use.
+func (u *UI) OnChangedWhile(alive func() bool, fn func()) {
+	u.addChangeHook(changeHook{fn: fn, alive: alive})
+}
+
+// changeHook is one function given to OnChanged or OnChangedWhile; alive is
+// nil for one kept for the life of the UI.
+type changeHook struct {
+	fn    func()
+	alive func() bool
+}
+
+// fewestHooksChecked is how many hooks there are when those whose owner has
+// gone are first dropped as another is added.
+const fewestHooksChecked = 64
+
+// addChangeHook adds a hook. Each time the hooks have doubled since they were
+// last checked, those whose owner has gone are dropped first, so the list
+// stays within twice the hooks in use whether or not anything changes, at
+// the cost of a few checks for each hook added.
+func (u *UI) addChangeHook(h changeHook) {
+	if len(u.onChange) >= u.checkHooksAt {
+		u.onChange = liveHooks(u.onChange)
+		u.checkHooksAt = max(fewestHooksChecked, 2*len(u.onChange))
+	}
+	u.onChange = append(u.onChange, h)
+}
+
+// liveHooks are the hooks whose owner is still in use, in a slice of their
+// own, so that a call of the hooks going through the old one, which may add
+// hooks as it goes, goes through each of them once.
+func liveHooks(hooks []changeHook) []changeHook {
+	kept := make([]changeHook, 0, len(hooks))
+	for _, h := range hooks {
+		if h.alive == nil || h.alive() {
+			kept = append(kept, h)
+		}
+	}
+	return kept
+}
 
 func (u *UI) changed() {
 	u.applyColors()
-	for _, fn := range u.onChange {
-		fn()
+	u.onChange = liveHooks(u.onChange)
+	for _, h := range u.onChange {
+		if h.alive == nil || h.alive() {
+			h.fn()
+		}
 	}
 	// Relayout and redraw every window: sizes as well as colours may have moved.
 	for _, w := range unison.Windows() {

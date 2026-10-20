@@ -175,3 +175,77 @@ func TestADisclosureNoLongerUsedIsNotKeptByTheUI(t *testing.T) {
 	}
 	t.Error("a disclosure no longer used is still held")
 }
+
+// A hook given to OnChangedWhile is called after each change while its owner
+// is in use, and once it is not, is called no more and is let go of with
+// what it holds; one given to OnChanged is kept. An editor drawing one turn
+// of a conversation is made and thrown away many times over the UI's life,
+// and a UI that kept a hook holding each one held every editor ever made.
+func TestAHookWhoseOwnerHasGoneIsNotKeptByTheUI(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: 200, Height: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(screen.Stop)
+	defer runtime.KeepAlive(ui)
+	inUse := true
+	calls, kept := 0, 0
+	var held weak.Pointer[[4096]byte]
+	screen.Do(func() {
+		owned := new([4096]byte)
+		held = weak.Make(owned)
+		ui.OnChangedWhile(func() bool { return inUse }, func() { calls++; owned[0]++ })
+		ui.OnChanged(func() { kept++ })
+	})
+	first := ui.Theme.ThemeID()
+	other := tokens.Dark
+	if first == other {
+		other = tokens.Light
+	}
+	screen.Do(func() { ui.Theme.SetThemeID(other) })
+	if calls != 1 || kept != 1 {
+		t.Fatalf("after a change the hook in use was called %d times and the kept one %d", calls, kept)
+	}
+	inUse = false
+	screen.Do(func() { ui.Theme.SetThemeID(first) })
+	if calls != 1 || kept != 2 {
+		t.Errorf("after its owner went the hook was called %d times in all and the kept one %d", calls, kept)
+	}
+	for range 10 {
+		runtime.GC()
+		if held.Value() == nil {
+			return
+		}
+	}
+	t.Error("a hook whose owner has gone is still held")
+}
+
+// Hooks whose owner has gone are let go of as others are added, with no
+// change of theme or size between: a person may never change either while
+// a long session makes and throws away thousands of editors.
+func TestHooksWhoseOwnerHasGoneAreLetGoWithoutAChange(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runtime.KeepAlive(ui)
+	var first weak.Pointer[[4096]byte]
+	for i := range 1000 {
+		owned := new([4096]byte)
+		if i == 0 {
+			first = weak.Make(owned)
+		}
+		ui.OnChangedWhile(func() bool { return false }, func() { owned[0]++ })
+	}
+	for range 10 {
+		runtime.GC()
+		if first.Value() == nil {
+			return
+		}
+	}
+	t.Error("the first of a thousand hooks whose owner has gone is still held")
+}
