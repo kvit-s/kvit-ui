@@ -7,6 +7,7 @@ import (
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
+	"github.com/richardwilkes/unison/enums/align"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
@@ -77,6 +78,55 @@ func TestATooltipShowsForTheKeyboardBesideItsControl(t *testing.T) {
 	})
 	screen.KeyPress(unison.KeyTab, 0)
 	waitFor(t, screen, "the tooltip to go", func() bool { return len(w.Popups()) == 0 })
+}
+
+// A control at the window's trailing edge, as a pane's close button is, has
+// no room beside it. Its tooltip goes below it rather than over it, where it
+// would hide the control it names and take the press meant for it.
+func TestATooltipAtTheTrailingEdgeGoesBelowItsControl(t *testing.T) {
+	var closer *kvitui.IconButton
+	screen, _, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		closer = kvitui.NewIconButton(ui, "close", "Close agent")
+		closer.SetLayoutData(&unison.FlexLayoutData{HAlign: align.End, HGrab: true})
+		return []unison.Paneler{closer}
+	})
+	screen.MouseMove(screen.PanelCenter(closer), 0)
+	waitFor(t, screen, "the tooltip", func() bool { return len(w.Popups()) == 1 })
+	screen.Do(func() {
+		tip := w.Popups()[0].Panel.AsPanel().FrameRect()
+		box := w.Content().RectFromRoot(closer.RectToRoot(closer.ContentRect(true)))
+		if tip.Intersects(box) || tip.Y < box.Bottom() {
+			t.Errorf("the tooltip is at %v for a control at %v", tip, box)
+		}
+	})
+}
+
+// A tooltip only informs, so a press on it is for what it covers: the
+// tooltip goes, and the press reaches the control under it.
+func TestAPressOnATooltipReachesTheControlUnderIt(t *testing.T) {
+	var button *kvitui.Button
+	clicks := 0
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		button = kvitui.NewButton(ui, "Archive")
+		button.OnClick = func() { clicks++ }
+		return []unison.Paneler{kvitui.Left(button)}
+	})
+	screen.Do(func() {
+		w.Show(&kvitui.Popup{Panel: kvitui.NewLabel(ui, "Archive track"), Anchor: button, Passive: true,
+			Place: func(geom.Rect, geom.Size) geom.Rect {
+				return w.Content().RectFromRoot(button.RectToRoot(button.ContentRect(true)))
+			}})
+	})
+	screen.Sync()
+	screen.Click(screen.PanelCenter(button))
+	screen.Do(func() {
+		if clicks != 1 {
+			t.Errorf("a press on the tooltip clicked the button under it %d times", clicks)
+		}
+		if len(w.Popups()) != 0 {
+			t.Error("a press on the tooltip left it shown")
+		}
+	})
 }
 
 func TestAPopoverClosesOnEscapeAndGivesTheFocusBack(t *testing.T) {

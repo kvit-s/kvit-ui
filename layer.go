@@ -167,7 +167,20 @@ func (w *Window) popupKeys(key unison.KeyCode) bool {
 
 // popupPress tells the popups a press landed outside them. It returns true to
 // stop the press, which a press on the part a popup was opened from does.
+//
+// A passive popup under the press goes first, so the press reaches what it
+// covers: it only informs, and the reader pressing there means what is
+// under it. unison finds the panel for the press after this returns, so it
+// no longer finds the popup.
 func (w *Window) popupPress(where geom.Point) bool {
+	if n := len(w.popups); n > 0 {
+		w.popups = slices.DeleteFunc(w.popups, func(p *Popup) bool {
+			return p.Passive && where.In(p.Panel.AsPanel().FrameRect())
+		})
+		if len(w.popups) != n {
+			w.rebuild()
+		}
+	}
 	for i := len(w.popups) - 1; i >= 0; i-- {
 		p := w.popups[i]
 		inside := where.In(p.Panel.AsPanel().FrameRect())
@@ -192,8 +205,10 @@ func (w *Window) popupPress(where geom.Point) bool {
 // PlaceBeside is where a tooltip goes, taking the first of these places that
 // fits: beside the anchor on its trailing side, level with its top, since a
 // row in a list has neighbours above and below and none across; inside the
-// anchor's own band, at its trailing end, for a row as wide as its surface;
-// then below it; then above.
+// anchor's own band, at its trailing end, for a row as wide as its surface,
+// where it covers no more than the anchor's trailing half; then below it;
+// then above. A tooltip wider than that would sit over a small anchor, such
+// as a close button at the window's edge, hiding what it names.
 func PlaceBeside(ui *UI, anchor unison.Paneler) func(bounds geom.Rect, size geom.Size) geom.Rect {
 	return placeBeside(ui, func() geom.Rect { return anchorIn(anchor) })
 }
@@ -212,7 +227,7 @@ func placeBeside(ui *UI, box func() geom.Rect) func(bounds geom.Rect, size geom.
 				y = max(bounds.Y, y-over)
 			}
 			return geom.NewRect(a.Right()+gap, y, size.Width, size.Height)
-		case size.Height <= a.Height:
+		case size.Height <= a.Height && 2*size.Width <= a.Width:
 			return geom.NewRect(max(bounds.X, a.Right()-size.Width), a.Y+(a.Height-size.Height)/2, size.Width, size.Height)
 		}
 		x := a.X
