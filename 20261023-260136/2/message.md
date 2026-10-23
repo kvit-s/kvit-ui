@@ -1,0 +1,1 @@
+@"/root/.claude/uploads/786328ac-6f42-57e1-8563-33b801e44a12/bebf7f0f-win32-uxguide-vol1.epub" @"/root/.claude/uploads/786328ac-6f42-57e1-8563-33b801e44a12/90402c21-win32-uxguide-vol2.epub" I got windows guidance in epub format. Can you add that to review as well?
