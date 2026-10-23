@@ -1,6 +1,6 @@
 # Draft: a section for agent/skills/kvit-ui/SKILL.md
 
-This is a draft for the owner, not yet in the skill. It condenses the wording, symbol, command, menu and shortcut rules of rules.md into what an agent needs while building a screen. Each rule names its rule ids so the reasoning can be looked up.
+This draft went into `agent/skills/kvit-ui/SKILL.md` on 2026-10-23 as "Words, symbols, commands and shortcuts", adapted to the library as it is today: where a rule leans on support not yet built (the Command type, `Asks`, the title-case converter, access keys outside menus), the skill says what to do meanwhile, and the app examples there drop their file:line. This file keeps the draft with its sources. It condenses the wording, symbol, command, menu and shortcut rules of rules.md into what an agent needs while building a screen. Each rule names its rule ids so the reasoning can be looked up.
 
 It follows the owner's decisions of 2026-10-23 on every open question (open-questions.md). Two of them shape it most: the app writes every label once in sentence case and kvit-ui gives the macOS title case (Q-3); Windows and Linux get full access keys (Q-11). It assumes the library changes in library-gaps.md steps 1 to 5 exist (`ui.Form`, `Command`, `MenuBar` and the toolbar, Dialog by form); until they do, rules 15 to 20 are things the agent does by hand.
 

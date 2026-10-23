@@ -20,7 +20,7 @@ The owner's decisions applied throughout:
 | `open-questions.md` | Every question the rules raised, with options, what each changes, the recommendation and the owner's decision of 2026-10-23 (a table of decisions comes first), and the questions the current Microsoft guidance settled. |
 | `library-gaps.md` | Where kvit-ui contradicts or lacks a rule, with file:line, the change or test proposed, and the order to do them in. Also what kvit-ui needs to know about the platform at run time, and how a label can get its two capitalisations. |
 | `checklist.md` | 47 judgment items for a reviewer agent looking at a screenshot and the screen reader's list of controls. |
-| `skill-section-draft.md` | A draft section for `agent/skills/kvit-ui/SKILL.md`: 28 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
+| `skill-section-draft.md` | The draft of the section now in `agent/skills/kvit-ui/SKILL.md` ("Words, symbols, commands and shortcuts"): 28 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
 
 The extracted records are the evidence; the merged rules are what later work builds on; the open questions say what is not settled; library-gaps, the checklist and the skill draft are the three ways the rules reach code, review and agents.
 
