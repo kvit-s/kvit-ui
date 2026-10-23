@@ -1,0 +1,1 @@
+@"/root/.claude/uploads/786328ac-6f42-57e1-8563-33b801e44a12/4ef45c5c-fluent-design-guidance.epub" @"/root/.claude/uploads/786328ac-6f42-57e1-8563-33b801e44a12/78beb01d-winui-controls-library.epub" Here are the updates to microsoft design guidelines - can you check if anything should be added/removed/adjusted
