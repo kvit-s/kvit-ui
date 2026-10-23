@@ -21,6 +21,7 @@ The owner's decisions applied throughout:
 | `library-gaps.md` | Where kvit-ui contradicts or lacks a rule, with file:line, the change or test proposed, and the order to do them in. Also what kvit-ui needs to know about the platform at run time, and how a label can get its two capitalisations. |
 | `checklist.md` | 47 judgment items for a reviewer agent looking at a screenshot and the screen reader's list of controls. |
 | `skill-section-draft.md` | The draft of the section now in `agent/skills/kvit-ui/SKILL.md` ("Words, symbols, commands and shortcuts"): 28 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
+| `guidelines-plan.md` | The next steps: what gets built in kvit-ui and in which order, the tests, and the review of the apps. |
 
 The extracted records are the evidence; the merged rules are what later work builds on; the open questions say what is not settled; library-gaps, the checklist and the skill draft are the three ways the rules reach code, review and agents.
 
