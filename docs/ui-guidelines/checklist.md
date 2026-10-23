@@ -9,7 +9,7 @@ Report each failure as: item number, the control (its name from the list), what 
 ## Labels
 
 1. **Every command label is a verb that names its result.** WRD-1. Fails: a button or menu item that is a statement or a description ("The data is right", "Rows shown"), or a generic verb where a specific one exists ("Manage", "Configure", "Do it"). Standard verbless labels (Settings, About, New, Next) are fine.
-2. **Command labels are one to three words.** WRD-2. Fails: any button or menu item with four or more words ("Take the new default", "Save to the workspace"), or a sentence on a button. A Windows toolbar button may have four.
+2. **Command labels are one to three words.** WRD-2. Fails: any button or menu item with four or more words or over 26 characters ("Take the new default", "Save to the workspace"), or a sentence on a button. A toolbar button's label is preferably one word.
 3. **No articles or possessives on labels, menu items or tooltips.** WRD-3. Fails: "Close the preview", "Add the rows shown", "Use the shipped default", "Your settings".
 4. **Confirming buttons name the action.** WRD-7 **[form]**. Fails: OK, Confirm or Yes on a button that inserts, imports, deletes or sends. On the Windows form, OK is right only on a properties dialog of one object, and Yes/No only as a pair where no specific answer is possible.
 5. **The abandoning button is Cancel, and Cancel undoes nothing that already happened.** WRD-8 **[form]**. Fails: "Never mind", "Go back", "Dismiss" on a dialog's abandoning button; Cancel shown after the work is done (it should read Close).
@@ -18,7 +18,7 @@ Report each failure as: item number, the control (its name from the list), what 
 8. **The label fits what the control does.** WRD-10, WRD-1. Fails: "Delete…" that moves to the trash, "Close agent" that opens a browser, "Add the rows shown" that selects all.
 9. **Tooltips say what the control does, briefly.** WRD-13, HLP-2 **[form]**. Fails: a tooltip that repeats a visible label, explains how to operate the control ("Click to…"), runs past one line on the macOS form, or ends with a full stop on the macOS form. On the Windows form the tooltip of a symbol-only control is its name, with the shortcut in parentheses.
 10. **No implementation words.** WRD-23. Fails: "popover", "modal", "pane", "list view", "text box", "agent session object" in visible text.
-11. **Plain, calm words.** WRD-15, WRD-28. Fails: "Oops", exclamation marks, "invalid", "illegal", "fatal", "abort", "failed to", jargon without a definition.
+11. **Plain, calm words.** WRD-14, WRD-15, WRD-28. Fails: "we" or "you" as the subject of a problem ("We couldn't…", "You entered…"), "Oops", exclamation marks, italics for emphasis, "invalid", "illegal", "fatal", "abort", "failed to", jargon without a definition.
 
 ## Symbols and text
 
@@ -57,7 +57,7 @@ Report each failure as: item number, the control (its name from the list), what 
 ## Keyboard (from the controls list)
 
 34. **Every control can be reached and named.** KEY-1, A11Y-1. Fails: a control in the screenshot missing from the list, or listed without a role or with a role that does not match what it looks like (a "group" that is pressable).
-35. **Access keys on the Windows form.** KEY-15 **[form]**. Fails (once Q-11 is decided): two controls on one screen with the same underlined letter; a menu or menu item with none.
+35. **Access keys on the Windows form.** KEY-15 **[form]**. Fails: an eligible control without an underlined letter while Alt is held; two controls on one screen with the same underlined letter; a menu or menu item with none.
 36. **Focus is visible and sensible.** KEY-8. Fails: the screenshot's focused control (ring) is not the one people would use first; in a dialog with a field, focus on a button.
 
 ## Layout

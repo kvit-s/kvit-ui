@@ -2,11 +2,7 @@
 
 This is a draft for the owner, not yet in the skill. It condenses the wording, symbol, command, menu and shortcut rules of rules.md into what an agent needs while building a screen. Each rule names its rule ids so the reasoning can be looked up.
 
-Assumptions it makes, which change it if decided otherwise:
-
-- Q-3: the app writes every label once, in sentence case, and kvit-ui gives the macOS title case. If both forms are supplied instead, rule 6 changes.
-- Q-5, Q-7, Q-11: the Windows forms for OK and Yes/No, the default button and access keys, as recommended in open-questions.md.
-- The library changes in library-gaps.md steps 1 to 5 exist (`ui.Form`, `Command`, `MenuBar`, Dialog by form). Until they do, rules 15 to 20 are things the agent does by hand.
+It follows the owner's decisions of 2026-10-23 on every open question (open-questions.md). Two of them shape it most: the app writes every label once in sentence case and kvit-ui gives the macOS title case (Q-3); Windows and Linux get full access keys (Q-11). It assumes the library changes in library-gaps.md steps 1 to 5 exist (`ui.Form`, `Command`, `MenuBar` and the toolbar, Dialog by form); until they do, rules 15 to 20 are things the agent does by hand.
 
 The before-and-after pairs come from the survey of kvit-cash, kvit-notes and kvit-works of 2026-10-22 and from kvit-ui's own strings and gallery. The application repositories were not available where this draft was written, so the app pairs are the ones the survey named, with its file:line.
 
@@ -41,7 +37,7 @@ The rules below hold on every system unless they say "Windows" or "macOS". kvit-
 **4. The label says exactly what happens.** Read the handler before naming it. A label that names a different action from the one that runs is the worst kind of wrong. (WRD-1, WRD-10)
 
 - "Add the rows shown" that selects every row (kvit-cash `app/transactions/transactions.go:112`) → "Select all"
-- "Delete…" that moves a folder to the trash (kvit-notes `app/actions.go:108`) → "Move to Trash…" on macOS, "Delete…" with the dialog saying it goes to the Recycle Bin on Windows (Q-14)
+- "Delete…" that moves a folder to the trash (kvit-notes `app/actions.go:108`) → "Move to Trash…" on macOS, "Delete…" with the dialog saying it goes to the Recycle Bin on Windows and Linux
 
 **5. Ellipsis when the command asks for more.** A command that opens a dialog, a chooser or a confirmation before acting ends with "…" (one character). One that acts at once has none. On Windows, a command whose whole job is to show a window (Settings, Properties, About) has none. Set `Asks` and let the component add it. (WRD-4)
 
@@ -121,7 +117,7 @@ The rules below hold on every system unless they say "Windows" or "macOS". kvit-
 
 **24. Ask only when it matters.** No dialog before an action that can be undone: do it, and show ConfirmInPlace or a toast with Undo. Ask before a rare action that loses data for good, and then say what will be lost. (MSG-3)
 
-**25. A message says what happened and what to do.** The title is the problem or the question, specific, never "Error". The detail adds the cause and the fix. An input error sits under its field and says how to put it right. No "Oops", no blame. (MSG-4, MSG-5, MSG-6, WRD-28)
+**25. A message says what happened and what to do.** The title is the problem or the question, specific, never "Error". The detail adds the cause and the fix. An input error sits under its field and says how to put it right. No "Oops", no blame, and no "we": write "Couldn't save the file", which reads right on both systems. (MSG-4, MSG-5, MSG-6, WRD-28)
 
 **26. Explanations stay short.** A setting gets a label and at most one short line. A longer explanation goes behind a Hint. A paragraph that is always on screen is read once and then ignored. (WRD-22)
 

@@ -4,14 +4,14 @@ The rules Kvit apps follow for wording, commands, keyboard, pointer, windows and
 
 How to read a rule:
 
-- **Windows** and **macOS** give the two forms where the platforms differ. The app uses the form for the system it runs on; Linux uses the Windows form for now (open-questions.md, Q-40). Where no forms are given, the rule is the same everywhere.
+- **Windows** and **macOS** give the two forms where the platforms differ. The app uses the form for the system it runs on; Linux uses the Windows form (the owner's decision, open-questions.md Q-40). Where no forms are given, the rule is the same everywhere.
 - **Sources** lists the extracted records (ids in extracted.jsonl, `apple-<page>-<n>` or `win7-<page>-<n>`), grouped by page, each number the record's counter on that page (the record's url in extracted.jsonl links its section). A `*` marks a record on Microsoft's own checklist (top-violations).
 - **Enforce** says where the rule should be held: a component, a test reading the Go source, a test reading one running screen's controls with their roles and names, a test reading every screen of an app together, or a reviewer.
 - **kvit-ui now** says whether the library enforces the rule today, partly does, contradicts it, or does not cover it, with file:line.
 
 Ids are stable. WRD-5 was folded into WRD-6 and WIN-21 into WIN-11; their numbers are not reused. Where the Windows 7 guide and the current guidance disagree on behaviour, the Windows form follows the current guidance.
 
-199 rules. kvit-ui enforces 20, partly covers 101, contradicts 9 and does not cover 69. 99 have a Windows and a macOS form.
+199 rules. kvit-ui enforces 18, partly covers 105, contradicts 9 and does not cover 67. 94 have a Windows and a macOS form.
 
 ## Contents
 
@@ -49,15 +49,15 @@ A button or menu item is a command: it starts with a specific verb that names wh
 
 ### WRD-2
 
-Keep a command label to one to three words, using only the words the command needs; a word more is better than a separate explanation.
+Keep a command label to one to three words, using only the words the command needs, and button text within about 26 characters; a word more is better than a separate explanation. When specific answers cannot be that short, offer them as radio buttons, each with one line of explanation, committed by one button with a specific verb (WIN-2), never as command links (decided, Q-10, Q-51); Yes and No only where no specific answer is possible (WRD-7).
 
-- **Windows:** A toolbar button's label is preferably one word. Button text stays within about 26 characters. When specific answers cannot be that short, offer them as radio buttons committed by one button (WIN-2); Yes and No only where no specific answer is possible (WRD-7).
+- **Windows:** A toolbar button's label is preferably one word.
 - **Sources** (12 records):
   - Apple: [design-principles](https://developer.apple.com/design/human-interface-guidelines/design-principles) 18; [writing](https://developer.apple.com/design/human-interface-guidelines/writing) 4; [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 18; [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 7
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 114; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 75; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 63; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 38
   - Fluent: [ui-controls-dialogs-and-flyouts-dialogs](https://learn.microsoft.com/en-us/windows/apps/design/controls/dialogs-and-flyouts/dialogs) 13; [ui-controls-command-bar](https://learn.microsoft.com/en-us/windows/apps/design/controls/command-bar) 11; [ui-controls-buttons](https://learn.microsoft.com/en-us/windows/apps/design/controls/buttons) 17; [style-writing-style](https://learn.microsoft.com/en-us/windows/apps/design/style/writing-style) 25
 - **Enforce:**
-  - Test, one screen: Fail a Button or MenuItem label over three words and an IconButton Label over three words; on the Windows form also fail a Button label over 26 characters; allow a list of exceptions with a reason.
+  - Test, one screen: Fail a Button or MenuItem label over three words and an IconButton Label over three words; fail a Button label over 26 characters; allow a list of exceptions with a reason.
   - Review: A label that fits but is padded; a toolbar label longer than one word on the Windows form.
 - **kvit-ui now:** does not cover it. No length check (`button.go:119-123` grows the button to any text). The library's own labels break it: "Move the selected column earlier" (`duallist.go:56`), "Select every row the current filter shows" (`table.go:843`).
 
@@ -89,18 +89,19 @@ A command that needs more input before it acts (a dialog that asks, a chooser, a
 
 ### WRD-6
 
-Capitalise each kind of text in the platform's style, and give every label of one kind the same style across the app. Capitalise feature names sparingly and consistently; generic words (toolbar, menu, button, icon) stay lower case.
+Capitalise each kind of text in the platform's style, and give every label of one kind the same style across the app. The app writes every label once, in sentence case, and kvit-ui converts it to title case where the macOS form asks for it, with an exception list; labels never contain user data (decided, Q-3). Capitalise feature names sparingly and consistently; generic words (toolbar, menu, button, icon) stay lower case.
 
 - **Windows:** Sentence case for all text, titles included: window and dialog titles, a guided flow's name, menu titles and items, buttons, tabs, column headings, field, check box, radio, list and slider labels, list options and data, prompts, links, tooltips, toolbar labels, main instructions, supplemental text and progress text. Title case nowhere. Titles have no ending punctuation.
-- **macOS:** Title case: menu items and menu titles, buttons, tabs, segment labels, column headings, panel titles, notification titles and buttons. Sentence case: tooltips, alert body text, box titles, field and slider labels, notification body. Alert buttons: Q-4.
+- **macOS:** Title case: menu items and menu titles, buttons, tabs, segment labels, column headings, panel titles, notification titles and buttons. Sentence case: tooltips, alert body text, box titles, field and slider labels, notification body. Alert buttons are title case (decided, Q-4).
 - **Sources** (79 records, 35 on Microsoft's checklist):
   - Apple: [menus](https://developer.apple.com/design/human-interface-guidelines/menus) 3; [buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) 13; [tab-views](https://developer.apple.com/design/human-interface-guidelines/tab-views) 4; [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 8; [segmented-controls](https://developer.apple.com/design/human-interface-guidelines/segmented-controls) 8; [lists-and-tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables) 6; [outline-views](https://developer.apple.com/design/human-interface-guidelines/outline-views) 3; [panels](https://developer.apple.com/design/human-interface-guidelines/panels) 5; [notifications](https://developer.apple.com/design/human-interface-guidelines/notifications) 8, 16, 9, 11; [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 21, 12; [offering-help](https://developer.apple.com/design/human-interface-guidelines/offering-help) 24; [boxes](https://developer.apple.com/design/human-interface-guidelines/boxes) 4; [sliders](https://developer.apple.com/design/human-interface-guidelines/sliders) 7; [combo-boxes](https://developer.apple.com/design/human-interface-guidelines/combo-boxes) 3; [writing](https://developer.apple.com/design/human-interface-guidelines/writing) 11
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 84, 186\*, 192, 199, 202\*; [mess-warn](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-warn) 30\*, 35, 38; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 30; [progress-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/progress-bars) 46\*; [ctrl-list-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-views) 42\*, 47\*, 50\*; [ctrl-tabs](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tabs) 29\*; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 67\*, 73\*, 85; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 45\*, 51\*, 55; [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 39\*, 49\*; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 72\*, 78\*; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 79\*, 84\*, 89; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 16\*, 17\*, 19\*, 18\*; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 58, 73\*; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 39\*; [ctrl-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-links) 33; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 32\*, 53, 33\*, 35\*, 58; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 30\*, 42, 37; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 28; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 81\*; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 33; [ctrl-balloons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-balloons) 25; [ctrl-search-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-search-boxes) 19; [ctrl-tooltips-and-infotips](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tooltips-and-infotips) 32; [ctrl-group-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-group-boxes) 10\*; [ctrl-list-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-boxes) 49\*, 54\*; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 28\*; [ctrl-tree-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tree-views) 41\*, 44\*; [mess-notif](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-notif) 43; [ctrl-sliders](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-sliders) 25, 30
   - Fluent: [signature-experiences-typography](https://learn.microsoft.com/en-us/windows/apps/design/signature-experiences/typography) 4; [style-writing-style](https://learn.microsoft.com/en-us/windows/apps/design/style/writing-style) 19
 - **Enforce:**
-  - Component: Labels pass through one function that gives the platform form (library-gaps.md, Platform knowledge). Button, IconButton, MenuItem, Tab, Segmented, table column titles, Dialog buttons and window titles call it: sentence case on the Windows form, title case where the macOS form asks for it.
+  - Component: Labels pass through one function that gives the platform form (library-gaps.md, Platform knowledge). Button, IconButton, MenuItem, Tab, Segmented, table column titles, Dialog buttons and window titles call it: sentence case on the Windows form, title case where the macOS form asks for it, skipping the words on its exception list.
   - Test, one screen: On a headless run with each platform form, compare every name with the converted form.
   - Test, all screens of an app: Every label of one kind (menu item, button, tab, column heading, tooltip) across all screens of an app follows the form's style.
+  - Test, Go source: Fail a label built from user data (a label string assembled with a variable) passed to a component that converts case.
 - **kvit-ui now:** partly. Library strings are sentence case throughout (survey §14), which is now the whole Windows form, titles included; there is no title-case conversion for macOS and no check (survey §15).
 
 ### WRD-7
@@ -108,7 +109,7 @@ Capitalise each kind of text in the platform's style, and give every label of on
 A confirming button names the action it confirms (Insert, Import), never a generic word such as Confirm; what people must notice about the action goes on the button itself (Format disk, not OK under a paragraph about formatting). When the dialog gives a reason not to go ahead, the button adds anyway (Install anyway). Now and later appear only to tell doing it at once from doing it later.
 
 - **Windows:** Specific answers are preferred. A message that only needs dismissing has a single Close button, never OK. OK, Cancel and Apply appear only on a properties dialog of one object, spelled OK (never Ok or Okay). Yes and No only where no specific answer is possible, always as a pair, never replaced by OK and Cancel. When an error ends the program the button is Exit program.
-- **macOS:** Never OK, Yes or No on a confirming button, except OK in an informing alert with one button (Q-5).
+- **macOS:** Never OK, Yes or No on a confirming button; an informing alert has a single OK (decided, Q-5).
 - **Sources** (42 records, 14 on Microsoft's checklist):
   - Apple: [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 22, 19; [file-management](https://developer.apple.com/design/human-interface-guidelines/file-management) 17
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 94, 103, 104, 106, 107, 112, 113\*, 118, 33, 102\*, 111, 115, 117, 119\*, 120; [mess-warn](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-warn) 39; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 86, 87\*; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 26\*, 54, 25\*, 27; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 48; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 36\*, 118\*, 112\*, 34\*; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 35\*, 44\*, 40, 41; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 76, 77\*, 8, 64\*
@@ -123,14 +124,14 @@ A confirming button names the action it confirms (Insert, Import), never a gener
 
 The button that abandons the action is Cancel, and Cancel leaves no trace. Once something cannot be undone it becomes Close (the work is done, or the window only shows things) or Stop (work is running and what is done is kept); Escape presses it.
 
-- **Windows:** Cancel turns into Close once a step has run or applied changes that cannot be undone (and back to Cancel after Apply), and into Stop once going back is no longer possible mid-operation. A modeless dialog has Close, never Cancel. Yes never pairs with Cancel alone (Yes/No/Cancel is allowed). When several pending actions make it unclear what Cancel would cancel, or only the dialog itself can be declined, a specific negative answer replaces it (Don't run, Not now).
-- **macOS:** Cancel is never renamed; a specific negative answer (Don't Save) sits beside Cancel, not in its place.
+- **Windows:** Cancel turns into Close once a step has run or applied changes that cannot be undone (and back to Cancel after Apply), and into Stop once going back is no longer possible mid-operation. A modeless dialog has Close, never Cancel. A finished flow, sheet or popover ends with Close (decided, Q-6). Yes never pairs with Cancel alone (Yes/No/Cancel is allowed). When several pending actions make it unclear what Cancel would cancel, or only the dialog itself can be declined, a specific negative answer replaces it (Don't run, Not now).
+- **macOS:** Cancel is never renamed; a specific negative answer (Don't Save) sits beside Cancel, not in its place. A finished flow, sheet or popover ends with Done (decided, Q-6).
 - **Sources** (23 records, 13 on Microsoft's checklist):
   - Apple: [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 20, 30; [sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) 1
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 109, 110\*, 124, 130, 126, 108\*, 123; [progress-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/progress-bars) 33\*; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 35\*, 38\*; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 36\*; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 39\*; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 28\*, 29, 50\*; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 78\*, 79\*, 80\*; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 17\*
   - Fluent: [ui-controls-dialogs-and-flyouts-dialogs](https://learn.microsoft.com/en-us/windows/apps/design/controls/dialogs-and-flyouts/dialogs) 20
 - **Enforce:**
-  - Component: Dialog keeps "Cancel" as its default and gains `Done()`, which turns Cancel into Close; a progress dialog gets a halt button whose words follow `Stoppable` (Cancel, then Stop on the Windows form).
+  - Component: Dialog keeps "Cancel" as its default and gains `Done()`, which turns Cancel into Close on the Windows form and Done on the macOS form; a progress dialog gets a halt button whose words follow `Stoppable` (Cancel, then Stop on the Windows form).
   - Test, one screen: Fail a dialog whose abandoning button is not Cancel, Close or Stop, except a `Don't …` answer on the Windows form; fail Yes beside Cancel without No.
   - Review: Cancel really leaves no trace.
 - **kvit-ui now:** partly. CancelText defaults to "Cancel" (`feedback.go:424`) and FloatingView's close is "Close" (`floatingview.go:61`); nothing switches Cancel to Close or Stop, and Progress has no halt button (survey §8).
@@ -149,6 +150,8 @@ A New command names the kind of thing it makes.
 
 Delete removes without touching the clipboard and matches the Delete key; Cut copies then removes. Do not call removal Erase or Clear, and do not call a move to the trash Delete without saying so.
 
+- **Windows:** A move to the Recycle Bin (or trash) is Delete…, and its confirmation or undo says where the item went (decided, Q-14).
+- **macOS:** A move to the trash is Move to Trash… (decided, Q-14).
 - **Sources** (3 records):
   - Apple: [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 34, 35; [edit-menus](https://developer.apple.com/design/human-interface-guidelines/edit-menus) 10
 - **Enforce:**
@@ -181,9 +184,9 @@ A command that switches a state says unmistakably what it does in each state.
 
 ### WRD-13
 
-A tooltip is short, concerns only its control, does not repeat a visible label, and never says how to operate the control (right-click to…).
+A tooltip is short, concerns only its control, does not repeat a visible label, and never says how to operate the control (right-click to…). Each control has one tooltip string: its verb-led name, plus an optional Explanation line (decided, Q-23).
 
-- **Windows:** A tooltip on an unlabelled control is its label: the command name in sentence case, plus the shortcut and any default in parentheses (Bold (Ctrl+B)), and an ellipsis when the command asks for more. A descriptive tip on an item (infotip) is complete sentences in the present tense, with full stops, in short parts. A notification-area icon's tip gives the program's name and, if useful, a short status, without version numbers. The Start menu description is at most 25 words, starts with a specific verb, lists the main tasks in the words people search for, without catch-alls or marketing, in sentence case. The shortcut format rests on the Windows 7 guide (Fluent's keyboard pages were not read).
+- **Windows:** A tooltip on an unlabelled control is its label: the command name in sentence case, plus the shortcut and any default in parentheses (Bold (Ctrl+B)), and an ellipsis when the command asks for more. A descriptive tip on an item (infotip) is complete sentences in the present tense, with full stops, in short parts. A notification-area icon's tip gives the program's name and, if useful, a short status, without version numbers. The Start menu description is at most 25 words, starts with a specific verb, lists the main tasks in the words people search for, without catch-alls or marketing, in sentence case.
 - **macOS:** A fragment starting with a verb that says what the control does: no articles, no full stop, sentence case, within about 60 characters.
 - **Sources** (38 records, 4 on Microsoft's checklist):
   - Apple: [offering-help](https://developer.apple.com/design/human-interface-guidelines/offering-help) 19, 20, 21, 22, 24, 25, 26, 18
@@ -197,17 +200,16 @@ A tooltip is short, concerns only its control, does not repeat a visible label, 
 
 ### WRD-14
 
-Speak to the reader as you; never call them the user; say you can, not the app lets you. The app never speaks of itself as I or me. In a problem message, never make the reader the culprit.
+Speak to the reader as you; never call them the user; say you can, not the app lets you. The app never speaks of itself as I, me or we. Write a problem message in a form that suits every system, leaving out the subject where the active voice would blame (Couldn't save the file), and never make the reader the culprit (decided, Q-15).
 
-- **Windows:** The app takes responsibility for a problem in the active voice with we (We couldn't save your file). We recommend is preferred to it is recommended. An answer the reader picks (a command link or an option) may speak as the reader in the first person, and is then exempt from WRD-3 (Print the photos on my camera).
-- **macOS:** No we: leave out you and use the passive where the active would blame (The file couldn't be saved).
+- **Windows:** An option the reader picks may speak as the reader in the first person, and is then exempt from WRD-3 (Print the photos on my camera).
 - **Sources** (17 records, 1 on Microsoft's checklist):
   - Apple: [inclusion](https://developer.apple.com/design/human-interface-guidelines/inclusion) 3, 4; [writing](https://developer.apple.com/design/human-interface-guidelines/writing) 14
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 181, 180; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 57\*; [text-style-tone](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-style-tone) 23, 2, 22, 21, 24; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 70; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 74
   - Fluent: [style-writing-style](https://learn.microsoft.com/en-us/windows/apps/design/style/writing-style) 2, 9, 11, 10
 - **Enforce:**
-  - Test, Go source: Flag the words user, our, I and me in string literals passed to labels, Detail and Text fields; flag lets you and allows you; flag we in a string that has no macOS form of its own.
-  - Review: Tone; blame in problem messages; we only for the app taking responsibility, on the Windows form.
+  - Test, Go source: Flag the words user, our, I, me, we and us in string literals passed to labels, Detail and Text fields; flag lets you and allows you.
+  - Review: Tone; blame in problem messages.
 - **kvit-ui now:** does not cover it. Not covered.
 
 ### WRD-15
@@ -378,9 +380,8 @@ Each dialog, page or message leads with one main instruction: what the reader sh
 
 ### WRD-27
 
-Labels, buttons, menu items, tabs, titles, list items, prompts and main instructions end without a full stop; a question ends with a question mark wherever it is. Complete sentences in supplemental text and explanations end with a full stop (tooltips: WRD-13); status text is short fragments without one. One space between sentences. Double quotation marks around object names such as file names, not around paths, web addresses or names obvious from context. A colon introduces a list; use the serial comma; write and, or and number in words, not &, +, / or #. Emphasis only for what must not be missed: bold rarely, italics for a word mentioned as a word, never capitals.
+Labels, buttons, menu items, tabs, titles, list items, prompts and main instructions end without a full stop; a question ends with a question mark wherever it is. Complete sentences in supplemental text and explanations end with a full stop (tooltips: WRD-13); status text is short fragments without one. One space between sentences. Double quotation marks around object names such as file names, not around paths, web addresses or names obvious from context. A colon introduces a list; use the serial comma; write and, or and number in words, not &, +, / or #. Emphasis only for what must not be missed: semibold rarely, never capitals; no italics in interface text (they read poorly for people with dyslexia), so a word mentioned as a word goes in quotation marks (decided, Q-51).
 
-- **Windows:** No italics in interface text, which read poorly for people with dyslexia: a word mentioned as a word goes in quotation marks, and emphasis is semibold.
 - **Sources** (44 records, 14 on Microsoft's checklist):
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 193\*, 203; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 31; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 63, 74\*; [text-style-tone](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-style-tone) 11; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 73, 79\*; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 80; [ctrl-list-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-boxes) 55\*; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 29; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 25\*, 28\*, 29\*, 64\*; [mess-notif](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-notif) 46; [vis-fonts](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-fonts) 13\*, 14; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 9\*, 12\*, 15, 17, 20\*, 21, 22, 24, 26, 30, 31, 37, 54\*, 75; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 43; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 29; [ctrl-status-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-status-bars) 25; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 34, 42; [ctrl-balloons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-balloons) 24, 30; [ctrl-search-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-search-boxes) 20\*
   - Fluent: [ui-controls-slider](https://learn.microsoft.com/en-us/windows/apps/design/controls/slider) 34; [style-writing-style](https://learn.microsoft.com/en-us/windows/apps/design/style/writing-style) 17, 18; [signature-experiences-typography](https://learn.microsoft.com/en-us/windows/apps/design/signature-experiences/typography) 9
@@ -388,7 +389,7 @@ Labels, buttons, menu items, tabs, titles, list items, prompts and main instruct
   - Test, one screen: Fail a Button, MenuItem, Tab, column title or control label name ending in a full stop; fail two spaces after a full stop; fail an object name in single quotation marks.
   - Test, Go source: Flag " & ", " / " and "#" inside label literals ("&" before a letter is the access-key mark, "&&" a literal ampersand).
   - Review: Emphasis and quotation.
-  - Test, Go source: On the Windows form, flag `Italic: true` in a text.Style outside the gallery (`text/layout.go:35`).
+  - Test, Go source: Flag `Italic: true` in a text.Style outside the gallery (`text/layout.go:35`).
 - **kvit-ui now:** does not cover it. No punctuation check (`uitest/uitest.go:194-212` checks names only). TypeAhead quotes a new value with double quotation marks (`typeahead.go:406`). Italic is available (`text/layout.go:35`) and used only in the gallery's type specimen (`cmd/kvit-ui-gallery/foundations.go:205`).
 
 ### WRD-28
@@ -405,16 +406,15 @@ Be polite, calm and positive; never blame, talk down to or alarm the reader. In 
 
 ### WRD-29
 
-Labels of the options in one group (check boxes, radio buttons, list options, slider ends, answers) are parallel in form and similar in length, each distinct, and state only what differs: shared words go in the group label. Choosing an option turns something on (Don't show again is the accepted exception). A choice meaning none or all is in parentheses ((None)); a strongly recommended one adds (recommended) to its own label, an expert one (advanced); a unit goes in parentheses after the label (Size (MB)). A label is never half a sentence completed by a control (Remind me [5] minutes before), and text is never assembled from pieces at run time.
+Labels of the options in one group (check boxes, radio buttons, list options, slider ends, answers) are parallel in form and similar in length, each distinct, and state only what differs: shared words go in the group label. Choosing an option turns something on (Don't show again is the accepted exception). A choice meaning none or all is in parentheses ((None)); a strongly recommended one adds (recommended) to its own label, an expert one (advanced); a unit goes in parentheses after the label (Size (MB)). A check box label is at most two lines, a radio button label one line, and each slider end label one word where possible (decided, Q-51). Answers too long for buttons are radio buttons, each with one line of explanation, never command links (decided, Q-10). A label is never half a sentence completed by a control (Remind me [5] minutes before), and text is never assembled from pieces at run time.
 
-- **Windows:** A check box label is at most two lines, a radio button label one line, and each slider end label one word where possible.
 - **Sources** (56 records, 1 on Microsoft's checklist):
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 136, 137, 200; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 33, 34, 35, 38, 40; [ctrl-list-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-views) 45; [ctrl-group-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-group-boxes) 12, 14\*; [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 51, 53; [text-style-tone](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-style-tone) 18, 37; [exper-first-exper](https://learn.microsoft.com/en-us/windows/win32/uxguide/exper-first-exper) 22, 23; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 64; [ctrl-list-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-boxes) 27, 52, 53, 56; [ctrl-sliders](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-sliders) 27, 28, 29, 32; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 7, 42, 43, 65, 66, 67, 69, 70; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 18, 39, 40, 41, 44; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 30, 31, 32, 35, 37; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 28, 29, 31, 32, 37, 38, 41
   - Fluent: [ui-controls-checkbox](https://learn.microsoft.com/en-us/windows/apps/design/controls/checkbox) 7, 8; [ui-controls-slider](https://learn.microsoft.com/en-us/windows/apps/design/controls/slider) 32, 33; [ui-controls-radio-button](https://learn.microsoft.com/en-us/windows/apps/design/controls/radio-button) 10
 - **Enforce:**
   - Component: RadioOption, Select options and Check gain `Recommended bool`; the component adds "(recommended)" in the app's language, so the app never types it.
   - Test, one screen: Fail two options with the same name in one radio group, select or list; fail a check box or radio name starting Don't or Do not other than Don't show again; fail options that all start with the same word as the group label.
-  - Test, one screen: Windows form: fail a radio option name that wraps to a second line or a check box name over two lines at the window's default width.
+  - Test, one screen: Fail a radio option name that wraps to a second line or a check box name over two lines at the window's default width.
   - Review: Parallel form; no sentence built around a control.
 - **kvit-ui now:** does not cover it. RadioGroup takes Label and Detail per option without checks (`radiogroup.go:16-20`). Counts go through `UI.CountPhrase` rather than built phrases (`numbers.go:21-37`), but Stepper builds "Decrease "+Label (`stepper.go:65`) and Tag "Remove "+text (`marks.go:197`).
 
@@ -424,7 +424,7 @@ Labels of the options in one group (check boxes, radio buttons, list options, sl
 
 Every command the app has is on a visible command surface (the menu bar, or where the platform allows, a toolbar and its More menu), including ones also on buttons and context menus, never only in a context menu, so every task can be found on screen rather than remembered.
 
-- **Windows:** A menu bar (Kvit-drawn, in the main window) is for an app with many commands in several categories, such as an editing app (Notepad). Another main window may use a toolbar (command bar) with a More menu as its command surface instead. Either way every command is reachable from the menu bar, or from the toolbar and its More menu. Offer each command on as many surfaces as fit: menu bar or toolbar, and the context menu (Q-1).
+- **Windows:** A menu bar (Kvit-drawn, in the main window) is for an app with many commands in several categories, such as an editing app (Notepad). Another main window may use a toolbar (command bar) with a More menu as its command surface instead. Either way every command is reachable from the menu bar, or from the toolbar and its More menu. Offer each command on as many surfaces as fit: menu bar or toolbar, and the context menu (decided, Q-1).
 - **macOS:** Required: the system menu bar, always present.
 - **Sources** (33 records, 2 on Microsoft's checklist):
   - Apple: [designing-for-macos](https://developer.apple.com/design/human-interface-guidelines/designing-for-macos) 3; [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 44, 69; [toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars) 31; [context-menus](https://developer.apple.com/design/human-interface-guidelines/context-menus) 4; [dock-menus](https://developer.apple.com/design/human-interface-guidelines/dock-menus) 2; [split-views](https://developer.apple.com/design/human-interface-guidelines/split-views) 7
@@ -481,7 +481,7 @@ The File menu holds the document commands in the platform's standard order, as t
 
 The Edit menu starts with Undo and Redo, then Cut, Copy and Paste, Select all and Delete, then Find, in the platform's order; app-specific edit commands sit beside the standard ones they relate to.
 
-- **Windows:** Undo, Redo (Ctrl+Y); Cut, Copy, Paste; Select all; Delete, Rename…; Find… (Ctrl+F), Find next (F3), Replace… (Ctrl+H), Go to… (Ctrl+G).
+- **Windows:** Undo, Redo (Ctrl+Y and Ctrl+Shift+Z); Cut, Copy, Paste; Select all; Delete, Rename…; Find… (Ctrl+F), Find next (F3), Replace… (Ctrl+H), Go to… (Ctrl+G).
 - **macOS:** Undo, Redo; Cut, Copy, Paste, Delete, Select All; Find; ending with the system's Dictation and Emoji items.
 - **Sources** (11 records):
   - Apple: [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 32, 31, 36; [edit-menus](https://developer.apple.com/design/human-interface-guidelines/edit-menus) 14, 1, 4, 5; [undo-and-redo](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo) 9; [image-wells](https://developer.apple.com/design/human-interface-guidelines/image-wells) 2
@@ -545,14 +545,14 @@ A main-menu item or toolbar button that cannot act now stays in place, disabled,
 
 Every object and region with commands of its own has a context menu holding the commands for what was clicked, in at most about four groups and 15 lines, leaving out those that do not apply (the platform form says whether the clipboard commands stay); commands that everyone must find are also visible in the window or behind a visible menu button.
 
-- **Windows:** The context menu holds every command that acts on the item, since it is the route that works with every input. The common commands (Cut, Copy, Paste, Delete, Rename, Share) come first, drawn as a row of symbols with tooltips above the other commands, as in Windows 11; the item's other commands follow. The default command (what double-click or Enter does) is bold (Q-33). Commands that do not apply are left out, not disabled. In a text field's menu, Cut and Copy appear only with a selection, Paste only with text on the clipboard, Undo only after a change and Select all only when there is text; it adds spelling suggestions on a misspelt word, and Bold, Italic and Underline in rich text. Selecting text may also show a small bar of these commands beside it, which takes no focus, starts with the most important few and goes away if unused. A list whose view, sorting or grouping can change offers View, Sort by and Group by submenus.
+- **Windows:** The context menu holds every command that acts on the item, since it is the route that works with every input. The common commands (Cut, Copy, Paste, Delete, Rename, Share) come first, drawn as a row of symbols with tooltips above the other commands, as in Windows 11; the item's other commands follow. The default command (what double-click or Enter does) is bold; a checked line keeps its tick and is not bold (decided, Q-33). Commands that do not apply are left out, not disabled. In a text field's menu, Cut and Copy appear only with a selection, Paste only with text on the clipboard, Undo only after a change and Select all only when there is text; it adds spelling suggestions on a misspelt word, and Bold, Italic and Underline in rich text. Selecting text may also show a small bar of these commands beside it, which takes no focus, starts with the most important few and goes away if unused. A list whose view, sorting or grouping can change offers View, Sort by and Group by submenus.
 - **macOS:** Only Cut, Copy and Paste stay when they do not apply; no default item is marked.
 - **Sources** (45 records):
   - Apple: [context-menus](https://developer.apple.com/design/human-interface-guidelines/context-menus) 1, 2, 7, 10, 8, 3, 12; [token-fields](https://developer.apple.com/design/human-interface-guidelines/token-fields) 1
   - Windows 7: [ctrl-list-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-views) 18, 27, 17; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 6, 36, 37, 39, 41, 40, 42, 4, 34; [ctrl-tree-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tree-views) 23; [ctrl-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-links) 23; [winenv-notification](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-notification) 35
   - Fluent: [ui-controls-tab-view](https://learn.microsoft.com/en-us/windows/apps/design/controls/tab-view) 21; [ui-controls-menus-and-context-menus](https://learn.microsoft.com/en-us/windows/apps/design/controls/menus-and-context-menus) 4, 5, 6; [ui-controls-collection-commanding](https://learn.microsoft.com/en-us/windows/apps/design/controls/collection-commanding) 1, 2, 5, 7, 17; [ui-controls-text-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/text-box) 25; [basics-commanding-basics](https://learn.microsoft.com/en-us/windows/apps/design/basics/commanding-basics) 8; [ui-controls-command-bar-flyout](https://learn.microsoft.com/en-us/windows/apps/design/controls/command-bar-flyout) 1, 2, 3, 5, 6, 13, 14, 15; [ui-controls-dialogs-and-flyouts-flyouts](https://learn.microsoft.com/en-us/windows/apps/design/controls/dialogs-and-flyouts/flyouts) 3; [ui-controls-commanding](https://learn.microsoft.com/en-us/windows/apps/design/controls/commanding) 5; [ui-controls-nested-ui](https://learn.microsoft.com/en-us/windows/apps/design/controls/nested-ui) 5
 - **Enforce:**
-  - Component: MenuItem gains Default, drawn bold by the Kvit menu (Checked then needs its tick alone, as it is bold today, `menu.go:236-239`); on Windows and Linux the Kvit menu draws the common commands as a leading row of symbols, and Field's menu leaves out a command that cannot act instead of disabling it.
+  - Component: MenuItem gains Default, drawn bold by the Kvit menu on Windows and Linux; a Checked line keeps its tick and loses the bold it has today (`menu.go:236-239`); on Windows and Linux the Kvit menu draws the common commands as a leading row of symbols, and Field's menu leaves out a command that cannot act instead of disabling it.
   - Test, one screen: Fail a context menu over 15 lines or 4 groups, or, on the Windows form, one with a disabled item or with common commands not at its head.
   - Review: Relevance of the items; every command for an item in its menu; comparable objects all having one.
 - **kvit-ui now:** partly. Any panel can have one (`UI.SetContextMenu`, `menu.go:691-706`), opened by right-click, the Menu key or Shift+F10 (`menu.go:713-724`); it builds any list, with no default item, no symbol row and no length check. Field's menu shows Cut, Copy and Paste disabled when they cannot act (`field.go:210-225`), which the Windows form now rules out, and has no Undo.
@@ -611,15 +611,15 @@ Give a menu item a symbol only when it clarifies the item, mainly for the most u
 
 Mark an option that is on; mark the chosen one of exclusive options in the platform's way; where attributes combine, one item clears them all.
 
-- **Windows:** A tick for an independent on/off option; a bullet for the chosen one of a set of mutually exclusive options (at least two in the set); no mark when the option is on for only part of the selection.
+- **Windows:** A tick for an independent on/off option, its words not bold (decided, Q-33); a bullet for the chosen one of a set of mutually exclusive options (at least two in the set); no mark when the option is on for only part of the selection.
 - **macOS:** A tick for both; a dash when the option is on for only part of the selection.
 - **Sources** (7 records):
   - Apple: [menus](https://developer.apple.com/design/human-interface-guidelines/menus) 24, 25
   - Windows 7: [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 44, 46, 43, 45
   - Fluent: [ui-controls-menus](https://learn.microsoft.com/en-us/windows/apps/design/controls/menus) 3
 - **Enforce:**
-  - Component: MenuItem.Checked (exists) gains a Radio form drawn as a bullet by the Kvit menu, and a Mixed state (no mark on Windows and Linux, a dash in the macOS menu); Select marks its current option as Radio.
-- **kvit-ui now:** partly. A tick for Checked (`menu.go:40-42`, `menu.go:236-239`); no bullet or mixed form, and Select marks its option with Checked (`select.go:96`).
+  - Component: MenuItem.Checked (exists) loses its bold and keeps the tick, gains a Radio form drawn as a bullet by the Kvit menu, and a Mixed state (no mark on Windows and Linux, a dash in the macOS menu); Select marks its current option as Radio.
+- **kvit-ui now:** partly. A tick and bold words for Checked (`menu.go:40-42`, `menu.go:236-239`); no bullet or mixed form, and Select marks its option with Checked (`select.go:96`).
 
 ### CMD-16
 
@@ -636,8 +636,10 @@ Holding a modifier never silently changes what a dialog button does. In a Mac me
 
 ### CMD-17
 
-A menu holds only commands and options; a notification or confirmation goes in a dialog or popover. A menu button shows a down-arrow and lists at least three commands that refine its own action; variants of one command go in a split button whose main part runs the likeliest variant (or the last one chosen, when people repeat it), marked in its menu; a feature that is on or off and comes in styles is a toggle split button, its main part turning it on or off and its menu picking the style; one or two commands are buttons, and a view's main actions are visible, not in a menu. Simple choices (check or radio items, a short list) may sit in a menu rather than a dialog.
+A menu holds only commands and options; a notification or confirmation goes in a dialog or popover. A menu button shows a down-arrow and lists at least three commands that refine its own action; variants of one command go in a split button whose main part runs a variant marked in its menu (the platform form says which); a feature that is on or off and comes in styles is a toggle split button, its main part turning it on or off and its menu picking the style; one or two commands are buttons, and a view's main actions are visible, not in a menu. Simple choices (check or radio items, a short list) may sit in a menu rather than a dialog.
 
+- **Windows:** A split button's main part runs the variant last chosen (decided, Q-46).
+- **macOS:** The main part runs the likeliest variant, or the last one chosen when people repeat it.
 - **Sources** (27 records):
   - Apple: [pull-down-buttons](https://developer.apple.com/design/human-interface-guidelines/pull-down-buttons) 1, 3, 4, 5, 6, 7
   - Windows 7: [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 13, 26, 27, 28, 12; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 15, 100; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 9; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 7
@@ -744,7 +746,7 @@ A tray icon (Windows, Linux) or Dock menu (macOS) serves an app that works in th
 
 ### CMD-25
 
-Offer printing as deep as the kind of app needs: Print… in the File menu only when there is something to print, through the system's print dialog, showing only the options that apply; a document editor also offers a preview.
+Offer printing as deep as the kind of app needs: Print… in the File menu only when there is something to print, through the system's print dialog, showing only the options that apply; a document editor also offers a preview. Deferred: printing is left out until an app needs it (decided, Q-36).
 
 - **Windows:** Print… opens the dialog; a toolbar Print button beside a menu bar prints one copy at once to the default printer, named in its tooltip; without a menu bar Print is a split button offering Print…, Print preview and Page setup. Print preview shows margins, page breaks, orientation, headers and footers, pages through the document and prints from it. Within a session the next job keeps the printer and paper size but not the copies or page range.
 - **macOS:** Print… opens the system print panel, whose preview serves; no separate preview command is needed.
@@ -753,7 +755,7 @@ Offer printing as deep as the kind of app needs: Print… in the File menu only 
   - Windows 7: [exper-printing](https://learn.microsoft.com/en-us/windows/win32/uxguide/exper-printing) 1, 6, 7, 8, 9, 10, 33, 34, 38, 39, 41, 28, 29, 2, 3, 4, 5, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 31, 32, 35, 36, 43; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 51
 - **Enforce:**
   - Review: Print offered where people expect it.
-- **kvit-ui now:** does not cover it. No printing in kvit-ui.
+- **kvit-ui now:** does not cover it. No printing in kvit-ui; deferred until an app needs it (decided, Q-36).
 
 ## Keyboard
 
@@ -774,7 +776,7 @@ Everything can be done with the keyboard alone, everything the keyboard does the
 
 Every standard command the app has answers to the platform's standard shortcut for it, wherever the app's window has focus; when the command does not apply at the moment, the key does nothing, silently.
 
-- **Windows:** Ctrl+N, O, S, P, Z, Ctrl+Y for Redo, Ctrl+X, C, V, A, F; F3 Find next, Ctrl+H Replace, Ctrl+G Go to, F1 Help (contextual help optional), F2 Rename the selection, F5 Refresh, Delete deletes the selected items, F11 Full screen, Alt+Enter Properties of the focused object, Shift+F10 and the Menu key open the focused item's context menu, Ctrl+W closes the tab or document window, Alt+F4 closes the window. With document tabs: Ctrl+T opens a new tab, Ctrl+W or Ctrl+F4 closes the current tab, Ctrl+Shift+T reopens closed tabs, most recent first, Ctrl+1 to Ctrl+8 go to the tab in that place and Ctrl+9 to the last. A shortcut acts when its key goes down, not on release. Sources: the Windows 7 guide, and Fluent's tab, collection-command and context-menu pages; Fluent's keyboard-accelerator page was not in the copy read.
+- **Windows:** Ctrl+N, O, S, P, Z, Ctrl+Y and Ctrl+Shift+Z for Redo, Ctrl+X, C, V, A, F; F3 Find next, Ctrl+H Replace, Ctrl+G Go to, F1 Help (contextual help optional), F2 Rename the selection, F5 Refresh, Delete deletes the selected items, F11 Full screen, Alt+Enter Properties of the focused object, Shift+F10 and the Menu key open the focused item's context menu, Ctrl+W closes the tab or document window, Alt+F4 closes the window; Ctrl+Q is never bound to an app command (decided, Q-19). With document tabs: Ctrl+T opens a new tab, Ctrl+W or Ctrl+F4 closes the current tab, Ctrl+Shift+T reopens closed tabs, most recent first, Ctrl+1 to Ctrl+8 go to the tab in that place and Ctrl+9 to the last. A shortcut acts when its key goes down, not on release.
 - **macOS:** Cmd-N, O, S, W, P, Q, Z, Shift-Cmd-Z, X, C, V, A, F, G, comma, ?.
 - **Sources** (19 records):
   - Apple: [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 5; [keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards) 5; [file-management](https://developer.apple.com/design/human-interface-guidelines/file-management) 1; [undo-and-redo](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo) 9; [settings](https://developer.apple.com/design/human-interface-guidelines/settings) 3
@@ -803,7 +805,7 @@ The command modifier is Command on a Mac and Control elsewhere; Shift adds a rel
 
 An app's shortcuts act only while its window has focus: never register a system-wide hotkey, and never take a shortcut or gesture the system or its accessibility features own.
 
-- **Windows:** Every Windows-logo-key combination, including ones the system does not use yet; the Application (menu) key is never a modifier. Source: the Windows 7 guide; Fluent's keyboard pages were not in the copy read.
+- **Windows:** Every Windows-logo-key combination, including ones the system does not use yet; the Application (menu) key is never a modifier.
 - **macOS:** Cmd-Space, Cmd-Tab, Ctrl-F1 to F7, Shift-Cmd-3/4, Opt-Cmd-Esc, Opt-Cmd-D, Ctrl-Space and Cmd-Left/Right for input sources.
 - **Sources** (10 records, 3 on Microsoft's checklist):
   - Apple: [accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) 24; [keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards) 6; [pointing-devices](https://developer.apple.com/design/human-interface-guidelines/pointing-devices) 2, 24
@@ -816,7 +818,7 @@ An app's shortcuts act only while its window has focus: never register a system-
 
 Give new shortcuts only to the few frequent app commands: a simple combination (not three keys at once, not keys far apart) on a letter that recalls the command's name, free rather than borrowed from a known meaning, never on punctuation that sits on different keys in other layouts (@ $ { } [ ] \ ~ | ^ ' < >). A shortcut means one thing across the whole app, and an app with many shortcuts lets people reassign them.
 
-- **Windows:** Free for frequent commands: Ctrl+J, K, L, M, Q, R, T, Ctrl+digit, F7–F9, F12, Shift+F2–F5, F7–F9, F11, F12, and Alt+function keys except F4 (the guide also lists Ctrl+G, which its own standard set gives to Go to; Q-19). In an app with document tabs, Ctrl+T, Ctrl+W, Ctrl+Shift+T and Ctrl+1 to Ctrl+9 belong to the tabs (KEY-2) and are not free. For rarer commands: Ctrl+function key (not F4 or F6) and Ctrl+Shift+letter or digit. Commands on the selection take function keys (F2 renames); commands on the whole document take Ctrl combinations (Ctrl+S).
+- **Windows:** Free for frequent commands: Ctrl+J, K, L, M, R, T, Ctrl+digit, F7–F9, F12, Shift+F2–F5, F7–F9, F11, F12, and Alt+function keys except F4 (not Ctrl+G, which is Go to, nor Ctrl+Q, never bound to an app command; decided, Q-19). In an app with document tabs, Ctrl+T, Ctrl+W, Ctrl+Shift+T and Ctrl+1 to Ctrl+9 belong to the tabs (KEY-2) and are not free. For rarer commands: Ctrl+function key (not F4 or F6) and Ctrl+Shift+letter or digit. Commands on the selection take function keys (F2 renames); commands on the whole document take Ctrl combinations (Ctrl+S).
 - **macOS:** The general rule, with the modifiers of KEY-3.
 - **Sources** (28 records, 6 on Microsoft's checklist):
   - Apple: [keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards) 3, 4, 7; [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 6
@@ -832,8 +834,8 @@ Give new shortcuts only to the few frequent app commands: a simple combination (
 
 Return or Enter presses the dialog's default button, when it has one, which is drawn as the default; the default is never an action that loses what cannot easily be got back.
 
-- **Windows:** A dialog need not have a default button: give one only when one answer is clearly the likely and safe one. Without one, Enter presses only the focused button. A focused button takes Enter and Space; a focused control that uses Enter itself keeps it. A destructive button may be the default only when its action is easy to undo. A window that appears unprompted has no default button and no access keys, and its initial focus is off the commit buttons. A disclosure opens with Space, a drop-down arrow with Space on its own or Alt+Down inside another control (Windows 7 guide). Both platforms now allow a dialog without a default; they still differ on Enter over a focused button (Q-7).
-- **macOS:** Return presses the default button and focus on another button does not move it; a destructive button is never the default; a dialog that must be read has no default.
+- **Windows:** A dialog need not have a default button: give one only when one answer is clearly the likely and safe one. Without one, Enter presses only the focused button. A focused button takes Enter and Space; a focused control that uses Enter itself keeps it. A destructive button may be the default only when its action is easy to undo. A window that appears unprompted has no default button and no access keys, and its initial focus is off the commit buttons. A disclosure opens with Space, a drop-down arrow with Space on its own or Alt+Down inside another control (Windows 7 guide). Enter presses a focused button on this form only (decided, Q-7).
+- **macOS:** Return presses only the default button, never a focused one (decided, Q-7); a destructive button is never the default; a dialog that must be read has no default.
 - **Sources** (27 records, 4 on Microsoft's checklist):
   - Apple: [buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) 14, 15; [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 29, 24, 28
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 168, 169\*; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 31; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 11, 29\*, 30; [inter-keyboard](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-keyboard) 1, 10, 17\*; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 27; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 11, 12, 21; [mess-warn](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-warn) 26; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 43\*; [inter-accessibility](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-accessibility) 1
@@ -860,7 +862,7 @@ Escape cancels a dialog, popover or menu, and abandons a drag, move, resize or s
 
 ### KEY-8
 
-Focus starts on the control people will most likely use first, never a Help link (in a dialog, the first control of its content, else its default button), and then moves only when the reader acts: when the focused item goes away it moves to a neighbour, a closed dialog or popover gives it back to where it was, and after an input error it goes to the first field in error, scrolled into view with its text selected. While a menu or popover is open, the keyboard stays in it until it closes. Moving focus never changes a value or raises an error, a window never takes focus it was not given, and keyboard focus is always visible.
+Focus starts on the control people will most likely use first, never a Help link (in a dialog, the first control of its content, else its default button), and then moves only when the reader acts: when the focused item goes away it moves to a neighbour, a closed dialog or popover gives it back to where it was, and after an input error it goes to the first field in error, scrolled into view with its text selected. While a popover is open, the keyboard stays in it until it closes; Tab closes an open menu (decided, Q-49). Moving focus never changes a value or raises an error, a window never takes focus it was not given, and keyboard focus is always visible.
 
 - **Sources** (23 records, 4 on Microsoft's checklist):
   - Apple: [focus-and-selection](https://developer.apple.com/design/human-interface-guidelines/focus-and-selection) 3, 4
@@ -869,29 +871,29 @@ Focus starts on the control people will most likely use first, never a Help link
 - **Enforce:**
   - Component: Dialog focuses the first field of its body when it has one, else the confirm button, and finish returns focus to the opener, as Popover does. A form helper moves focus to the first Field with an Error.
   - Test, one screen: After closing each dialog, focus is on the opener; Tab inside an open Popover stays in it; tabbing through every control of a screen changes no value and sets no Error.
-- **kvit-ui now:** partly. Popover focuses its first focusable child and returns focus (`popover.go:115-119`, `popover.go:125-148`), as Menu does (`menu.go:439-457`); Dialog focuses its confirm button even when its body holds a field (`feedback.go:470-479`) and, like FloatingView, gives no focus back (`feedback.go:482-487`, `floatingview.go:108-114`); the ring shows whenever a key moved focus (`control.go:160-166`); nothing moves focus to a field in error. Menu closes on Tab (`menu.go:517-518`); whether Tab leaves an open Popover is not checked.
+- **kvit-ui now:** partly. Popover focuses its first focusable child and returns focus (`popover.go:115-119`, `popover.go:125-148`), as Menu does (`menu.go:439-457`); Dialog focuses its confirm button even when its body holds a field (`feedback.go:470-479`) and, like FloatingView, gives no focus back (`feedback.go:482-487`, `floatingview.go:108-114`); the ring shows whenever a key moved focus (`control.go:160-166`); nothing moves focus to a field in error. Menu closes on Tab, as decided (`menu.go:517-518`); whether Tab leaves an open Popover is not checked.
 
 ### KEY-9
 
-Tab moves through controls in reading order; inside a group (radio group, tabs, segmented, list) the arrow keys move and Tab leaves; in a list, tree or table, typing the start of a name jumps to it.
+Tab moves through controls in reading order; inside a group (radio group, tabs, segmented, list) the arrow keys move and Tab leaves; in a list, tree or table, typing the start of a name jumps to it. Ctrl+Tab and Ctrl+Shift+Tab switch tabs on every system (decided, Q-18).
 
-- **Windows:** A frequently used control may come earlier in the order, and Help links come after the commit buttons. Ctrl+Tab or Ctrl+Page Down goes to the next tab and Ctrl+Shift+Tab or Ctrl+Page Up to the previous, from anywhere in the tabbed view, wrapping at the ends. In a document tab strip the arrows move focus only, without wrapping, and Space or Enter selects; in a view selector row the arrows choose as they move. Radio group: Tab lands on the chosen option, or on the first without choosing it; the arrows choose as they move and stop at the ends; Up and Down go by order, Left and Right by position; Ctrl+arrow moves without choosing and Space chooses. Navigation sidebar: the arrows move as in a tree; Space or Enter selects the item and opens or closes its group without moving focus. List: Ctrl+arrow moves focus without selecting, Ctrl+Space toggles the focused item, Shift+arrow extends from the anchor. A row holding buttons: Tab goes through its buttons and then out of the list; Down goes to the next row. A select, open or closed, jumps to the typed letters, ignoring case.
-- **macOS:** The general rule. Apple names no key for switching tabs; Ctrl-Tab and Ctrl-Shift-Tab are kept, as Mac apps commonly use them (Q-18).
+- **Windows:** A frequently used control may come earlier in the order, and Help links come after the commit buttons. Ctrl+Tab or Ctrl+Page Down goes to the next tab and Ctrl+Shift+Tab or Ctrl+Page Up to the previous, from anywhere in the tabbed view, wrapping at the ends. In a document tab strip the arrows move focus only, without wrapping, and Space or Enter selects; in a view selector row the arrows choose as they move. Radio group: Tab lands on the chosen option, or on the first without choosing it; the arrows choose as they move and stop at the ends (decided, Q-49); Up and Down go by order, Left and Right by position; Ctrl+arrow moves without choosing and Space chooses. Navigation sidebar: the arrows move as in a tree; Space or Enter selects the item and opens or closes its group without moving focus. List: Ctrl+arrow moves focus without selecting, Ctrl+Space toggles the focused item, Shift+arrow extends from the anchor. A row holding buttons: Tab goes through its buttons and then out of the list; Down goes to the next row. A select, open or closed, jumps to the typed letters, ignoring case.
+- **macOS:** The general rule.
 - **Sources** (32 records, 5 on Microsoft's checklist):
   - Apple: [text-fields](https://developer.apple.com/design/human-interface-guidelines/text-fields) 8; [focus-and-selection](https://developer.apple.com/design/human-interface-guidelines/focus-and-selection) 1, 7
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 49\*; [ctrl-tabs](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tabs) 30; [inter-keyboard](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-keyboard) 33, 14\*, 15\*; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 13; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 24; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 13; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 71\*, 72\*
   - Fluent: [ui-controls-navigationview](https://learn.microsoft.com/en-us/windows/apps/design/controls/navigationview) 22, 23; [ui-controls-tab-view](https://learn.microsoft.com/en-us/windows/apps/design/controls/tab-view) 5, 6, 7; [ui-controls-combo-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/combo-box) 21; [ui-controls-radio-button](https://learn.microsoft.com/en-us/windows/apps/design/controls/radio-button) 14, 15, 16, 17, 18, 19; [ui-controls-itemsview](https://learn.microsoft.com/en-us/windows/apps/design/controls/itemsview) 6, 9; [ui-controls-selector-bar](https://learn.microsoft.com/en-us/windows/apps/design/controls/selector-bar) 10; [ui-controls-forms](https://learn.microsoft.com/en-us/windows/apps/design/controls/forms) 17; [accessibility-accessibility-overview](https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-overview) 5; [ui-controls-nested-ui](https://learn.microsoft.com/en-us/windows/apps/design/controls/nested-ui) 9, 11
 - **Enforce:**
-  - Component: Tab, Segmented and SidebarItem get roving focus with arrow keys, as RadioGroup has; on Windows and Linux RadioGroup stops at its ends and moves without choosing on Ctrl+arrow; the tab row answers to Ctrl+Tab and Ctrl+Page Up/Down; Table gets Shift+arrow, Ctrl+arrow and Ctrl+Space; Table, Tree, DualList and Select get prefix type-select.
+  - Component: Tab, Segmented and SidebarItem get roving focus with arrow keys, as RadioGroup has; on Windows and Linux RadioGroup stops at its ends and moves without choosing on Ctrl+arrow; the tab row answers to Ctrl+Tab and Ctrl+Shift+Tab on every system, and Ctrl+Page Up/Down on Windows and Linux; Table gets Shift+arrow, Ctrl+arrow and Ctrl+Space; Table, Tree, DualList and Select get prefix type-select.
   - Test, one screen: Tab order matches top-to-bottom, leading-to-trailing order of the controls, Help links after the commit buttons.
 - **kvit-ui now:** partly. RadioGroup is one stop, the chosen option or the first (`radiogroup.go:78-90`), with arrows that choose, but it wraps from last to first and ignores Ctrl (`radiogroup.go:102-129`); Tab, Segmented, Sidebar are one stop per item with no arrows (`tab.go:42`, `segmented.go:56-60`, `sidebar.go:120-124`); Table has no Shift+arrow or Ctrl+Space (`tablebody.go:353-425`); Select steps with Up and Down but has no type-select (`select.go:41-52`); no Ctrl+Tab and no type-select in lists, trees or tables (survey §5).
 
 ### KEY-10
 
-Which controls take Tab focus follows the platform: on a Mac only text fields and lists unless the reader turned on full keyboard access.
+Which controls take Tab focus follows the platform: on Windows and Linux every interactive control, read-only fields included; on a Mac it follows the system's full-keyboard-access setting, text fields and lists only when it is off (decided, Q-16, Q-17).
 
-- **Windows:** Every interactive control is a Tab stop, read-only fields included, and a group that acts as one control is one stop (Microsoft's checklist). One control page instead gives a single-line read-only field a stop only when people may scroll or copy it (Q-17).
-- **macOS:** Text fields and lists only, unless full keyboard access is on.
+- **Windows:** Every interactive control is a Tab stop, read-only fields included, and a group that acts as one control is one stop (Microsoft's checklist). (Decided, Q-17.)
+- **macOS:** Follows the system's full-keyboard-access setting: every control when it is on, text fields and lists only when it is off.
 - **Sources** (4 records, 2 on Microsoft's checklist):
   - Apple: [focus-and-selection](https://developer.apple.com/design/human-interface-guidelines/focus-and-selection) 5
   - Windows 7: [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 31; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 70\*; [inter-keyboard](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-keyboard) 13\*
@@ -930,36 +932,36 @@ Modifiers keep their usual meaning during direct manipulation: the copy modifier
 
 ### KEY-13
 
-Going to a search area puts the keyboard in its search field, with its earlier text selected so typing replaces it; Find focuses the window's search field.
+Going to a search area puts the keyboard in its search field, with its earlier text selected so typing replaces it; Find focuses the window's search field; where the window has a separate find bar, Find opens it (decided, Q-20).
 
-- **Windows:** Ctrl+E goes to the window's search box (Windows 7 guide) and Ctrl+F to Find; when the window has one search field, both go to it.
+- **Windows:** Ctrl+F and Ctrl+E both go to the window's search field when there is one; where there is a separate find bar, Ctrl+F opens it and Ctrl+E goes to the search field.
 - **macOS:** Cmd-F.
 - **Sources** (3 records):
   - Apple: [search-fields](https://developer.apple.com/design/human-interface-guidelines/search-fields) 20
   - Windows 7: [ctrl-search-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-search-boxes) 10, 9
 - **Enforce:**
-  - Component: SearchField registers itself as the window's Find target.
+  - Component: SearchField registers itself as the window's Find target, answering Ctrl+F and Ctrl+E on Windows and Linux and Cmd-F on macOS; a find bar, where an app has one, takes Find instead.
   - Test, all screens of an app: Every app screen with a SearchField answers to Find.
 - **kvit-ui now:** does not cover it. No Find key and no search-field registration (survey §5); whether the field selects its text on focus is unison's field, not verified.
 
 ### KEY-14
 
-A shortcut is taught where its command appears: every menu-bar item with a shortcut shows it, and a toolbar button's tooltip shows it too; context menus show none.
+A shortcut is taught where its command appears: every menu-bar item with a shortcut shows it; context menus show none. A control's tooltip is one string, its verb-led name, with the shortcut added on the Windows form (decided, Q-23).
 
-- **Windows:** All the shortcuts are also listed together on one help page. Every control with a shortcut shows it in its tooltip, and a shortcut for a command on a list item is taught in the tooltip of the item or its hover button.
-- **macOS:** The general rule (CMD-11).
+- **Windows:** All the shortcuts are also listed together on one help page. Every control with a shortcut shows it in its tooltip, in parentheses after the name ("Save (Ctrl+S)"), and a shortcut for a command on a list item is taught in the tooltip of the item or its hover button.
+- **macOS:** The general rule (CMD-11); tooltips carry no shortcut.
 - **Sources** (6 records):
   - Apple: [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 5; [keyboards](https://developer.apple.com/design/human-interface-guidelines/keyboards) 5
   - Windows 7: [inter-keyboard](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-keyboard) 47; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 61
   - Fluent: [ui-controls-collection-commanding](https://learn.microsoft.com/en-us/windows/apps/design/controls/collection-commanding) 9; [ui-controls-tooltips](https://learn.microsoft.com/en-us/windows/apps/design/controls/tooltips) 14
 - **Enforce:**
-  - Component: With the Command type, a MenuItem shows its command's key, and the tooltip of an IconButton or Button adds it.
-  - Test, all screens of an app: Every command with a shortcut shows it in its menu-bar item and its toolbar tooltip.
-- **kvit-ui now:** partly. MenuItem.Key draws the shortcut (`menu.go:252-258`), but apps set it by hand; Field's tooltip shows its `Shortcut` (`field.go:154-164`); IconButton's tooltip has no shortcut (`iconbutton.go:69-74`).
+  - Component: With the Command type, a MenuItem shows its command's key, and on Windows and Linux the tooltip of an IconButton, Button or Field adds it in parentheses after the name.
+  - Test, all screens of an app: Every command with a shortcut shows it in its menu-bar item, and on Windows and Linux in its toolbar tooltip.
+- **kvit-ui now:** partly. MenuItem.Key draws the shortcut (`menu.go:252-258`), but apps set it by hand; Field's tooltip shows its `Shortcut` on every system, as "Label · Shortcut" rather than in parentheses (`field.go:154-164`); IconButton's tooltip has no shortcut (`iconbutton.go:69-74`).
 
 ### KEY-15
 
-On Windows and Linux every interactive control has an access key: Alt and a letter underlined in its words or its label, unique in the window, which operates the control at once (only focuses it when shared). Every menu and menu item has one, unique within its level. Access keys and shortcuts are separate things.
+On Windows and Linux every interactive control has an access key: Alt and a letter underlined in its words or its label, unique in the window, which operates the control at once (only focuses it when shared). Every menu and menu item has one, unique within its level. Access keys and shortcuts are separate things (decided, Q-11; the Windows 7 form stands, Q-39).
 
 - **Windows:** None on OK, Cancel and Close (Enter and Escape serve them; a button that means OK or Cancel under other words does get one), links, tabs (Ctrl+Tab), a plain Help button (F1), an ellipsis-only browse button, controls without words, toolbar items, group titles (unless keys run short) or static text. Commit buttons are assigned first with the standard letters (Y, N, the n of Don't, A for Apply), then the first letter or an early, wide, distinctive one (w, m, capitals; x in Exit), avoiding i, l and letters with or beside descenders. About 20 at most per dialog, leaving room for translation. Underlines show while Alt is held, or always when the system asks; Alt alone shows and focuses a hidden menu bar.
 - **macOS:** None: macOS has no access keys, and the words are drawn without the marker, as Kvit's menus already do (`menu.go:21-24`).
@@ -967,7 +969,7 @@ On Windows and Linux every interactive control has an access key: Alt and a lett
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 51\*, 52\*, 53, 54, 55\*, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 29, 43; [progress-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/progress-bars) 45; [ctrl-list-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-views) 41\*; [ctrl-group-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-group-boxes) 9; [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 48\*; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 49\*, 56, 85; [ctrl-list-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-boxes) 48\*; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 27; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 47\*, 74\*, 75\*; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 48, 37; [inter-accessibility](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-accessibility) 2, 32, 40, 41, 42, 43, 44, 45, 46, 47\*, 48\*, 49, 50, 51\*, 52, 53, 54, 55, 56, 57, 58; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 34\*; [ctrl-tree-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tree-views) 40; [inter-keyboard](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-keyboard) 3, 4, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29\*, 30, 31, 32\*, 34, 35, 36, 37, 38, 39, 40, 41; [ctrl-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-links) 27\*; [ctrl-sliders](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-sliders) 24, 31; [text-ui](https://learn.microsoft.com/en-us/windows/win32/uxguide/text-ui) 62\*; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 36; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 27, 41; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 50, 51, 52, 53, 54, 55; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 35
 - **Enforce:**
   - Component: The `&` marker of MenuItem (`AccessText`, `menu.go:57-74`) is shared by Button, Check, Switch, RadioGroup options, Disclosure, ChipButton and a visible field or list label; the window routes Alt+letter to the control (controls already ignore keys with Alt, `control.go:153-156`); Dialog's Cancel and close button take none; platform reads the always-underline setting on Windows.
-  - Test, one screen: On Windows and Linux, in each window: access keys are unique among enabled controls, every eligible control has one, and Link, Tab, IconButton, Cancel and Close have none.
+  - Test, one screen: On Windows and Linux, in each window: every eligible control has an access key, access keys are unique among enabled controls, and Link, Tab, IconButton, Cancel and Close have none.
 - **kvit-ui now:** partly. Menus underline the `&` letter and choose by it while open (`menu.go:21-24`, `menu.go:525-564`); tray menus keep text plain (`platform/tray_windows.go:486`, `platform/tray_linux.go:445`); no control outside a menu has an access key, there is no Alt+letter route and no menu bar (survey §4).
 
 ## Pointer
@@ -1112,15 +1114,15 @@ Hovering over text that is cut short shows the whole text.
 
 ### PTR-13
 
-With a popover open, a click on another control that opens one closes the first and opens the second in one click; that click never also presses a Close, Delete or other destructive button.
+A click outside an open popover closes it and goes no further, except on a control that opens another popover, which opens in the same click (decided, Q-43); so that click never presses a button.
 
 - **Sources** (3 records):
   - Apple: [popovers](https://developer.apple.com/design/human-interface-guidelines/popovers) 9
   - Fluent: [ui-controls-dialogs-and-flyouts-flyouts](https://learn.microsoft.com/en-us/windows/apps/design/controls/dialogs-and-flyouts/flyouts) 7, 8
 - **Enforce:**
-  - Component: Popover.
-  - Test, one screen.
-- **kvit-ui now:** does not cover it. Not checked; outside clicks close the popover (`popover.go:114`).
+  - Component: Window's popup layer: a press outside a popover closes it and is consumed, unless it lands on a control that opens a popover.
+  - Test, one screen: With a popover open, a click on a button closes the popover without pressing the button; a click on another popover's opener opens it.
+- **kvit-ui now:** contradicts it. A press outside a popup closes it and still reaches what is under the pointer, unless it lands on the popup's own opener (`layer.go:31-34`, `layer.go:175-202`); Popover uses it (`popover.go:114`).
 
 ### PTR-14
 
@@ -1170,7 +1172,7 @@ Dialog buttons follow the platform's order and placement.
 
 An alert asks one question, with a specific title and at most three buttons; a routine or informational message that can recur offers a don't-show-again option, while an error or a necessary warning never does: if it seems to need one, it should not be shown.
 
-- **Windows:** A dialog always has body text: detail under the title, or the message itself when there is no title (MSG-4). One or two buttons for a decision; a third only sparingly, its action clearly different from the safe one; further choices become checkboxes or radio buttons committed by one button. The suppression option is worded "Don't show this <item> again" (Don't show this reminder again), or "Don't show this message again" for a dialog in general.
+- **Windows:** A dialog always has body text under its title (every dialog has a title, decided, Q-42). One or two buttons for a decision; a third only sparingly, its action clearly different from the safe one; further choices become checkboxes or radio buttons committed by one button. The suppression option is worded "Don't show this <item> again" (Don't show this reminder again), or "Don't show this message again" for a dialog in general.
 - **macOS:** Explanatory text only when it adds something. The alert's suppression checkbox, "Do not show this message again" unless the app words it.
 - **Sources** (25 records, 11 on Microsoft's checklist):
   - Apple: [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 7, 13, 36, 17, 35
@@ -1184,7 +1186,7 @@ An alert asks one question, with a specific title and at most three buttons; a r
 
 ### WIN-3
 
-Every dialog has a safe button that leaves without acting (Cancel, Close, or a specific one such as Not now), and a dialog with one button has only that one; Cancel is never the default; a sheet or step with Done also has Cancel or Back; a dialog whose answers are command links keeps a separate Cancel button, never a cancelling link.
+Every dialog has a safe button that leaves without acting (Cancel, Close, or a specific one such as Not now), and a dialog with one button has only that one; Cancel is never the default; a sheet or step with a finishing button (Done on macOS, Close on Windows and Linux, decided, Q-6) also has Cancel or Back.
 
 - **Sources** (7 records, 1 on Microsoft's checklist):
   - Apple: [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 27, 28; [sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) 6, 7
@@ -1221,16 +1223,16 @@ Use a modal dialog only for a short task that must be answered first; long work,
 
 A modal view has a title naming its task and an obvious way out inside it, with nothing else looking like the close control; the close control means Cancel or Close, never OK.
 
-- **Windows:** Every dialog has the title bar's Close (Kvit draws it beside the title), never disabled except in a progress dialog that must finish to avoid losing data. A dialog with settings also has Cancel in its body, a modeless one Close. The title is the main instruction, a short statement of what to do or decide (a progress dialog's names the operation); it does not name the command, feature or program. A simple message may have no title (MSG-4).
-- **macOS:** Alerts and sheets have no close control; the way out is Cancel or Escape.
+- **Windows:** Every dialog has the title bar's close symbol (decided, Q-8) (Kvit draws it beside the title), never disabled except in a progress dialog that must finish to avoid losing data. A dialog with settings also has Cancel in its body, a modeless one Close. The title is the main instruction, a short statement of what to do or decide (a progress dialog's names the operation); it does not name the command, feature or program.
+- **macOS:** No dialog, alert or sheet has a close symbol (decided, Q-8); the way out is Cancel or Escape.
 - **Sources** (17 records):
   - Apple: [modality](https://developer.apple.com/design/human-interface-guidelines/modality) 6, 8, 4
   - Windows 7: [win-window-mgt](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-window-mgt) 6; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 26, 43, 44, 45, 122, 182, 125, 183, 185; [mess-warn](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-warn) 29; [progress-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/progress-bars) 52; [exper-printing](https://learn.microsoft.com/en-us/windows/win32/uxguide/exper-printing) 42
   - Fluent: [ui-controls-dialogs-and-flyouts-dialogs](https://learn.microsoft.com/en-us/windows/apps/design/controls/dialogs-and-flyouts/dialogs) 4
 - **Enforce:**
-  - Component: Dialog (title, Cancel, close, Escape); its close control is drawn by platform.
-  - Test, one screen: Every dialog has a non-empty Title, except, on the Windows form, a simple message whose body says what happened.
-- **kvit-ui now:** partly. Three ways out: close symbol, Cancel, Escape (`feedback.go:368-375`), the close symbol rejecting as Cancel does (`feedback.go:428-429`); Title asks the question (`feedback.go:385-386`), as the Windows form now wants; the close symbol shows on macOS too.
+  - Component: Dialog (title, Cancel, close, Escape); its close symbol is drawn on Windows and Linux only.
+  - Test, one screen: Every dialog has a non-empty Title on every system (decided, Q-42).
+- **kvit-ui now:** partly. Three ways out: close symbol, Cancel, Escape (`feedback.go:368-375`), the close symbol rejecting as Cancel does (`feedback.go:428-429`); Title asks the question (`feedback.go:385-386`), as the Windows form now wants; the close symbol shows on macOS too, which the macOS form rules out, and nothing refuses an empty Title.
 
 ### WIN-7
 
@@ -1270,10 +1272,10 @@ A dialog that belongs to one window blocks only that window and stays with it; t
 
 ### WIN-10
 
-A popover closes on a click outside it, on Escape and when its window is resized, and the click that closes it does not reach the control under it (except as PTR-13 allows); a single-choice popover closes when the choice is made; Cancel and Done appear only when they clarify whether changes are kept; a tray icon's popup applies its settings at once; a popover never stands in for a tooltip or a context menu.
+A popover closes on a click outside it, on Escape and when its window is resized, and the click that closes it does not reach the control under it except on a control that opens another popover, which opens in the same click (decided, Q-43); a single-choice popover closes when the choice is made; Cancel and a finishing button appear only when they clarify whether changes are kept; a tray icon's popup applies its settings at once; a popover never stands in for a tooltip or a context menu.
 
-- **Windows:** A popover with commit and Cancel buttons discards its changes on a click outside; one without them keeps what was entered.
-- **macOS:** A click outside keeps what was entered.
+- **Windows:** A popover with commit and Cancel buttons discards its changes on a click outside; one without them keeps what was entered. The finishing button is Close (decided, Q-6).
+- **macOS:** A click outside keeps what was entered. The finishing button is Done (decided, Q-6).
 - **Sources** (18 records):
   - Apple: [popovers](https://developer.apple.com/design/human-interface-guidelines/popovers) 3, 4, 5, 6, 10, 11, 15, 16
   - Windows 7: [winenv-notification](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-notification) 29
@@ -1285,24 +1287,24 @@ A popover closes on a click outside it, on Escape and when its window is resized
 
 ### WIN-11
 
-Every main window can be resized, moved and minimised in the system's frame, which shows whether it is active; it opens at a size that shows its typical content, has a minimum size where its content stops working, drops optional parts below that rather than squeezing them, and its layout works at every size above it.
+Every main window can be resized, moved and minimised in the system's frame, which shows whether it is active and holds no app controls: Back, the sidebar toggle, search and tabs sit in the window's own header below it (decided, Q-41). It opens at a size that shows its typical content, has a minimum size where its content stops working (Kvit's floor is Px(880) by Px(600); the Windows 7 800×600 floor is not followed, decided, Q-25), drops optional parts below that rather than squeezing them, and its layout works at every size above it.
 
-- **Windows:** The title bar Kvit draws may hold Back and the sidebar toggle at its leading end before the title, an app-wide search box centred (CTL-15), document tabs, and the account picture just before the caption buttons, provided its empty parts and the title still drag the window and an empty area beside the caption buttons is always left for dragging. It behaves as the system's: a double-click maximises or restores; a right-click on an empty part, or a click on the icon, opens the system window menu; a double-click on the icon closes the window. On a narrow window the title is shortened with an ellipsis, and the icon and caption buttons stay whole. Every resizable window can be maximised and restored, to its largest useful size when it gains nothing from more. It fits and works on an 800×600 screen less the taskbar, and its default layout aims at 1024×768 (Q-25).
-- **macOS:** Zoom and the system's full-screen mode (WIN-15); the frame holds no app controls.
+- **Windows:** Every resizable window can be maximised and restored, to its largest useful size when it gains nothing from more; its default layout aims at 1024×768.
+- **macOS:** Zoom and the system's full-screen mode (WIN-15).
 - **Sources** (43 records, 5 on Microsoft's checklist):
   - Apple: [designing-for-macos](https://developer.apple.com/design/human-interface-guidelines/designing-for-macos) 2; [windows](https://developer.apple.com/design/human-interface-guidelines/windows) 1, 4, 9; [layout](https://developer.apple.com/design/human-interface-guidelines/layout) 10
   - Windows 7: [vis-layout](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-layout) 23, 32\*, 19\*, 20\*, 25, 29\*; [win-window-mgt](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-window-mgt) 7, 8, 10; [win-window-frames](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-window-frames) 4, 2; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 59, 60; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 40\*, 173; [ctrl-list-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-views) 39; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 17; [ctrl-list-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-boxes) 44; [ctrl-tree-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tree-views) 38
   - Fluent: [ui-controls-navigationview](https://learn.microsoft.com/en-us/windows/apps/design/controls/navigationview) 25, 26; [basics-titlebar-design](https://learn.microsoft.com/en-us/windows/apps/design/basics/titlebar-design) 1, 3, 5, 6, 7, 9, 10, 12, 20, 21; [ui-controls-tab-view](https://learn.microsoft.com/en-us/windows/apps/design/controls/tab-view) 15; [layout-responsive-design](https://learn.microsoft.com/en-us/windows/apps/design/layout/responsive-design) 7; [ui-controls-title-bar](https://learn.microsoft.com/en-us/windows/apps/design/controls/title-bar) 1, 3, 5, 7; [basics-app-silhouette](https://learn.microsoft.com/en-us/windows/apps/design/basics/app-silhouette) 6
 - **Enforce:**
-  - Component: Window (exists, system frame); on Windows and Linux a Kvit-drawn title bar for an app that puts controls in it, keeping the drag area and the system's title-bar behaviour; full screen (WIN-15).
-  - Test, one screen: Screenshots at the minimum and design sizes (exists for pages); with a drawn title bar, an empty drag area remains beside the caption buttons at the minimum width.
-- **kvit-ui now:** partly. System frame, with nothing of the app's in it; minimum size Px(880)×Px(600) (`window.go:88-92`), above Windows' 800×600 floor at larger interface sizes; no full screen (survey §9).
+  - Component: Window (exists, system frame, minimum Px(880)×Px(600)); full screen (WIN-15).
+  - Test, one screen: Screenshots at the minimum and design sizes (exists for pages).
+- **kvit-ui now:** partly. System frame, with nothing of the app's in it; minimum size Px(880)×Px(600) (`window.go:88-92`), as decided; no full screen (survey §9).
 
 ### WIN-12
 
 A window's title names its content and tells it apart from the app's other windows; a new document is Untitled until named.
 
-- **Windows:** A document window: "document name - program name"; another main window: the program name; a dialog: its main instruction (WIN-6); a properties window "<name> Properties" ("<first>, … Properties", or Selection Properties, for several). A window on the taskbar puts what tells it apart first (66% Complete, 3 Reminders). A window that shows its name prominently inside may hide the caption, but still sets the title. A drawn title bar may add the window's state as a subtitle (Editing, Viewing).
+- **Windows:** A document window: "document name - program name", with an asterisk before the name while it has unsaved changes (*Report - Kvit Cash, WIN-20); another main window: the program name; a dialog: its main instruction (WIN-6); a properties window "<name> Properties" ("<first>, … Properties", or Selection Properties, for several). A window on the taskbar puts what tells it apart first (66% Complete, 3 Reminders). A window that shows its name prominently inside may hide the caption, but still sets the title.
 - **macOS:** The document or place, without the app's name.
 - **Sources** (16 records):
   - Apple: [toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars) 10, 11, 12; [file-management](https://developer.apple.com/design/human-interface-guidelines/file-management) 19
@@ -1392,29 +1394,27 @@ Open and save files through the system's dialogs, which bring name, folder, form
 
 ### WIN-19
 
-Never lose work: save automatically or ask before closing a window or quitting with unsaved changes.
+Never lose work: notes-like data (kvit-notes, kvit-works) saves automatically; kvit-cash asks before closing a window or quitting with unsaved changes, with Save, Don't save and Cancel, where Cancel abandons the close or quit, and has Save on its standard shortcut (decided, Q-12).
 
-- **Windows:** Closing or exiting with unsaved changes asks with Save, Don't save and Cancel, where Cancel abandons the close or exit itself. Whether Kvit also autosaves on Windows is Q-12.
-- **macOS:** Autosave is the Mac way; Q-12.
 - **Sources** (8 records):
   - Apple: [file-management](https://developer.apple.com/design/human-interface-guidelines/file-management) 4, 23; [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 23; [multitasking](https://developer.apple.com/design/human-interface-guidelines/multitasking) 1
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 129; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 21
   - Fluent: [ui-controls-buttons](https://learn.microsoft.com/en-us/windows/apps/design/controls/buttons) 25; [basics-commanding-basics](https://learn.microsoft.com/en-us/windows/apps/design/basics/commanding-basics) 16
 - **Enforce:**
-  - Component: Window gains `AllowClose` wired to unison's `AllowCloseCallback`; MenuBar's Quit goes through it.
-  - Review.
+  - Component: Window gains `AllowClose` wired to unison's `AllowCloseCallback`, for autosaving and asking apps alike; MenuBar's Quit goes through it.
+  - Review: Which data saves automatically and which asks.
 - **kvit-ui now:** does not cover it. No unsaved-changes hook (`window.go:114`).
 
 ### WIN-20
 
-Mark a document with unsaved changes in its window (a dot in the close button on a Mac, or Edited), and clear the mark when saved.
+Mark a document with unsaved changes through Window.Edited, and clear the mark when saved.
 
-- **Windows:** Not set by Microsoft's guidance; mark it in the window title, as the general rule says (Q-13).
-- **macOS:** Dot in the close button.
+- **Windows:** An asterisk before the document name in the window title (*Report - Kvit Cash) (decided, Q-13).
+- **macOS:** The system's dot in the close button.
 - **Sources** (3 records):
   - Apple: [file-management](https://developer.apple.com/design/human-interface-guidelines/file-management) 24, 25, 26
 - **Enforce:**
-  - Component: Window.Edited.
+  - Component: Window.Edited: the title's asterisk on Windows and Linux, the close button's dot on macOS.
 - **kvit-ui now:** does not cover it. Not covered.
 
 ### WIN-22
@@ -1472,7 +1472,7 @@ A window or dialog opens wholly on screen, inside the area the taskbar or Dock l
 
 ### MSG-1
 
-Show a message only when the reader will act on it or must know it now; otherwise fix the problem silently, give the nearest result, or write it to a log. Background work the reader did not start needs no message. What is shown goes where its urgency puts it: inline, then a notice, then a dialog, escalating only as a condition becomes urgent, once per condition; information shown every few minutes gets its own place in the window. A notice (an in-window bar) carries long-lived app-wide status without interrupting: it takes its own space and covers nothing, has at most one action, closes when its condition is resolved or by the reader (no close control while it must stay until resolved), is never shown and withdrawn in rapid turns, and is announced to screen readers when it appears. A notice never confirms an action that changed nothing. Messages make no sound unless the reader must respond at once.
+Show a message only when the reader will act on it or must know it now; otherwise fix the problem silently, give the nearest result, or write it to a log. Background work the reader did not start needs no message. What is shown goes where its urgency puts it: inline, then a notice, then a dialog, escalating only as a condition becomes urgent, once per condition; information shown every few minutes gets its own place in the window. A notice (an in-window bar) carries long-lived app-wide status without interrupting: it takes its own space and covers nothing, has at most one action, closes when its condition is resolved or by the reader (no close control while it must stay until resolved), is never shown and withdrawn in rapid turns, and is announced to screen readers when it appears. A notice never confirms an action that changed nothing; success the reader just caused is a toast, and a success notice is only for background work that ended while the reader was elsewhere (decided, Q-47). Messages make no sound unless the reader must respond at once.
 
 - **Windows:** A dialog that needs attention while the app is in the background flashes the app's taskbar button three times and leaves it highlighted, without taking focus or making a sound.
 - **macOS:** A background app bounces its Dock icon once for a dialog that needs attention (critical: until the app is active).
@@ -1513,17 +1513,16 @@ Do not ask before an action that can be undone, is frequent, or whose loss is th
 
 ### MSG-4
 
-A message's title (its main instruction) says what happened, or asks the one question, specifically, in at most two lines; never a bare Error or a code; calm, and never making the reader the subject of a mistake. An error code appears only when the message cannot be specific or the code helps a search, in the details, as "Error code: 0x80070005".
+A message's title (its main instruction) says what happened, or asks the one question, specifically, in at most two lines; never a bare Error or a code; calm, and never making the reader the subject of a mistake. Every dialog has a title on every system (decided, Q-42), and no caption names the command, feature or program (decided, Q-9). Problem messages are worded to suit every system ("Couldn't save the file"), never with "we" (decided, Q-15). An error code appears only when the message cannot be specific or the code helps a search, in the details, as "Error code: 0x80070005".
 
-- **Windows:** A simple message, error or question may have no title; its first line then says what happened or asks the question. No caption names the command, feature or program (Q-9).
 - **Sources** (30 records, 3 on Microsoft's checklist):
   - Apple: [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 8, 9, 10, 11
   - Windows 7: [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 66, 48, 50, 51, 52, 9, 18, 49, 58\*, 68, 69, 72, 75; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 42, 43, 1, 46, 44, 47; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 111\*, 110\*; [mess-warn](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-warn) 34; [mess-notif](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-notif) 45; [ctrl-balloons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-balloons) 23
   - Fluent: [ui-controls-dialogs-and-flyouts-dialogs](https://learn.microsoft.com/en-us/windows/apps/design/controls/dialogs-and-flyouts/dialogs) 5, 3
 - **Enforce:**
   - Test, one screen: Fail a Dialog or Notice title of "Error", "Warning", a code alone, or over about 100 characters, and one that starts with "You " in a Notice or Dialog of danger tone.
-  - Review: A confirmation's title asks more than one question; an error code outside the details.
-- **kvit-ui now:** does not cover it. Not checked; Dialog's Title "asks the question" (`feedback.go:385`), with no title bar or caption beside it; Dialog has no title-less form: an empty Title still leaves the title row (`feedback.go:449`).
+  - Review: A confirmation's title asks more than one question; an error code outside the details; "we" in a message.
+- **kvit-ui now:** does not cover it. Not checked; Dialog's Title "asks the question" (`feedback.go:385`), with no caption beside it, and the title row is always drawn (`feedback.go:449`), as every dialog has a title.
 
 ### MSG-5
 
@@ -1552,7 +1551,7 @@ Report an input problem next to its cause, saying how to put it right: a charact
 
 ### MSG-7
 
-Confirm success only for significant tasks; report ordinary actions only when they fail. Background work longer than about two minutes whose end matters more than its progress reports its end by a notification, and a guided flow ends on a completion page. A completion sound only for rare, important work long enough for people to walk away.
+Confirm success only for significant tasks, by a toast when the reader just caused it (decided, Q-47); report ordinary actions only when they fail. Background work longer than about two minutes whose end matters more than its progress reports its end by a notification, and a guided flow ends on a completion page. A completion sound only for rare, important work long enough for people to walk away.
 
 - **Windows:** Windows may give on-demand success feedback through a tray icon shown only while the work runs (MSG-17).
 - **Sources** (15 records, 6 on Microsoft's checklist):
@@ -1565,15 +1564,14 @@ Confirm success only for significant tasks; report ordinary actions only when th
 
 ### MSG-8
 
-Nothing the reader needs closes itself on a timer.
+Nothing the reader needs closes itself on a timer: a toast closes after 4 s only when it acknowledges something nothing later needs, and a field's message stays until the value is fixed. Tooltip timing comes from the system where it has a setting (Windows), Kvit's own formula elsewhere; a tooltip is never the only place a control's meaning lives (HLP-1) (decided, Q-21).
 
-- **Windows:** Windows closes an input balloon after about ten seconds and a tooltip after five. Kvit keeps a field's message until the value is fixed, and a tooltip is never the only place a control's meaning lives (HLP-1), so its timing is not this rule's concern.
 - **Sources** (8 records):
   - Apple: [accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) 27
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 161; [ctrl-tooltips-and-infotips](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tooltips-and-infotips) 16, 17; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 28; [ctrl-balloons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-balloons) 14, 15
   - Fluent: [ui-controls-infobar](https://learn.microsoft.com/en-us/windows/apps/design/controls/infobar) 4
 - **Enforce:**
-  - Component: Toast keeps its rule that one with an action stays (exists); Field.Error stays until the application clears it (exists); Q-21 on the 4 s toast.
+  - Component: Toast keeps its rule that one with an action stays and closes after 4 s otherwise (exists); Field.Error stays until the application clears it (exists); tooltips on Windows take the system's hover and show times.
 - **kvit-ui now:** partly. A Toast with an action stays; one without closes after 4 s (`feedback.go:67-91`, `feedback.go:117-131`); Field's message stays while Error is set (`field.go:386-395`).
 
 ### MSG-9
@@ -1590,7 +1588,7 @@ An empty view says what would be there and gives the action that fills it; it is
 
 ### MSG-10
 
-A desktop notification is for something that happened in the background, not the result of what the reader just did: one fact, once, silently, never private data, never continuously changing information such as progress, and none while the app's window is in front. Notify only what may change what the reader does. Assume it may go unseen: nothing, first-run information included, depends on it, and what must not be ignored is not a notification.
+A desktop notification is for something that happened in the background, not the result of what the reader just did: one fact, once, silently, never private data, never continuously changing information such as progress, never an advertisement on any system (decided, Q-31), and none while the app's window is in front. Notify only what may change what the reader does. Assume it may go unseen: nothing, first-run information included, depends on it, and what must not be ignored is not a notification.
 
 - **Windows:** An ignorable failure of background work unrelated to the current task (a sync that failed) may be an action-failure notification with the error symbol, and a problem that matters while other programs are in use is shown on the tray icon (MSG-17). Windows holds notifications back for a new system's first hours.
 - **macOS:** No errors in notifications; a failure is shown in the window and, if needed, as a badge (MSG-14).
@@ -1618,10 +1616,9 @@ A notification's title is short and specific without the app's name; the body is
 
 ### MSG-12
 
-Give each notification an honest kind and urgency, and the timing that goes with it: success, failure and information once, when the work ends, and dropped if it cannot be shown then; a problem the reader must solve when it starts, then at most daily, withdrawn once fixed; an optional task at most once a day, three times in all. Hold back a failure that may fix itself within seconds, and avoid the burst at logon. People choose which kinds they get.
+Give each notification an honest kind and urgency, and the timing that goes with it: success, failure and information once, when the work ends, and dropped if it cannot be shown then; a problem the reader must solve when it starts, then at most daily, withdrawn once fixed; an optional task at most once a day, three times in all. Hold back a failure that may fix itself within seconds, and avoid the burst at logon. People choose which kinds they get. Never advertise features or offers in a notification, on any system (decided, Q-31).
 
-- **Windows:** Never advertise features or offers in a notification; informational (FYI) notifications stay off until the reader turns them on, from the tray icon's menu.
-- **macOS:** Marketing only with explicit consent, at low urgency, changeable in settings.
+- **Windows:** Informational (FYI) notifications stay off until the reader turns them on, from the tray icon's menu.
 - **Sources** (21 records, 3 on Microsoft's checklist):
   - Apple: [managing-notifications](https://developer.apple.com/design/human-interface-guidelines/managing-notifications) 1, 4, 5, 6, 7, 8, 9
   - Windows 7: [exper-first-exper](https://learn.microsoft.com/en-us/windows/win32/uxguide/exper-first-exper) 26\*; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 68\*; [mess-notif](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-notif) 9\*, 10, 17, 18, 19, 20, 21, 35, 15, 50; [winenv-notification](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-notification) 40, 6
@@ -1669,7 +1666,7 @@ Ask for access to private data at the first use that needs it, saying why; do no
 
 ### MSG-16
 
-Choose a message's type by what the reader must do: an error for a problem that has happened and blocks them, a warning for a condition that may cause trouble later and lets them go on, information otherwise; an in-window notice may also be a success, for the end of long or background work. Its symbol and words agree with that type: never an error softened into a warning, a question with the warning symbol only when its answer risks losing data, money, access or much time, no symbol on routine questions, minor input problems or ordinary information. An error shown in place beside a field does carry the error symbol so it is not overlooked; a minor problem at the end of a flow is one more task, without error words.
+Choose a message's type by what the reader must do: an error for a problem that has happened and blocks them, a warning for a condition that may cause trouble later and lets them go on, information otherwise; success the reader just caused is a toast, and an in-window notice is a success only for background work that ended while the reader was elsewhere (decided, Q-47). Its symbol and words agree with that type: never an error softened into a warning, a question with the warning symbol only when its answer risks losing data, money, access or much time, no symbol on routine questions, minor input problems or ordinary information. An error shown in place beside a field does carry the error symbol so it is not overlooked; a minor problem at the end of a flow is one more task, without error words.
 
 - **Windows:** A notification's symbol follows its kind: error for an action failure, warning for a system event, the subject's own symbol otherwise, never the information symbol (MSG-10).
 - **Sources** (38 records, 23 on Microsoft's checklist):
@@ -1766,26 +1763,30 @@ A checkbox that governs others shows a mixed state when they differ; a click on 
 
 Make on and off differ by more than colour, and say what a toggle turns on; a switch's label is one or two words, preferably a noun naming what it controls (Wi-Fi).
 
+- **Windows:** A switch shows On or Off beside it (decided, Q-44).
+- **macOS:** As stated.
 - **Sources** (7 records):
   - Apple: [toggles](https://developer.apple.com/design/human-interface-guidelines/toggles) 2, 3, 4
   - Windows 7: [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 32
   - Fluent: [ui-controls-checkbox](https://learn.microsoft.com/en-us/windows/apps/design/controls/checkbox) 6; [ui-controls-toggles](https://learn.microsoft.com/en-us/windows/apps/design/controls/toggles) 2, 6
 - **Enforce:**
-  - Component: Switch, Check, checkable buttons (exist).
-- **kvit-ui now:** enforces it. Checked buttons get an outline as well as a tint (`button.go:63-66`, `iconbutton.go:42-44`).
+  - Component: Switch, Check, checkable buttons (exist); Switch shows On or Off beside it on the Windows form.
+- **kvit-ui now:** partly. Checked buttons get an outline as well as a tint (`button.go:63-66`, `iconbutton.go:42-44`) and Switch's knob moves as well as its track filling (`switch.go:16-20`); Switch shows no On or Off text beside it.
 
 ### CTL-7
 
 Prefer a control that accepts only valid values (select, list, slider, stepper) to free text; a text field is for values limited only by length or kind of character. Use a single-line field, with no scroll bar, for short entries and a wrapping text area of set height, which scrolls rather than grows, for long ones; plain text unless formatting is needed, and a rich text editor comes with working formatting commands. A field accepts the common ways a value is written, limits its length to the longest valid form, states the format when it cannot accept them all, and uses the unit that spares people decimals, labelled; long text with a limit shows a live count of what remains. Pasted text is fitted to the field: a single-line field drops line breaks, and a paste past the limit is reported, not silently cut. Number fields take only numbers and show them formatted, and an emptied one holds no value, never zero; a special case such as Unlimited is its own option, never a magic number. On focus a field selects its whole value when people usually replace it. Spell checking is on where people type words and sentences, even in a language the app does not support, and off for names, numbers and codes; it corrects only when sure and otherwise underlines the word and offers alternatives in its context menu. Secrets are masked and a password field opens empty; a reveal button, clear of other controls, shows the password only while held, or a Show password checkbox switches it. A new password is typed twice; signing in asks once.
 
+- **Windows:** A focused single-line field holding text shows a clear button (decided, Q-44).
+- **macOS:** As stated.
 - **Sources** (66 records, 5 on Microsoft's checklist):
   - Apple: [text-fields](https://developer.apple.com/design/human-interface-guidelines/text-fields) 1, 4, 11, 13; [entering-data](https://developer.apple.com/design/human-interface-guidelines/entering-data) 5, 6, 10; [text-views](https://developer.apple.com/design/human-interface-guidelines/text-views) 1; [labels](https://developer.apple.com/design/human-interface-guidelines/labels) 1; [image-wells](https://developer.apple.com/design/human-interface-guidelines/image-wells) 1
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 159\*; [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 1\*, 10, 11, 14, 17, 15, 16, 18, 19, 22, 26, 5, 20, 27; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 32\*; [how-to-design-desktop-ux](https://learn.microsoft.com/en-us/windows/win32/uxguide/how-to-design-desktop-ux) 19\*; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 25\*; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 24
   - Fluent: [app-settings-guidelines-for-app-settings](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings) 37; [ui-controls-text-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/text-box) 1, 2, 4, 8, 11, 15, 17, 20, 21, 22, 23, 24, 26; [ui-controls-number-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/number-box) 1, 2, 5, 10, 11, 13; [ui-controls-password-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/password-box) 1, 5, 6, 7, 8, 9, 10; [ui-controls-forms](https://learn.microsoft.com/en-us/windows/apps/design/controls/forms) 3, 18; [ui-controls-text-controls](https://learn.microsoft.com/en-us/windows/apps/design/controls/text-controls) 5, 7, 8, 15, 16, 17, 18, 19
 - **Enforce:**
-  - Component: Field: a length limit with a remaining count, paste fitting, a masked mode with reveal, select-all on focus and spell checking set per field; NumberField and MoneyField (exist).
+  - Component: Field: a length limit with a remaining count, paste fitting, a masked mode with reveal, select-all on focus and spell checking set per field; NumberField and MoneyField (exist). A clear button on a focused single-line Field holding text, on the Windows form.
   - Review: A constrained control wherever the valid values can be listed; spell checking off for names, numbers and codes.
-- **kvit-ui now:** partly. NumberField checks as the reader types, accepts both decimal separators, reformats on blur and has no value while empty (`numberfield.go:15-21`, `numberfield.go:62-69`, `numberfield.go:47-53`, `numberfield.go:72-76`); Field has no length limit, no masked mode, no spell checking and no select-on-focus choice (`field.go:31-48`); TextArea starts three rows tall and takes more height when given it (`field.go:404`).
+- **kvit-ui now:** partly. NumberField checks as the reader types, accepts both decimal separators, reformats on blur and has no value while empty (`numberfield.go:15-21`, `numberfield.go:62-69`, `numberfield.go:47-53`, `numberfield.go:72-76`); Field has no length limit, no masked mode, no spell checking and no select-on-focus choice and no clear button (`field.go:31-48`; only SearchField has one, `searchfield.go:54-57`); TextArea starts three rows tall and takes more height when given it (`field.go:404`).
 
 ### CTL-8
 
@@ -1803,7 +1804,7 @@ A control that cannot act now is removed when people cannot make it work or woul
 
 ### CTL-9
 
-A stepper is for small numbers changed by small amounts: each press moves by the smallest common step, holding a button repeats it, it never yields an invalid value, special values are words people can step to (Never), and the value can also be typed. Its buttons sit beside the value; stepping stops at the limits, and the button that would pass one is disabled. A slider is for a quantity judged by feel or effect (volume, brightness), oriented as the quantity usually is (a vertical one has its largest value at the top in every language), long enough to hit every value, non-linear over a very wide range or snapping only to a few representative values, with tick marks where it snaps and a value label with its unit, or a sample of the effect, when the value matters; whole units snap to whole steps and the last step lands on the maximum. It applies while dragged and labels its ends. An exact, known number is a number field, a value that cannot change is text, and a slider never shows progress.
+A stepper is for small numbers changed by small amounts: each press moves by the smallest common step, holding a button repeats it, it never yields an invalid value, special values are words people can step to (Never), and the value can also be typed. Its buttons sit beside the value; stepping stops at the limits, and the button that would pass one is disabled. A slider is for a quantity judged by feel or effect (volume, brightness), oriented as the quantity usually is (a vertical one has its largest value at the top in every language), long enough to hit every value, non-linear over a very wide range or snapping only to a few representative values, with tick marks where it snaps and a value label with its unit, or a sample of the effect, when the value matters; whole units snap to whole steps and the last step lands on the maximum. It applies while dragged and labels its ends, one word each (decided, Q-51); where the slider's label sits is appearance, not a rule (decided, Q-44). An exact, known number is a number field, a value that cannot change is text, and a slider never shows progress.
 
 - **Windows:** The Up and Down keys step a focused number field or stepper, Page Up and Page Down by a large step. A slider gets a number field beside it only when both instant feedback and exact entry are needed; a number field alone where space is tight or the keyboard is likely.
 - **macOS:** A slider over a wide range comes with a number field.
@@ -1886,9 +1887,9 @@ Choosing a value in a select, radio group, checkbox or list only sets it: it nev
 
 ### CTL-15
 
-A search field says what it searches, updates results as the reader types, starts with the widest scope, offers recent searches and narrows by scope or token; once text is typed it has a clear button, and clearing it restores the original view; one place searches everything. A search that finds nothing says No results where the results would be.
+A search field says what it searches, updates results as the reader types, starts with the widest scope, offers recent searches and narrows by scope or token; once text is typed it has a clear button, and clearing it restores the original view; one place searches everything. A filter over a list keeps the items that contain the typed text anywhere; a search across the app ranks matches at the start of a word first (decided, Q-45). A search that finds nothing says No results where the results would be.
 
-- **Windows:** App-wide search is a box centred in the title bar; a search of one view sits at that view's top trailing corner. A filter over a list keeps the items that contain the typed text anywhere. The clear button also stops a slow search; many results are ranked by relevance, and the results are one step in the Back history.
+- **Windows:** App-wide search is a box centred in the window's own header, below the system's title bar (decided, Q-41); a search of one view sits at that view's top trailing corner. The clear button also stops a slow search; many results are ranked by relevance, and the results are one step in the Back history.
 - **macOS:** Window search at the trailing end of the toolbar; sidebar filter at the top of the sidebar.
 - **Sources** (38 records):
   - Apple: [search-fields](https://developer.apple.com/design/human-interface-guidelines/search-fields) 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 19, 21; [searching](https://developer.apple.com/design/human-interface-guidelines/searching) 1, 2, 3, 4, 6; [outline-views](https://developer.apple.com/design/human-interface-guidelines/outline-views) 13; [token-fields](https://developer.apple.com/design/human-interface-guidelines/token-fields) 3
@@ -1897,7 +1898,7 @@ A search field says what it searches, updates results as the reader types, start
 - **Enforce:**
   - Component: SearchField: the placeholder is set per use; clear button and Escape (exist).
   - Test, one screen: Fail a SearchField left at the bare default placeholder on an app screen.
-- **kvit-ui now:** partly. SearchField's default placeholder is "Filter…" (`searchfield.go:38`), which says nothing about what is searched; its clear button appears once there is text (`searchfield.go:56-66`) and Escape clears (`searchfield.go:67-74`); Header has a middle place that could hold a search box (`header.go:11-16`), but there is no title bar of Kvit's own to centre it in.
+- **kvit-ui now:** partly. SearchField's default placeholder is "Filter…" (`searchfield.go:38`), which says nothing about what is searched; its clear button appears once there is text (`searchfield.go:56-66`) and Escape clears (`searchfield.go:67-74`); Header has a middle place that could hold a search box (`header.go:11-16`), which is where app-wide search goes on Windows; nothing filters by containment or ranks start-of-word matches.
 
 ### CTL-16
 
@@ -1953,16 +1954,16 @@ A field for values typed again and again (names, addresses, file names) complete
 
 ### CTL-20
 
-Show a picker in place, beside the field it edits or in a popover, with predictably ordered values; use the system's colour picker; a file or folder field has a Browse… button beside it that opens the system's file dialog, and any field whose valid values can be looked up may have a button beside it that opens a chooser.
+Show a picker in place, beside the field it edits or in a popover, with predictably ordered values. Readers pick colours only for their own categories (labels, tags), and only from the chart ramp's named steps; nowhere else does the app offer a colour choice (decided, Q-35). A file or folder field has a Browse… button beside it that opens the system's file dialog, and any field whose valid values can be looked up may have a button beside it that opens a chooser.
 
 - **Sources** (18 records):
   - Apple: [pickers](https://developer.apple.com/design/human-interface-guidelines/pickers) 3, 4, 5, 7; [color](https://developer.apple.com/design/human-interface-guidelines/color) 7; [color-wells](https://developer.apple.com/design/human-interface-guidelines/color-wells) 1, 2
   - Windows 7: [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 21, 2; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 14; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 11
   - Fluent: [ui-controls-color-picker](https://learn.microsoft.com/en-us/windows/apps/design/controls/color-picker) 1, 4, 5, 8, 3; [ui-controls-text-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/text-box) 16; [ui-controls-forms](https://learn.microsoft.com/en-us/windows/apps/design/controls/forms) 23
 - **Enforce:**
-  - Component: A path field with Browse… over platform.FileDialog.
-  - Review.
-- **kvit-ui now:** partly. No date or colour picker; platform.FileDialog opens the system's file dialog with a title and filters (`platform/filedialog.go:12-56`), but no field pairs it with a Browse… button.
+  - Component: A path field with Browse… over platform.FileDialog; a colour choice offering the categorical ramp's steps (`tokens/theme.go:183-189`).
+  - Review: A colour choice anywhere but the reader's own categories.
+- **kvit-ui now:** partly. No date or colour picker; the categorical ramp's steps exist as theme values (`tokens/theme.go:183-189`, `data.go:32-33`) but nothing offers them to the reader; platform.FileDialog opens the system's file dialog with a title and filters (`platform/filedialog.go:12-56`), but no field pairs it with a Browse… button.
 
 ### CTL-21
 
@@ -2016,17 +2017,15 @@ Never play audio or video without visible controls to stop it; the playback posi
 
 ### CTL-25
 
-When a question's answers need more words than a button holds, each answer is a large choice (a command link) with a short main line and, where needed, a line saying why one would pick it; a click acts at once. Offer two to five, the likeliest or the do-everything answer first; Cancel stays a separate button, never one of the choices, and there is no Next. If only one answer would remain, add one worded by how it differs, or make the window a plain message. With a strong default, choices to compare first, more than five answers, or other options on the page, use radio buttons and a specific commit button instead.
+When a question's answers need more words than a button holds, each answer is a radio button with a short main line and, where needed, a line saying why one would pick it, and a specific commit button acts on the choice; there are no command links on any system (decided, Q-10). Offer two to five, the likeliest or the do-everything answer first; Cancel stays a separate button, never one of the choices. If only one answer would remain, add one worded by how it differs, or make the window a plain message. Up to three short answers are instead buttons with specific verbs.
 
-- **Windows:** Command links, the Windows control for this, in dialogs and guided flows; a guided-flow page of command links has no Next. (Windows 7 guide; Fluent and WinUI have no command link control and say nothing on it.)
-- **macOS:** macOS has no command link: up to three short answers are the alert's buttons with specific verbs; longer answers are radio buttons, each with a line of explanation, and a specific commit button (Q-10).
 - **Sources** (30 records, 12 on Microsoft's checklist):
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 131, 132; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 28, 30, 29; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 40\*, 41\*; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 39\*, 40\*, 41\*, 94\*, 95\*; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 11; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 1, 2, 3, 4\*, 6, 7, 8, 9\*, 10, 11, 13\*, 15\*, 16\*, 18, 14, 26; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 7
 - **Enforce:**
-  - Component: A CommandLink (main line, explanation line, role Button, name the main line, description the explanation) and a Dialog form whose answers are command links with Cancel kept.
-  - Test, one screen: Fail a set of fewer than two or more than five command links, or a command link that cancels.
-  - Review: Command links or radio buttons with a commit button.
-- **kvit-ui now:** does not cover it. No command link: Dialog has one confirm and one cancel button (`feedback.go:387-389`, `feedback.go:424`); an interactive Card, activated by Return or Space, is the nearest thing (`card.go:53-58`).
+  - Component: RadioGroup with a Detail line per option (`radiogroup.go:14-20`) and a Dialog form whose commit button is worded by the action, with Cancel kept.
+  - Test, one screen: Fail a dialog's radio choice of fewer than two or more than five answers, or one whose commit button is OK, Yes or Next.
+  - Review: Answers too long for buttons are radio buttons with a specific commit button; no command links.
+- **kvit-ui now:** partly. RadioGroup gives each option a line under it, read with its name (`radiogroup.go:14-20`, `radiogroup.go:150-153`, `radiogroup.go:242-243`); Dialog has one confirm and one cancel button (`feedback.go:387-389`, `feedback.go:424`) and no form that holds a radio group.
 
 ### CTL-26
 
@@ -2120,14 +2119,15 @@ Animate only to tell the reader something, briefly, without ever blocking input,
 
 ### FDB-7
 
-Every edit can be undone back to the last open or save, small related edits undo as one step, and undo shows the change it reverted.
+Every edit can be undone back to the last open or save, small related edits undo as one step, and undo shows the change it reverted. Notes-like data (kvit-notes, kvit-works) saves itself; kvit-cash asks on closing with unsaved changes (Save, Don't save, Cancel) on every system and has Save on its standard shortcut (decided, Q-12).
 
 - **Sources** (7 records):
   - Apple: [edit-menus](https://developer.apple.com/design/human-interface-guidelines/edit-menus) 8; [design-principles](https://developer.apple.com/design/human-interface-guidelines/design-principles) 7; [undo-and-redo](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo) 2, 3, 4; [drag-and-drop](https://developer.apple.com/design/human-interface-guidelines/drag-and-drop) 5
   - Windows 7: [inter-mouse](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-mouse) 2
 - **Enforce:**
   - Component: An UndoStack in kvit-ui with named entries, feeding the Edit menu, ConfirmInPlace and Toast.
-- **kvit-ui now:** does not cover it. No undo stack (survey §13).
+  - Component: Window gains AllowClose, a hook that can hold a close to ask about unsaved changes.
+- **kvit-ui now:** does not cover it. No undo stack (survey §13); no hook can hold a window's close (only WillCloseCallback, `window.go:114`).
 
 ### FDB-8
 
@@ -2142,7 +2142,7 @@ Mark items being inserted, removed or reordered so the change can be followed.
 
 ### FDB-9
 
-Work the reader started keeps going: while the window is in the background, after the window that started it closes, and past recoverable problems, which are collected and shown together at the end. Ask for everything long work needs before it starts, and offer to apply an answer to all items when a bulk operation must ask. Long work shows its progress without blocking the app, disabling only what needs its result; never freeze waiting on a device or the network. Where possible show the result at once and finish the rest in the background. Things that need attention pause and resume where they were.
+Work the reader started keeps going: while the window is in the background, after the window that started it closes, and past recoverable problems, which are collected and shown together at the end. Ask for everything long work needs before it starts, and offer to apply an answer to all items when a bulk operation must ask. Long work shows its progress without blocking the app, disabling only what needs its result; never freeze waiting on a device or the network. Where possible show the result at once and finish the rest in the background. When the window loses focus, only what scores or times the reader pauses, resuming where it was; everything else keeps running (decided, Q-38).
 
 - **Windows:** A modeless progress window can be minimised and has its taskbar button.
 - **Sources** (18 records):
@@ -2191,18 +2191,16 @@ Keep related things together and set apart from others by space, a container or 
 
 ### LAY-3
 
-Lay out by the space the window has, never by which system or screen it is, designing for a few width classes rather than each screen; every function stays reachable at every size. A window fits the screen's work area, has a minimum size at which it still works, and shows more when enlarged: a narrow window shows the least metadata and a list-and-details view one pane at a time, list first; a wide one adds columns and shows both side by side. A long form may take columns on a wide window but is split into pages rather than crowding one.
+Lay out by the space the window has, never by which system or screen it is, designing for a few width classes rather than each screen; every function stays reachable at every size. A window fits the screen's work area, has a minimum size at which it still works, and shows more when enlarged: a narrow window shows the least metadata and a list-and-details view one pane at a time, list first; a wide one adds columns and shows both side by side. A long form may take columns on a wide window but is split into pages rather than crowding one. Kvit's window floor is Px(880) by Px(600) on every system; the Windows 7 800 × 600 screen floor is not followed (decided, Q-25).
 
-- **Windows:** Every window works on an 800 × 600 effective screen less the taskbar, and a resizable one is designed for 1024 × 768 and shrinks to fit (Windows 7 guide; current guidance sets no minimum screen, only width classes: under 640, 640 to 1007, 1008 px and up).
-- **macOS:** As stated.
 - **Sources** (33 records, 9 on Microsoft's checklist):
   - Apple: [layout](https://developer.apple.com/design/human-interface-guidelines/layout) 15, 16, 17; [designing-for-macos](https://developer.apple.com/design/human-interface-guidelines/designing-for-macos) 1; [sidebars](https://developer.apple.com/design/human-interface-guidelines/sidebars) 7
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 174, 175, 172\*; [win-window-mgt](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-window-mgt) 12, 13, 14\*, 16\*, 1\*, 2\*, 17; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 11\*, 12\*, 1\*, 2\*; [vis-layout](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-layout) 33
   - Fluent: [basics-titlebar-design](https://learn.microsoft.com/en-us/windows/apps/design/basics/titlebar-design) 19; [layout-responsive-design](https://learn.microsoft.com/en-us/windows/apps/design/layout/responsive-design) 1, 4, 5, 6, 8, 9; [layout-index](https://learn.microsoft.com/en-us/windows/apps/design/layout/) 1; [ui-controls-forms](https://learn.microsoft.com/en-us/windows/apps/design/controls/forms) 15, 16; [ui-controls-list-details](https://learn.microsoft.com/en-us/windows/apps/design/controls/list-details) 2; [layout-screen-sizes-and-breakpoints-for-responsive-design](https://learn.microsoft.com/en-us/windows/apps/design/layout/screen-sizes-and-breakpoints-for-responsive-design) 1, 2
 - **Enforce:**
-  - Component: WidthFloor and HeightFloor fit 800 × 600 less the taskbar at the default interface size (if Q-25 is decided that way).
-  - Test, all screens of an app: Open every screen at 800 × 560 and fail any control out of reach or cut off.
-- **kvit-ui now:** contradicts it. Breakpoints are Measures (`tokens/interface.go:195-203`), but the window's minimum is Px(880) by Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`, set at `window.go:88-92`): wider than an 800-pixel screen and taller than 600 less the taskbar; nothing shows a list and its details one at a time on a narrow window.
+  - Component: WidthFloor and HeightFloor are Px(880) and Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`), set as the window's minimum (`window.go:88-92`).
+  - Test, all screens of an app: Open every screen at WidthFloor by HeightFloor and fail any control out of reach or cut off.
+- **kvit-ui now:** partly. Breakpoints are Measures (`tokens/interface.go:195-197`) and the window's minimum is Px(880) by Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`, set at `window.go:88-92`), as decided; nothing shows a list and its details one at a time on a narrow window.
 
 ### LAY-4
 
@@ -2318,22 +2316,20 @@ No distinction rests on colour alone, nor on bold or italic alone: the words mak
 - **Enforce:**
   - Component: Existing second channels.
   - Test, Go source: palette tests (exist), including colour-vision simulation (`palette/palette_test.go:42`).
-- **kvit-ui now:** enforces it. Library rule (CLAUDE.md, The library's rules; SKILL.md); a checked menu line is a tick as well as bold (`menu.go:40-42`).
+- **kvit-ui now:** enforces it. Library rule (CLAUDE.md, The library's rules; SKILL.md); a checked menu line is a tick as well as bold (`menu.go:40-42`); it is to keep the tick and lose the bold, which marks a context menu's default item (decided, Q-33).
 
 ### A11Y-3
 
-Text and controls meet contrast minimums in every theme, including high contrast.
+Text and controls meet contrast minimums in every theme: text at least 5:1 wherever the palette tests show it costs little, else 4.5:1, and 3:1 for large text (18 pt, or 14 pt bold). High contrast is Kvit's own high-contrast table, switched on by the desktop's high-contrast setting; the title bar follows high contrast and light or dark (decided, Q-50).
 
-- **Windows:** Text contrast at least 5:1, or 3:1 for large text (18 pt, or 14 pt bold). When Windows is in a high-contrast theme, controls, links and status marks take the system's high-contrast colours, not Kvit's; the title bar follows high contrast and light or dark.
-- **macOS:** The general rule.
 - **Sources** (19 records):
   - Apple: [accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) 6, 7, 8; [color](https://developer.apple.com/design/human-interface-guidelines/color) 9; [dark-mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode) 3, 6
   - Windows 7: [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 44; [inter-accessibility](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-accessibility) 6; [ctrl-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-links) 8; [vis-color](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-color) 3, 10
   - Fluent: [basics-titlebar-design](https://learn.microsoft.com/en-us/windows/apps/design/basics/titlebar-design) 4; [accessibility-designing-inclusive-software](https://learn.microsoft.com/en-us/windows/apps/design/accessibility/designing-inclusive-software) 9, 12; [signature-experiences-color](https://learn.microsoft.com/en-us/windows/apps/design/signature-experiences/color) 8; [style-acrylic](https://learn.microsoft.com/en-us/windows/apps/design/style/acrylic) 5, 6; [accessibility-accessibility-overview](https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-overview) 9, 11
 - **Enforce:**
-  - Test, Go source: Theme contrast tests (exist); a 5:1 floor for text on Windows.
-  - Component: On Windows, the high-contrast theme reads the system's high-contrast colours.
-- **kvit-ui now:** partly. Every token pair meets WCAG AA, 4.5:1 for text (`tokens/theme_test.go:168-200`), with a stricter floor for the high-contrast table (`tokens/theme_test.go:278`); the desktop's high contrast switches to Kvit's own high-contrast table (`tokens/theme_test.go:351`), not the system's colours.
+  - Test, Go source: Theme contrast tests (exist); raise the text floor to 5:1 for each pair the palette tests show can take it.
+  - Component: The desktop's high-contrast setting switches to Kvit's high-contrast table (exists).
+- **kvit-ui now:** partly. Every token pair meets WCAG AA, 4.5:1 for text (`tokens/theme_test.go:168-200`), with a stricter floor for the high-contrast table (`tokens/theme_test.go:278`); the desktop's high contrast switches to Kvit's own high-contrast table (`tokens/theme_test.go:351`), as decided; no pair is held to 5:1 yet.
 
 ### A11Y-4
 
@@ -2439,15 +2435,14 @@ A component behaves the same everywhere; a custom-drawn control (such as the Kvi
 
 ### CON-4
 
-Feel native on each platform. Keep content and controls in the same places across platforms, sizes and similar windows. Do similar things the same way: a recurring field keeps its label and place, a similar choice uses the kind of control its neighbours use, required fields are marked one way across the app, and similar objects all have descriptive tips or none do.
+Feel native on each platform. Keep content and controls in the same places across platforms, sizes and similar windows. Do similar things the same way: a recurring field keeps its label and place, a similar choice uses the kind of control its neighbours use, required fields are marked one way, with an asterisk after the label on every system (decided, Q-51), and similar objects all have descriptive tips or none do.
 
-- **Windows:** The one mark for a required field is an asterisk after its label.
 - **Sources** (22 records):
   - Apple: [design-principles](https://developer.apple.com/design/human-interface-guidelines/design-principles) 14, 16, 22; [toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars) 25; [search-fields](https://developer.apple.com/design/human-interface-guidelines/search-fields) 16
   - Windows 7: [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 5; [ctrl-drop](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-drop) 7; [ctrl-radio-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-radio-buttons) 6, 8; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 9; [ctrl-spin-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-spin-controls) 7, 10; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 158; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 17, 16; [vis-layout](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-layout) 15; [ctrl-tooltips-and-infotips](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tooltips-and-infotips) 30; [ctrl-search-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-search-boxes) 1
   - Fluent: [ui-controls-command-bar](https://learn.microsoft.com/en-us/windows/apps/design/controls/command-bar) 8; [basics-navigation-basics](https://learn.microsoft.com/en-us/windows/apps/design/basics/navigation-basics) 1; [ui-controls-forms](https://learn.microsoft.com/en-us/windows/apps/design/controls/forms) 6; [design-principles](https://learn.microsoft.com/en-us/windows/apps/design/design-principles) 4
 - **Enforce:**
-  - Component: Platform forms (library-gaps.md, Platform knowledge); Field gets one Required flag, drawn as an asterisk after the label on Windows and Linux and given to screen readers as required, so an app cannot mix two markings.
+  - Component: Platform forms (library-gaps.md, Platform knowledge); Field gets one Required flag, drawn as an asterisk after the label on every system and given to screen readers as required, so an app cannot mix two markings.
   - Test, all screens of an app: Across all screens of an app, collect (field label, position in its form, control kind): fail one label at two positions or as two kinds of control.
   - Review: Similar windows share one layout; choices on one page use matching control kinds.
 - **kvit-ui now:** partly. Menus are native on macOS (`menu.go:100`) and word keys follow the platform (`fieldword.go:20`); nothing else varies (survey §1). Fields have no required or optional mark at all (no such field in `field.go`), so no app can be consistent about it yet.
@@ -2468,7 +2463,7 @@ Follow the desktop's settings (appearance, contrast, motion, scrolling, hover an
 
 ### CON-6
 
-A colour has one meaning across the app, one colour marks what can be acted on, and a colour given to data stays with that data when the theme changes.
+A colour has one meaning across the app, one colour marks what can be acted on, and a colour given to data stays with that data when the theme changes. Readers may colour their own categories (labels, tags) from the chart ramp's named steps, and choose colours nowhere else (decided, Q-35).
 
 - **Sources** (12 records, 1 on Microsoft's checklist):
   - Apple: [color](https://developer.apple.com/design/human-interface-guidelines/color) 1, 12, 10; [inclusion](https://developer.apple.com/design/human-interface-guidelines/inclusion) 24
@@ -2478,7 +2473,8 @@ A colour has one meaning across the app, one colour marks what can be acted on, 
   - Test, Go source: Ink names and rules_test (exist).
   - Test, Go source: palette tests: categorical step i keeps its hue family in all four colour tables.
   - Test, Go source: tokens tests: Accent and Link keep one hue family in all four colour tables.
-- **kvit-ui now:** enforces it. Inks are named by meaning (SKILL.md, What each colour means). Controls are marked with Accent and links with Link (`link.go:66-70`, `check.go:98`, `switch.go:134`), one hue family in each table (`tokens/tables_gen.go:35,44,96,105,157,166,218,227`); no test checks that. A series keeps its categorical step in every theme (`tokens/theme.go:183-188`), and the four tables keep the same hue order with different lightness (`tokens/tables_gen.go:65,126,187,248`); no test checks the hue order. Readers cannot choose data colours (Q-35).
+  - Component: A category colour picker offers only the chart ramp's named steps (palette categorical steps); no free colour choice elsewhere.
+- **kvit-ui now:** partly. Inks are named by meaning (SKILL.md, What each colour means). Controls are marked with Accent and links with Link (`link.go:66-70`, `check.go:98`, `switch.go:134`), one hue family in each table (`tokens/tables_gen.go:35,44,96,105,157,166,218,227`); no test checks that. A series keeps its categorical step in every theme (`tokens/theme.go:183-188`), and the four tables keep the same hue order with different lightness (`tokens/tables_gen.go:65,126,187,248`); no test checks the hue order. Readers cannot yet colour their own categories: there is no picker limited to the chart ramp's named steps (decided, Q-35).
 
 ### CON-7
 
@@ -2505,21 +2501,21 @@ File names are shown without extensions unless the reader chose otherwise.
 
 ### HLP-1
 
-Every symbol-only control shows a short tooltip on hover and on keyboard focus. It stays while the pointer moves onto it, goes when pointer and focus have left, and Escape dismisses it without moving focus.
+Every symbol-only control shows a short tooltip on hover and on keyboard focus: one string, its verb-led name plus the optional Explanation line (decided, Q-23). It stays while the pointer moves onto it, goes when pointer and focus have left, and Escape dismisses it without moving focus when no popup is open; with a popup open, Escape closes the popup (decided, Q-49).
 
-- **Windows:** Ctrl also dismisses an open tooltip (Windows 11).
+- **Windows:** Ctrl also dismisses an open tooltip (Windows 11). The tooltip adds the control's shortcut in parentheses after its name (decided, Q-23).
 - **Sources** (18 records, 4 on Microsoft's checklist):
   - Apple: [buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) 9; [segmented-controls](https://developer.apple.com/design/human-interface-guidelines/segmented-controls) 12; [sliders](https://developer.apple.com/design/human-interface-guidelines/sliders) 10
   - Windows 7: [ctrl-tooltips-and-infotips](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tooltips-and-infotips) 1, 2\*, 15, 28\*; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 18\*; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 49\*; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 38, 82; [winenv-notification](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-notification) 26; [ctrl-status-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-status-bars) 20, 24
   - Fluent: [ui-controls-tooltips](https://learn.microsoft.com/en-us/windows/apps/design/controls/tooltips) 1, 2, 5; [ui-controls-command-bar-flyout](https://learn.microsoft.com/en-us/windows/apps/design/controls/command-bar-flyout) 8
 - **Enforce:**
-  - Component: IconButton (exists). control keeps its tooltip while the pointer crosses to it, and the window's popupKeys hides a shown tooltip on Escape, and on Windows and Linux on Ctrl, before the key goes on to anything else.
-  - Test, one screen: Every IconButton has a tooltip; a shown tooltip goes on Escape (and Ctrl on Windows) with focus unmoved, and stays while the pointer moves from the control onto it.
-- **kvit-ui now:** partly. IconButton's Label is its tooltip (`iconbutton.go:69-74`); tooltips show on focus too (`control.go:164-166`) and go when pointer and focus have left (`control.go:103-109`, `control.go:172-177`). Leaving the control toward the tooltip hides it at once (`control.go:103-109`), and Escape and Ctrl pass a tooltip by (`layer.go:150-163`).
+  - Component: IconButton (exists). control keeps its tooltip while the pointer crosses to it, and the window's popupKeys hides a shown tooltip on Escape, and on Windows and Linux on Ctrl, before the key goes on to anything else. On Windows and Linux the tooltip adds the Command's shortcut in parentheses after the name.
+  - Test, one screen: Every IconButton has a tooltip; with no popup open, a shown tooltip goes on Escape (and Ctrl on Windows) with focus unmoved, and stays while the pointer moves from the control onto it; on Windows a control with a shortcut shows it in parentheses.
+- **kvit-ui now:** partly. IconButton's tooltip is its Label and Explanation (`iconbutton.go:69-74`), with no shortcut; tooltips show on focus too (`control.go:164-166`) and go when pointer and focus have left (`control.go:103-109`, `control.go:172-177`). Leaving the control toward the tooltip hides it at once (`control.go:103-109`), and Escape and Ctrl pass a tooltip by (`layer.go:150-163`).
 
 ### HLP-2
 
-A tooltip is short, static, supplemental text beside what it explains, shown only when the reader hovers, focuses or presses, never on its own: never over it, nor over the next item in its row or column. Its text wraps, never cut short. Nothing in it can be clicked or looks clickable, and it holds no error or changing status (a tray icon's tip excepted) and nothing essential or worth printing. A control that needs a long tooltip needs redesigning; a longer explanation goes in a Hint the reader opens. A link's tooltip says where it leads (CTL-26); any further explanation goes beside the link or in that tooltip, not both.
+A tooltip is short, static, supplemental text beside what it explains, shown only when the reader hovers, focuses or presses, never on its own (UI.ShowTooltip is for the gallery and tests only, decided Q-52): never over it, nor over the next item in its row or column. Its text wraps, never cut short. Nothing in it can be clicked or looks clickable, and it holds no error or changing status (a tray icon's tip excepted) and nothing essential or worth printing. A control that needs a long tooltip needs redesigning; a longer explanation goes in a Hint the reader opens. A link's tooltip says where it leads (CTL-26); any further explanation goes beside the link or in that tooltip, not both.
 
 - **Windows:** Objects such as files and list items may also show a longer infotip describing them on hover; it is supplemental, never essential, and where such tips could distract the reader can turn them off.
 - **Sources** (35 records, 4 on Microsoft's checklist):
@@ -2530,8 +2526,10 @@ A tooltip is short, static, supplemental text beside what it explains, shown onl
   - Component: Hint (exists). Tooltip: newTooltip takes words only, so nothing clickable can go in it (exists). PlaceBeside (`layer.go:212-246`) learns whether the anchor sits in a row (siblings across) and then places below, keeping trailing-side placement for a column.
   - Component: Explanation and IconButton labels over about 60 characters log a warning (WRD-13's length).
   - Test, one screen: On a screen with a row of IconButtons, hover each and assert its tooltip does not intersect the next button.
-  - Review: No errors, status or essential facts in tooltips; UI.ShowTooltip only in answer to the reader.
-- **kvit-ui now:** partly. Hint exists (`popover.go:160-213`); a tooltip is passive words only, never focused (`layer.go:27-30`, `control.go:389-420`), and wraps at Px(280), never cut (`control.go:403`), but its length is unlimited. UI.ShowTooltip lets an app show one unasked (`popover.go:16-37`). Placement takes the trailing side, level with the top, first (`layer.go:218-241`), which in a row of icon buttons covers the next button: it contradicts the row case. partTip's hover card serves as the infotip (`parttip.go:51-67`).
+  - Component: UI.ShowTooltip's doc says it is for the gallery and tests only and apps must not call it.
+  - Test, Go source: No call to UI.ShowTooltip outside the gallery and tests.
+  - Review: No errors, status or essential facts in tooltips.
+- **kvit-ui now:** partly. Hint exists (`popover.go:160-213`); a tooltip is passive words only, never focused (`layer.go:27-30`, `control.go:389-420`), and wraps at Px(280), never cut (`control.go:403`), but its length is unlimited. UI.ShowTooltip lets an app show one unasked and its doc does not forbid apps calling it (`popover.go:11-16`); only the gallery calls it (`cmd/kvit-ui-gallery/specimens_feedback.go:14`). Placement takes the trailing side, level with the top, first (`layer.go:218-241`), which in a row of icon buttons covers the next button: it contradicts the row case. partTip's hover card serves as the infotip (`parttip.go:51-67`).
 
 ### HLP-3
 
@@ -2548,7 +2546,7 @@ Put what people need in the window itself: explain with clear labels first, then
 
 ### HLP-4
 
-Tips are few and short, shown near what they explain, only to people who have not used the feature, at most one at a time and spread across sessions, never selling anything. A tip points out a feature that is not obvious, or a new or changed one; never the basics, what people work out alone, or a complex feature, which help covers. It holds nothing needed that is not also elsewhere, no error or status, and no video, audio or large picture. It covers and blocks nothing and can be ignored; once shown it is not shown again, and a setting can bring tips back.
+Teaching tips use a Tip (anchored, non-blocking, dismissable); Spotlight stays for tours (decided, Q-48). Tips are few and short, shown near what they explain, only to people who have not used the feature, at most one at a time and spread across sessions, never selling anything. A tip points out a feature that is not obvious, or a new or changed one; never the basics, what people work out alone, or a complex feature, which help covers. It holds nothing needed that is not also elsewhere, no error or status, and no video, audio or large picture. It covers and blocks nothing and can be ignored; once shown it is not shown again, and a setting can bring tips back.
 
 - **Windows:** A tip about one element points at it from above where it fits; a tip about nothing in particular sits centred at the bottom of the window, pointing at nothing. It has a close button (an X by its title, or a worded Close at the bottom) and at most one action button. In a scrolling area it has no close button and closes on a scroll or any other use. A tip whose close button cannot be shown is not shown.
 - **Sources** (33 records):
@@ -2574,16 +2572,16 @@ First run asks only what is required and has no safe default; everything else st
 
 ### HLP-6
 
-Help is reached from where it is needed, the same way throughout the app, and opens the one topic for that place, leaving the window open. Add it only where a topic says something the window cannot: never a search, a list of links or an FAQ, and never a generic Help or Troubleshoot button. Help in the app comes first; help on the web is for detailed tutorials and topics too large for the app, and a link to it says it goes online.
+Help is reached from where it is needed, the same way throughout the app, and opens the one topic for that place, leaving the window open. Add it only where a topic says something the window cannot: never a search, a list of links or an FAQ, and never a generic Help or Troubleshoot button. Help topics are HTML pages shipped with the app and opened in the system browser at the topic (decided, Q-34); help on the web is only for detailed tutorials and topics too large for the app, and a link to it says it goes online.
 
-- **Windows:** A text link worded as the question it answers, a complete sentence ending only in a question mark, saying when it goes online; at the bottom of the content area, or under the group it concerns; never a button, a disclosure, a "Learn more" link or a title-bar question mark. Where no topic exists for the place, a link to a help home organised by categories is acceptable. (Wording from the Windows 7 guide; current Fluent guidance says nothing on it, and Windows Settings does use "Learn more" and "Get help" links, Q-34.)
+- **Windows:** A text link worded as the question it answers, a complete sentence ending only in a question mark, saying when it goes online; at the bottom of the content area, or under the group it concerns; never a button, a disclosure, a "Learn more" link or a title-bar question mark. Where no topic exists for the place, a link to a help home organised by categories is acceptable. (decided, Q-34)
 - **macOS:** The round question-mark button, uncaptioned, one per window, opening the topic for that window.
 - **Sources** (39 records, 10 on Microsoft's checklist):
   - Apple: [buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) 24, 25, 26, 27, 29; [alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) 37
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 166, 167\*; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 69\*; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 69; [winenv-help](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-help) 12, 19, 10\*, 11\*, 33, 13, 18; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 45\*, 41, 46, 47; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 51; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 127\*, 129\*, 130\*, 131\*, 126\*; [ctrl-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-links) 17, 18
   - Fluent: [in-app-help-guidelines-for-app-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/guidelines-for-app-help) 4, 8, 9; [usability-index](https://learn.microsoft.com/en-us/windows/apps/design/usability/) 3; [in-app-help-external-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/external-help) 1, 2, 4, 5; [in-app-help-in-app-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/in-app-help) 6, 3
 - **Enforce:**
-  - Component: New HelpLink: takes a topic id and words; on Windows and Linux it is a Link (`link.go`) placed at the bottom of its group, on macOS the round question-mark IconButton; Dialog (`feedback.go:382-400`) gets a Help slot that places it per platform.
+  - Component: New HelpLink: takes a topic id and words; on Windows and Linux it is a Link (`link.go`) placed at the bottom of its group, on macOS the round question-mark IconButton; Dialog (`feedback.go:382-400`) gets a Help slot that places it per platform. A topic id opens the shipped HTML page at its anchor in the system browser.
   - Test, Go source: HelpLink words end in "?" with no other closing punctuation and do not start with "Learn more", "Get help" or "Troubleshoot"; no Button labelled Help or Troubleshoot.
   - Test, all screens of an app: Every HelpLink's topic id resolves to an existing topic anchor; on macOS at most one help button per window.
 - **kvit-ui now:** does not cover it. No help at all: no help link, no F1, no Help menu (survey §11); Dialog has no help slot (`feedback.go:382-400`).
@@ -2601,10 +2599,10 @@ When text points to a setting, give a link that opens it rather than describing 
 
 ### HLP-8
 
-Help topics cover the top tasks in normal use, the way most people do them, not every feature or what the window already says. Each topic leads to something people can do and is written for scanning: numbered steps, tables for reference, subheadings, short lists. It names interface items by their exact words in bold, and messages by their main instruction. Topics are found through contents, an index and search under everyday words, are as accessible as the app, and one topic lists every keyboard shortcut and accessibility option. Tutorials cover only advanced work, are kept apart from task topics, and are linked from a list of tutorials and from the topics they relate to.
+Help topics are HTML pages shipped with the app (HLP-6). They cover the top tasks in normal use, the way most people do them, not every feature or what the window already says. Each topic leads to something people can do and is written for scanning: numbered steps, tables for reference, subheadings, short lists. It names interface items by their exact words in bold, and messages by their main instruction. Topics are found through contents, an index and search under everyday words, are as accessible as the app, and one topic lists every keyboard shortcut and accessibility option. Tutorials cover only advanced work, are kept apart from task topics, and are linked from a list of tutorials and from the topics they relate to.
 
-- **Windows:** Help uses Windows terms: select for buttons, commands and list items whatever the input (click, double-click, right-click and drag only where the action needs a mouse); select and clear a check box; context menu (not shortcut menu); unavailable (not dimmed or greyed); access keys (not mnemonics); pointer (not cursor); the menu bar; a tip (not tool tip); a message (not error message). Apart from select, the terms come from the Windows 7 guide.
-- **macOS:** Not sourced: Apple's help-writing terms were not among the sources; use Apple's own terms for the same items.
+- **Windows:** Help names the kind of control with its words (the **Export** button, the **File** menu) (decided, Q-34) and uses Windows terms: select for buttons, commands and list items whatever the input (click, double-click, right-click and drag only where the action needs a mouse); select and clear a check box; context menu (not shortcut menu); unavailable (not dimmed or greyed); access keys (not mnemonics); pointer (not cursor); the menu bar; a tip (not tool tip); a message (not error message). Apart from select, the terms come from the Windows 7 guide.
+- **macOS:** Help names an item by its words without naming its kind of control (decided, Q-34). Apple's help-writing terms were not among the sources; use Apple's own terms for the same items.
 - **Sources** (89 records):
   - Windows 7: [inter-accessibility](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-accessibility) 12, 13, 63; [ctrl-text-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-text-boxes) 60, 59; [winenv-help](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-help) 21, 2, 6, 20, 23, 26, 25, 7, 9, 24, 5, 38; [mess-error](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-error) 88, 89; [mess-confirm](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-confirm) 56, 57; [mess-notif](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-notif) 53, 56; [ctrl-balloons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-balloons) 32, 34, 33; [exper-printing](https://learn.microsoft.com/en-us/windows/win32/uxguide/exper-printing) 45, 46; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 207; [mess-warn](https://learn.microsoft.com/en-us/windows/win32/uxguide/mess-warn) 42; [ctrl-check-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-check-boxes) 48, 46, 47; [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 93, 92; [ctrl-list-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-boxes) 62, 61; [ctrl-progressive-disclosure-controls](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls) 38; [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 97, 90, 91, 93, 95, 96; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 55, 53; [ctrl-tree-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tree-views) 51, 47, 48, 50, 52; [ctrl-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-links) 44, 42; [ctrl-sliders](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-sliders) 35, 34; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 101, 93, 94, 95, 97, 98, 99, 100; [ctrl-command-links](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-links) 47, 44, 45, 46; [ctrl-list-views](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-list-views) 55; [ctrl-tooltips-and-infotips](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-tooltips-and-infotips) 62, 63; [inter-mouse](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-mouse) 48, 49, 50, 51, 52, 53, 54, 55, 56; [ctrl-search-boxes](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-search-boxes) 21, 22
   - Fluent: [in-app-help-guidelines-for-app-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/guidelines-for-app-help) 3, 6; [in-app-help-external-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/external-help) 6, 7, 8, 9; [in-app-help-in-app-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/in-app-help) 5, 7

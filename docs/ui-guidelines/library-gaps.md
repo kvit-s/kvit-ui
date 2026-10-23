@@ -2,7 +2,7 @@
 
 What the library does today against the merged rules (rules.md), and the component changes and tests that would close the gap, in the order to do them. Line numbers are as of commit 0a36b77.
 
-Of the 199 rules, kvit-ui enforces 20, partly covers 101, contradicts 9 and does not cover 69. (Against the Windows 7 forms it was 26, 92, 10 and 70 of 198; the current Microsoft guidance moved a few rules from "enforces" to "partly" by asking more, and KEY-6 from "contradicts" to "partly".) Many of the 70 are app matters (help topics, printing, onboarding) or reviewer matters (tone, chart choice); the work below is the part the library can carry.
+Of the 199 rules, as decided by the owner on 2026-10-23, kvit-ui enforces 18, partly covers 105, contradicts 9 and does not cover 67. Many of the 70 are app matters (help topics, printing, onboarding) or reviewer matters (tone, chart choice); the work below is the part the library can carry.
 
 ## Platform knowledge
 
@@ -28,8 +28,8 @@ Add `UI.Form` (`FormWindows` or `FormMac`), set from `runtime.GOOS` (Linux takes
 |---|---|---|---|
 | Dialog button order | WIN-1 | the main action first (left), an optional second action, the safe button last (right) | Cancel, then the default button at the trailing end |
 | Default button and Enter | KEY-6 (Q-7) | a default only when one answer is clearly likely and safe; Enter presses the focused button | Return presses the default; none when destructive |
-| Close symbol on dialogs | WIN-6 (Q-8) | always | none on alerts |
-| Dialog title | WIN-6, MSG-4 | the main instruction; a simple message may have none | the question or what happened |
+| Close symbol on dialogs | WIN-6 (Q-8) | always | none |
+| Dialog title | WIN-6, MSG-4 | the main instruction | the question or what happened |
 | Capitalisation | WRD-6 (Q-3, Q-4) | sentence case for all text, titles included | title case on menus, buttons, tabs, column headings |
 | Command modifier | KEY-3, WRD-24 | Ctrl, written Ctrl+Shift+N | Command, written ⇧⌘N |
 | Standard shortcuts | KEY-2 | Ctrl+Y redo, Ctrl+W, F1, F2, F3, F5, F11, Alt+F4, document-tab keys | Shift-Cmd-Z, Cmd-?, Ctrl-Cmd-F, Cmd-comma |
@@ -46,39 +46,40 @@ Add `UI.Form` (`FormWindows` or `FormMac`), set from `runtime.GOOS` (Linux takes
 | Context menus | CMD-10, CMD-11 | every command for the item, common ones first, inapplicable ones left out, shortcuts shown | likely commands only, Cut/Copy/Paste kept disabled, no shortcuts |
 | Context-menu default | CMD-10 (Q-33) | bold | none |
 | Exclusive menu options | CMD-15 | bullet | tick |
-| "We" in messages | WRD-14 (Q-15) | the app may say "we" | never |
 | Verb for commands in text | WRD-17 | select | choose for menu items, click for buttons |
 | Field labels | LAY-6 | above the field | beside or above |
 | A lone button on a page | LAY-5 | at the leading edge with the content | at the trailing edge |
 | Tab focus | KEY-10 (Q-16) | every control | text fields and lists, unless full keyboard access |
-| Title bar | WIN-11 (Q-41) | may hold Back, search, tabs, account picture | holds no app controls |
 | Window title | WIN-12 | "document - program" | the document only |
 | Unsaved mark | WIN-20 (Q-13) | asterisk in the title | dot in the close button |
 | Full screen | WIN-15 | F11, View > Full screen | the system's full screen, Ctrl-Cmd-F |
-| Switches | CTL-2 | any setting that applies at once | settings of large scope |
+| Switches | CTL-2, CTL-6 (Q-44) | any setting that applies at once; On or Off shown beside it | settings of large scope; no state word |
+| Clear button in fields | CTL-7 (Q-44) | on a focused single-line field holding text | search fields only |
+| Radio group ends | KEY-9 (Q-49) | arrows stop at the ends | arrows wrap |
+| Delete or Move to Trash | WRD-10 (Q-14) | Delete…, saying it went to the Recycle Bin | Move to Trash… |
 | Tabs | CTL-10 | up to seven in a row; a sidebar beyond a few pages | up to six |
 | Window attention | MSG-1, WIN-25 | flash the taskbar button | bounce the Dock icon |
 | Notifications | MSG-10, MSG-11, MSG-13 | no buttons, sentence-case title | title case, buttons allowed |
 
-Rules that differed under the Windows 7 guide and now agree on both systems, so need no platform knowledge: colons after labels (none anywhere), placeholders (kept while the field is focused and empty), radio buttons (two to five), the mixed checkbox (all on, then all off), a disabled Next (allowed, with required fields marked), the stepper (stops at its limits), settings that apply at once.
+Rules that differed under the Windows 7 guide and now agree on both systems, so need no platform knowledge: colons after labels (none anywhere), placeholders (kept while the field is focused and empty), radio buttons (two to five), the mixed checkbox (all on, then all off), a disabled Next (allowed, with required fields marked), the stepper (stops at its limits), settings that apply at once. After the owner's decisions also: "we" in messages (neither), a title on every dialog, the system frame with no controls in the title bar, Ctrl+Tab between tabs, button text within 26 characters, no italics, short option labels and an asterisk on required fields.
 
 ### Capitalisation
 
-Four ways a label can get both forms (Q-3 has the full argument):
+Four ways a label can get both forms (Q-3 has the full argument; the owner chose the first):
 
 1. **The app writes sentence case and the component converts to title case on macOS.** One string per label. Cost: a converter (Apple's rule: every word capitalised except articles, coordinating conjunctions and prepositions of three letters or fewer; first and last always) and one call in Button, IconButton's tooltip, MenuItem, Tab, Segmented, table column titles and Dialog's buttons. Fails on: proper nouns written lower case on purpose (iCloud, macOS), words the rule cannot classify (a phrasal verb's particle, "Set Up" vs "setup"), and any label that contains the reader's data. Mitigation: an exception list in kvit-ui, and data passed apart from the label (WRD-29 already forbids building labels from pieces).
 2. **The app supplies both forms.** Twice the strings and translations, and nothing keeps them saying the same thing.
 3. **The app writes title case and the component lowers it on Windows.** Lowering breaks proper nouns and acronyms (Wi-Fi, PDF, Kvit Notes) unless the app marks them, which is more work than option 1's exceptions.
 4. **One form everywhere.** Breaks the owner's platform decision.
 
-Recommended: 1. A test renders each gallery page and each app screen in both forms and checks every name against the converter, so a wrong conversion is seen once and goes on the exception list.
+Decided: 1. A test renders each gallery page and each app screen in both forms and checks every name against the converter, so a wrong conversion is seen once and goes on the exception list.
 
 ## Where kvit-ui contradicts a rule
 
 | Rule | What kvit-ui does | Change |
 |---|---|---|
 | WIN-1 | The confirming button is on the right on every system (`feedback.go:371`, laid out right to left at `feedback.go:541-552`). | Dialog lays out by `ui.Form`: confirm first on Windows and Linux, last on macOS. Test: in each form, the confirming button's x against Cancel's. |
-| KEY-6 | Buttons press on Space only (`button.go:75`), so Enter on a focused button does nothing; Dialog has no default button and only focuses Confirm, or Cancel when destructive (`feedback.go:470-479`); `Dialog.Accept` is left to the app (`dialogaccept.go:3-7`). A dialog without a default now suits both systems; the missing Enter does not. | Button and IconButton also press on Enter and NumPadEnter when focused, on the Windows form. Dialog gains an optional `Default`, drawn as such: Return presses it on macOS; never set when Destructive. |
+| PTR-13 | A press outside a popup closes it and still reaches what is under the pointer, unless it lands on the popup's own opener (`layer.go:31-34`, `layer.go:175-202`). | The closing press goes no further, except on a control that opens another popover, which opens in the same press (decided, Q-43). |
 | WRD-7 | Dialog's ConfirmText defaults to "Confirm" (`feedback.go:424`). | No default: an empty ConfirmText logs a warning unless the dialog only informs (then a single Close, or OK on macOS, Q-5). |
 | WRD-3 | Library defaults carry articles: "Clear the filter" (`searchfield.go:56`), "Close the pane" (`pane.go:44`), "Dismiss this notice" (`feedback.go:261`), "Clear the sort" (`table.go:597`), "Move this column left" and the rest of the column menu (`table.go:595-605`), "Select the rows shown" (`table.go:965`), "Show the selected column" and three more (`duallist.go:54-57`). | Rewrite: Clear, Close, Dismiss, Clear sort, Move left, Move right, Widen, Narrow, Hide column, Show all columns, Select all, Show, Hide, Move up, Move down. |
 | WRD-25 | Button.BusyText defaults to "Working…" (`button.go:73`). | BusyText required with Busy; a busy button without it logs a warning. |
@@ -86,7 +87,6 @@ Recommended: 1. A test renders each gallery page and each app screen in both for
 | CMD-11 | The field's context menu shows each action's shortcut (`field.go:211`). | ShowMenu drops `Key` for a context menu on macOS. |
 | WIN-8 | Every dismissal is a decline (`feedback.go:498-504`); typed input in a dialog is lost without a word. | Dialog gains `OnDiscard func() bool`, asked before a reject by the close symbol or Escape when the content changed. |
 | MSG-10 | `Tray.Notify` posts even while a Kvit window is active (`platform/tray.go:272-283`); the Windows balloon has no NIIF_NOSOUND (`platform/tray_windows.go:438-439`), so it plays a sound. | Notify skips when a Kvit window is the active window (or returns false and lets the app decide); add NIIF_NOSOUND. |
-| LAY-3 | The window minimum is Px(880) by Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`, `window.go:88-92`), above Windows' 800 × 600 floor. | Decide Q-25 first. |
 
 ## What kvit-ui lacks, in the order to build it
 
@@ -119,7 +119,7 @@ Today: no menu bar on any system (survey §4).
 - Focus starts in the first field when the body has one, not on the confirm button (KEY-8; `feedback.go:470-479`).
 - Tab kept inside an open modal (survey §2: no focus trap).
 - OnDiscard (WIN-8); a refused Destructive dialog with no Cancel (WIN-3).
-- No close symbol on macOS if Q-8 says so; Command-period cancels on macOS (KEY-7).
+- No close symbol on macOS (Q-8); Command-period cancels on macOS (KEY-7).
 - One modal at a time except an alert over a dialog (WIN-7; `layer.go:58-68` stacks without a check).
 - A don't-show-again option for informing dialogs (WIN-2).
 

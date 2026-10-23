@@ -9,7 +9,7 @@ The owner's decisions applied throughout:
 - The apps behave as close to each platform's defaults as possible. Where Apple and Microsoft differ, a rule has a Windows form and a macOS form, and the app uses the one for the system it runs on.
 - Behaviour, wording, keyboard, commands, windows and dialogs, messages, layout of content, feedback and consistency are taken; visual appearance is not (Kvit has its own look). The rules left out for that reason are counted below.
 - Menus are the system's own on macOS and Kvit-drawn on Windows and Linux.
-- Linux takes the Windows form for now; open-questions.md (Q-40) lists every rule where that matters.
+- Linux takes the Windows form (decided 2026-10-23, Q-40); open-questions.md lists every rule where that matters.
 
 ## The files
 
@@ -17,7 +17,7 @@ The owner's decisions applied throughout:
 |---|---|
 | `extracted.jsonl` | Every rule found on every page read, one JSON object per line, including those left out and why. Each record names the merged rules it went into (`merged_into`). |
 | `rules.md` | The merged rules, grouped by topic, each with its Windows and macOS forms, its sources, where it should be enforced and what kvit-ui does now. |
-| `open-questions.md` | The decisions the owner has to make, with options, what each changes, and a recommendation; the first group blocks the most later work. Also the questions the current Microsoft guidance settled. |
+| `open-questions.md` | Every question the rules raised, with options, what each changes, the recommendation and the owner's decision of 2026-10-23 (a table of decisions comes first), and the questions the current Microsoft guidance settled. |
 | `library-gaps.md` | Where kvit-ui contradicts or lacks a rule, with file:line, the change or test proposed, and the order to do them in. Also what kvit-ui needs to know about the platform at run time, and how a label can get its two capitalisations. |
 | `checklist.md` | 47 judgment items for a reviewer agent looking at a screenshot and the screen reader's list of controls. |
 | `skill-section-draft.md` | A draft section for `agent/skills/kvit-ui/SKILL.md`: 28 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
@@ -149,7 +149,7 @@ The application repositories (kvit-cash, kvit-notes, kvit-works) were not availa
 | Left out: not applicable (Apple-only services; Windows-only technology such as UAC, the Ribbon, widgets; XAML API choices) | 25 | 29 | 46 | 100 |
 | On Microsoft's Windows 7 checklist | | 458 (131 of them the checklist page's own items) | | |
 
-- Merged rules: 199 (WRD 28, CMD 25, KEY 15, PTR 15, WIN 24, MSG 17, CTL 26, FDB 10, LAY 10, A11Y 8, CON 8, HLP 8, OTH 5). 99 have a separate Windows and macOS form.
-- kvit-ui today: enforces 20, partly covers 101, contradicts 9, does not cover 69.
-- Where each rule should be enforced (a rule can have several): a component 140, a test reading one screen's controls 66, a test reading the Go source 22, a test reading every screen of an app 18, a reviewer 123.
-- Open questions: 41 still open (29 from the first pass, 12 raised by the current guidance); 11 settled by the current guidance.
+- Merged rules: 199 (WRD 28, CMD 25, KEY 15, PTR 15, WIN 24, MSG 17, CTL 26, FDB 10, LAY 10, A11Y 8, CON 8, HLP 8, OTH 5). 94 have a separate Windows and macOS form.
+- kvit-ui today: enforces 18, partly covers 105, contradicts 9, does not cover 67.
+- Where each rule should be enforced (a rule can have several): a component 143, a test reading one screen's controls 66, a test reading the Go source 24, a test reading every screen of an app 18, a reviewer 123.
+- Questions: 52 in all. 11 were settled by the current Microsoft guidance; the owner decided the other 41 on 2026-10-23.
