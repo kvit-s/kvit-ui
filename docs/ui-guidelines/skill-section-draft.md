@@ -43,15 +43,15 @@ The rules below hold on every system unless they say "Windows" or "macOS". kvit-
 - "Add the rows shown" that selects every row (kvit-cash `app/transactions/transactions.go:112`) → "Select all"
 - "Delete…" that moves a folder to the trash (kvit-notes `app/actions.go:108`) → "Move to Trash…" on macOS, "Delete…" with the dialog saying it goes to the Recycle Bin on Windows (Q-14)
 
-**5. Ellipsis when the command asks for more.** A command that opens a dialog, a chooser or a confirmation before acting ends with "…" (one character). One that acts at once has none. On Windows, a command whose whole job is to show a window (Options, Properties, About) has none. Set `Asks` and let the component add it. (WRD-4)
+**5. Ellipsis when the command asks for more.** A command that opens a dialog, a chooser or a confirmation before acting ends with "…" (one character). One that acts at once has none. On Windows, a command whose whole job is to show a window (Settings, Properties, About) has none. Set `Asks` and let the component add it. (WRD-4)
 
 - "Export the ledger" opening a dialog (gallery `dialogMoved`) → "Export…"
 
-**6. Write sentence case; kvit-ui does the rest.** Write every label once, in sentence case: "Select all", "Don't save". On macOS the component turns menu items, buttons, tabs and column headings into title case; on Windows and Linux they stay as written. Never write title case yourself, and never mix the two in one menu. (WRD-6)
+**6. Write sentence case; kvit-ui does the rest.** Write every label once, in sentence case: "Select all", "Don't save". On macOS the component turns menu items, buttons, tabs and column headings into title case; on Windows and Linux everything stays as written, window and dialog titles included. Never write title case yourself, and never mix the two in one menu. (WRD-6)
 
 - kvit-notes File menu (`app/menus.go:39-56`), "Quick Capture…" beside "Quick capture note…" → every item in sentence case
 
-**7. Confirming buttons name the action; never Confirm.** The button that carries out a dialog says what it does. OK appears only on a settings window (Windows) or alone on a message that only informs (macOS). Yes and No appear only together, answering a question that really is yes or no, on Windows. The abandoning button is Cancel; once the work is done it becomes Close. (WRD-7, WRD-8)
+**7. Confirming buttons name the action; never Confirm.** The button that carries out a dialog says what it does. A message that only informs has one button: Close on Windows, OK on macOS. OK, Cancel and Apply belong only to a properties dialog of one object (Windows). Yes and No appear only together, on Windows, where no specific answer is possible. The abandoning button is Cancel; once the work is done it becomes Close. Every dialog has a safe button that leaves without acting. (WRD-7, WRD-8)
 
 - "OK" on Insert Link (kvit-notes `app/links.go:260`) → "Insert"
 - "OK" on Confirm import (kvit-notes `app/exchange.go:299`) → "Import"
@@ -94,7 +94,7 @@ The rules below hold on every system unless they say "Windows" or "macOS". kvit-
 
 **15. Every command is in the menu bar.** Buttons, toolbars and context menus are shortcuts to commands that also live in a menu. A command that exists only on a button cannot be found from the keyboard or by a reader who missed the button. (CMD-1)
 
-**16. Standard commands in the standard menus.** Undo, Redo, Cut, Copy, Paste, Select all and Find go in Edit; New, Open, Save, Close and Print in File; show and hide commands in View. Settings and About go where the platform puts them, which `MenuBar` does for you: Tools > Options and Help > About on Windows, the app menu on macOS. Exit on Windows, Quit on macOS. (CMD-2 to CMD-8)
+**16. Standard commands in the standard menus.** Undo, Redo, Cut, Copy, Paste, Select all and Find go in Edit; New, Open, Save, Close and Print in File; show and hide commands in View. Settings and About go where the platform puts them: on Windows and Linux, Settings is the last item of the sidebar or the toolbar's More menu and About is a section at the bottom of the Settings page; on macOS both are in the app menu. Exit on Windows, Quit on macOS. On Windows an app with few commands may use a toolbar with a More menu instead of a menu bar; every command must still be on one of them. (CMD-1 to CMD-8)
 
 **17. Menus: most used first, grouped, short, destructive last.** Separate groups with separators; at most one level of submenu, none in a context menu on Windows; a destructive item goes last, after a separator. A context menu holds only what applies to what was clicked. (CMD-10, CMD-12, CMD-13, CMD-23)
 
@@ -117,7 +117,7 @@ The rules below hold on every system unless they say "Windows" or "macOS". kvit-
 
 ### Dialogs and messages
 
-**23. kvit-ui orders dialog buttons; do not.** Give Dialog its ConfirmText and CancelText and let it place them: confirming first on Windows and Linux, last on macOS. Never build a row of dialog buttons yourself. (WIN-1)
+**23. kvit-ui orders dialog buttons; do not.** Give Dialog its ConfirmText and CancelText and let it place them: the main action first and the safe button last on Windows and Linux, the default button last on macOS. Never build a row of dialog buttons yourself. (WIN-1)
 
 **24. Ask only when it matters.** No dialog before an action that can be undone: do it, and show ConfirmInPlace or a toast with Undo. Ask before a rare action that loses data for good, and then say what will be lost. (MSG-3)
 
@@ -126,3 +126,9 @@ The rules below hold on every system unless they say "Windows" or "macOS". kvit-
 **26. Explanations stay short.** A setting gets a label and at most one short line. A longer explanation goes behind a Hint. A paragraph that is always on screen is read once and then ignored. (WRD-22)
 
 - kvit-notes `app/settings.go:269`, a permanent 50-word paragraph under one setting → one line, the rest in a Hint
+
+**27. Settings apply at once.** An app's settings are a page (on macOS a window) where each change takes effect as it is made: no OK, Cancel or Apply. On Windows a setting that applies at once is a switch, not a checkbox. Each setting is one row: its label, a one-line description where needed, and the control. (WIN-16, WIN-23, CTL-2, WRD-22)
+
+- A settings dialog with OK and Cancel → a Settings page whose changes apply at once
+
+**28. Links go somewhere; buttons act.** A link opens a page, a window or a help topic and commits nothing; anything that changes data is a button. Every link's tooltip says where it leads. Labels end without a colon. (CTL-26, WRD-19)

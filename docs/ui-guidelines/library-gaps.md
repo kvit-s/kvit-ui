@@ -2,7 +2,7 @@
 
 What the library does today against the merged rules (rules.md), and the component changes and tests that would close the gap, in the order to do them. Line numbers are as of commit 0a36b77.
 
-Of the 198 rules, kvit-ui enforces 26, partly covers 92, contradicts 10 and does not cover 70. Many of the 70 are app matters (help topics, printing, onboarding) or reviewer matters (tone, chart choice); the work below is the part the library can carry.
+Of the 199 rules, kvit-ui enforces 20, partly covers 101, contradicts 9 and does not cover 69. (Against the Windows 7 forms it was 26, 92, 10 and 70 of 198; the current Microsoft guidance moved a few rules from "enforces" to "partly" by asking more, and KEY-6 from "contradicts" to "partly".) Many of the 70 are app matters (help topics, printing, onboarding) or reviewer matters (tone, chart choice); the work below is the part the library can carry.
 
 ## Platform knowledge
 
@@ -26,37 +26,41 @@ Add `UI.Form` (`FormWindows` or `FormMac`), set from `runtime.GOOS` (Linux takes
 
 | What changes by platform | Rules | Windows and Linux | macOS |
 |---|---|---|---|
-| Dialog button order | WIN-1 | confirming button first (left), Cancel after it | Cancel, then the default button at the trailing end |
-| Default button and Enter | KEY-6 (Q-7) | a default in every dialog, Cancel when destructive; Enter presses the focused button | Return presses the default; none when destructive |
+| Dialog button order | WIN-1 | the main action first (left), an optional second action, the safe button last (right) | Cancel, then the default button at the trailing end |
+| Default button and Enter | KEY-6 (Q-7) | a default only when one answer is clearly likely and safe; Enter presses the focused button | Return presses the default; none when destructive |
 | Close symbol on dialogs | WIN-6 (Q-8) | always | none on alerts |
-| Capitalisation | WRD-6 (Q-3, Q-4) | sentence case except window titles | title case on menus, buttons, tabs, column headings |
+| Dialog title | WIN-6, MSG-4 | the main instruction; a simple message may have none | the question or what happened |
+| Capitalisation | WRD-6 (Q-3, Q-4) | sentence case for all text, titles included | title case on menus, buttons, tabs, column headings |
 | Command modifier | KEY-3, WRD-24 | Ctrl, written Ctrl+Shift+N | Command, written ⇧⌘N |
-| Standard shortcuts | KEY-2 | Ctrl+Y redo, F1, F2, F3, F5, F11, Alt+F4 | Shift-Cmd-Z, Cmd-?, Ctrl-Cmd-F, Cmd-comma |
+| Standard shortcuts | KEY-2 | Ctrl+Y redo, Ctrl+W, F1, F2, F3, F5, F11, Alt+F4, document-tab keys | Shift-Cmd-Z, Cmd-?, Ctrl-Cmd-F, Cmd-comma |
 | Cancel key | KEY-7 | Escape | Escape and Command-period |
 | Exit or Quit | CMD-3, CMD-4 | Exit, last in File | Quit <App>, last in the app menu |
-| Settings and About | CMD-3, WIN-16 (Q-2) | Options last in Tools; About last in Help | Settings… and About in the app menu |
-| Menu bar | CMD-1, CMD-2 (Q-1) | Kvit-drawn in the window; File, Edit, View, Tools, Help | the system's; App, File, Edit, View, Window, Help |
+| Settings and About | CMD-3, CMD-8, WIN-16 | Settings, a page applying at once, last in the sidebar or the More menu (or Tools); About at the bottom of Settings | Settings… and About in the app menu |
+| Command surface | CMD-1, CMD-2 | a menu bar for apps with many commands, otherwise a toolbar with a More menu | the system's menu bar, always |
 | Window menu | CMD-7 | none | required |
 | Access keys | KEY-15 (Q-11) | Alt+letter on every control and menu | none |
-| Ellipsis | WRD-4 | none on Options, Properties, About | on Settings… |
-| OK, Yes, No, Done, Close | WRD-7, WRD-8, WRD-21 (Q-5, Q-6) | OK for settings windows, Yes/No pairs, Close ends flows | specific verbs, Done ends flows |
+| Ellipsis | WRD-4 | none on Settings, Properties, About | on Settings… |
+| OK, Yes, No, Done, Close | WRD-7, WRD-8, WRD-21 (Q-5, Q-6) | specific answers; Close on a message; OK, Cancel, Apply only in a properties dialog; Close ends flows | specific verbs; Done ends flows |
 | Toggle commands | WRD-12 (Q-24) | name kept, ticked | Show/Hide words swap |
 | Shortcut in tooltips | WRD-13, KEY-14 (Q-23) | Bold (Ctrl+B) | no shortcut |
-| Shortcuts in context menus | CMD-11 | shown | not shown |
-| Context-menu default | CMD-10 (Q-33) | first and bold | none |
+| Context menus | CMD-10, CMD-11 | every command for the item, common ones first, inapplicable ones left out, shortcuts shown | likely commands only, Cut/Copy/Paste kept disabled, no shortcuts |
+| Context-menu default | CMD-10 (Q-33) | bold | none |
 | Exclusive menu options | CMD-15 | bullet | tick |
-| Colon after labels | WRD-19, WRD-20 (Q-22) | Name: | none |
+| "We" in messages | WRD-14 (Q-15) | the app may say "we" | never |
+| Verb for commands in text | WRD-17 | select | choose for menu items, click for buttons |
+| Field labels | LAY-6 | above the field | beside or above |
+| A lone button on a page | LAY-5 | at the leading edge with the content | at the trailing edge |
 | Tab focus | KEY-10 (Q-16) | every control | text fields and lists, unless full keyboard access |
+| Title bar | WIN-11 (Q-41) | may hold Back, search, tabs, account picture | holds no app controls |
 | Window title | WIN-12 | "document - program" | the document only |
 | Unsaved mark | WIN-20 (Q-13) | asterisk in the title | dot in the close button |
 | Full screen | WIN-15 | F11, View > Full screen | the system's full screen, Ctrl-Cmd-F |
-| Placeholder | WRD-19 | hidden on focus | kept until typing |
-| Radio buttons before a select | CTL-2 | up to seven | up to five |
-| Tabs in a row | CTL-10 | up to seven | up to six |
-| Mixed checkbox click | CTL-5 (Q-27) | cycles back to the mix | not defined |
-| Disabled Next | CTL-8 (Q-30) | stays enabled, explains on press | may be unavailable |
+| Switches | CTL-2 | any setting that applies at once | settings of large scope |
+| Tabs | CTL-10 | up to seven in a row; a sidebar beyond a few pages | up to six |
 | Window attention | MSG-1, WIN-25 | flash the taskbar button | bounce the Dock icon |
 | Notifications | MSG-10, MSG-11, MSG-13 | no buttons, sentence-case title | title case, buttons allowed |
+
+Rules that differed under the Windows 7 guide and now agree on both systems, so need no platform knowledge: colons after labels (none anywhere), placeholders (kept while the field is focused and empty), radio buttons (two to five), the mixed checkbox (all on, then all off), a disabled Next (allowed, with required fields marked), the stepper (stops at its limits), settings that apply at once.
 
 ### Capitalisation
 
@@ -74,7 +78,7 @@ Recommended: 1. A test renders each gallery page and each app screen in both for
 | Rule | What kvit-ui does | Change |
 |---|---|---|
 | WIN-1 | The confirming button is on the right on every system (`feedback.go:371`, laid out right to left at `feedback.go:541-552`). | Dialog lays out by `ui.Form`: confirm first on Windows and Linux, last on macOS. Test: in each form, the confirming button's x against Cancel's. |
-| KEY-6 | Buttons press on Space only (`button.go:75`); Dialog has no default button and only focuses Confirm, or Cancel when destructive (`feedback.go:470-479`); `Dialog.Accept` is left to the app (`dialogaccept.go:3-7`). | Button and IconButton also press on Return and NumPadEnter when focused on the Windows form. Dialog gets a default: Return presses it on macOS (none when Destructive); on Windows Enter presses the focused button. A `Default` mark drawn on the button. |
+| KEY-6 | Buttons press on Space only (`button.go:75`), so Enter on a focused button does nothing; Dialog has no default button and only focuses Confirm, or Cancel when destructive (`feedback.go:470-479`); `Dialog.Accept` is left to the app (`dialogaccept.go:3-7`). A dialog without a default now suits both systems; the missing Enter does not. | Button and IconButton also press on Enter and NumPadEnter when focused, on the Windows form. Dialog gains an optional `Default`, drawn as such: Return presses it on macOS; never set when Destructive. |
 | WRD-7 | Dialog's ConfirmText defaults to "Confirm" (`feedback.go:424`). | No default: an empty ConfirmText logs a warning unless the dialog only informs (then a single Close, or OK on macOS, Q-5). |
 | WRD-3 | Library defaults carry articles: "Clear the filter" (`searchfield.go:56`), "Close the pane" (`pane.go:44`), "Dismiss this notice" (`feedback.go:261`), "Clear the sort" (`table.go:597`), "Move this column left" and the rest of the column menu (`table.go:595-605`), "Select the rows shown" (`table.go:965`), "Show the selected column" and three more (`duallist.go:54-57`). | Rewrite: Clear, Close, Dismiss, Clear sort, Move left, Move right, Widen, Narrow, Hide column, Show all columns, Select all, Show, Hide, Move up, Move down. |
 | WRD-25 | Button.BusyText defaults to "Working…" (`button.go:73`). | BusyText required with Busy; a busy button without it logs a warning. |
@@ -96,19 +100,21 @@ Each step lists the rules it serves. Steps 1 to 3 are foundations the rest stand
 
 A `Command` type: name, symbol, shortcut (declared with `mod.OSMenuCommand()`), enabled func, run func, and an optional explanation. MenuItem, IconButton, Button and a toolbar item are made from a command, so one command has one name and one symbol everywhere (CON-1, CON-2), its shortcut shows in its menu item and tooltip (KEY-14, WRD-13), and it is disabled in every place at once (CMD-9). The Window keeps a shortcut registry: a command's key runs it wherever the window has focus (KEY-2), and the registry refuses two commands on one key (KEY-5) and keys the system owns (KEY-4).
 
-A table of standard commands with their keys per form (New, Open, Save, Close, Print, Undo, Redo, Cut, Copy, Paste, Delete, Select all, Find, Settings or Options, Help, Full screen, Rename, Refresh): an app that has the command gets the standard key without choosing one (KEY-2). This is the fix for kvit-cash's missing Ctrl+S and kvit-works' missing Ctrl+F, Ctrl+N and Ctrl+W.
+A table of standard commands with their keys per form (New, Open, Save, Close, Print, Undo, Redo, Cut, Copy, Paste, Delete, Select all, Find, Settings, Help, Full screen, Rename, Refresh): an app that has the command gets the standard key without choosing one (KEY-2). This is the fix for kvit-cash's missing Ctrl+S and kvit-works' missing Ctrl+F, Ctrl+N and Ctrl+W.
 
 Today: MenuItem.Key is display only (`menu.go:26-28`, survey §4); apps catch keys in `Window.OnKeyDown` (`window.go:37-41`); `docs/plugins.md` proposes command routing but none exists.
 
-### 3. The menu bar
+### 3. Command surfaces: the menu bar and the toolbar
 
-`kvitui.MenuBar`, built from the app's commands and the standard menus per form (CMD-1 to CMD-8): the system's bar through unison on macOS (with kvit-ui's own "Settings…" item, since unison's says "Preferences…", unison `menu_bar.go:130-136`), and a Kvit-drawn bar in the window on Windows and Linux, with access keys, Alt to focus it, and the hide-and-Alt route if Q-1 allows it. unison's per-window bar puts Exit in File and Preferences in Edit with Ctrl+Q (unison `menu_bar.go:84-136`), which is not the Windows form, so the Windows bar is kvit-ui's.
+`kvitui.MenuBar`, built from the app's commands and the standard menus per form (CMD-1 to CMD-8): the system's bar through unison on macOS (with kvit-ui's own "Settings…" item, since unison's says "Preferences…", unison `menu_bar.go:130-136`), and, on Windows and Linux, a Kvit-drawn bar in the window with access keys and Alt to focus it, for apps with many commands. unison's per-window bar puts Exit in File and Preferences in Edit with Ctrl+Q (unison `menu_bar.go:84-136`), which is not the Windows form, so the Windows bar is kvit-ui's.
+
+On Windows and Linux an app with fewer commands may use a toolbar with a More menu instead (CMD-1, CMD-18, CMD-19), so a Toolbar component with leading, centre and trailing groups and an overflow More menu belongs here too: both are built from the same commands, and a test checks that every command is on one of them.
 
 Today: no menu bar on any system (survey §4).
 
 ### 4. Dialog
 
-- Button order by form (WIN-1), default and Enter (KEY-6), no "Confirm" default (WRD-7), Close-only informing dialogs, Cancel turning into Close or Stop (WRD-8).
+- Button order by form (WIN-1), an optional default and Enter on the focused button (KEY-6, Q-7), no "Confirm" default (WRD-7), Close-only informing dialogs, Cancel turning into Close or Stop (WRD-8), a safe button in every dialog (WIN-3).
 - Focus back to the opener on close (KEY-8; today `feedback.go:482-487` only hides; Popover already does it, `popover.go:125-148`).
 - Focus starts in the first field when the body has one, not on the confirm button (KEY-8; `feedback.go:470-479`).
 - Tab kept inside an open modal (survey §2: no focus trap).
@@ -151,8 +157,8 @@ Today: no menu bar on any system (survey §4).
 
 Each reads what the rule needs:
 
-- **`uitest.CheckLabels(window, form)`, one screen's controls.** Every Button, IconButton, MenuItem, Tab and column name: starts with an allowed verb or a standard verbless label (WRD-1); at most three words, four for a Windows toolbar button (WRD-2); no a, an, the, my, your (WRD-3); not OK, Yes, No or Confirm outside the allowed cases (WRD-7); no ending full stop (WRD-27); in the form's case (WRD-6); a Button whose words are one or two characters or only punctuation fails (CMD-22: the "B", "I", "U", "<>" buttons). Tooltips: at most 60 characters on the macOS form, no full stop (WRD-13). A Dialog has a Title, at most three buttons and a Cancel when Destructive (WIN-2, WIN-3, WIN-6). At most one ButtonPrimary per region (CTL-1). No static label longer than about 20 words under a control (WRD-22: the 50-word paragraph). Every elided Label has a tooltip with its text (PTR-12).
-- **`uitest.CheckApp(screens)`, every screen of an app together.** Collects (command handler, name, symbol, shortcut) from every screen and fails one command with two names (CON-1: Quick Capture… / Quick capture note… / Quick capture), one symbol with two unrelated names (CON-2: the X for archive, withdraw, remove, cancel and close), one key for two commands (KEY-5), a standard command without its standard key (KEY-2), a command reachable from a button or context menu but missing from the menu bar (CMD-1), and a menu item with a shortcut that its menu does not show (KEY-14).
+- **`uitest.CheckLabels(window, form)`, one screen's controls.** Every Button, IconButton, MenuItem, Tab and column name: no colon at the end (WRD-19); starts with an allowed verb or a standard verbless label (WRD-1); at most three words, four for a Windows toolbar button (WRD-2); no a, an, the, my, your (WRD-3); not OK, Yes, No or Confirm outside the allowed cases (WRD-7); no ending full stop (WRD-27); in the form's case (WRD-6); a Button whose words are one or two characters or only punctuation fails (CMD-22: the "B", "I", "U", "<>" buttons). Tooltips: at most 60 characters on the macOS form, no full stop (WRD-13). A Dialog has a Title, at most three buttons and a Cancel when Destructive (WIN-2, WIN-3, WIN-6). At most one ButtonPrimary per region (CTL-1). No static label longer than about 20 words under a control (WRD-22: the 50-word paragraph). Every elided Label has a tooltip with its text (PTR-12).
+- **`uitest.CheckApp(screens)`, every screen of an app together.** Collects (command handler, name, symbol, shortcut) from every screen and fails one command with two names (CON-1: Quick Capture… / Quick capture note… / Quick capture), one symbol with two unrelated names (CON-2: the X for archive, withdraw, remove, cancel and close), one key for two commands (KEY-5), a standard command without its standard key (KEY-2), a command reachable from a button or context menu but missing from the menu bar, or on the Windows form from the toolbar and its More menu (CMD-1), and a menu item with a shortcut that its menu does not show (KEY-14).
 - **`uitest.CheckRules` extended, the Go source.** Flags a label literal ending in "..." or "…" once `Asks` exists (WRD-4); "Oops", "tap", "click here" in strings (WRD-15, WRD-17, WRD-18); `mod.Command` or `mod.Control` in a KeyBinding literal (KEY-3); a Button text starting "+ " (CMD-22).
 - **Both forms.** Every gallery page and app screen rendered with `FormWindows` and `FormMac`, and the checks above run in each.
 
@@ -166,12 +172,13 @@ Each reads what the rule needs:
 
 ### 10. Controls and the rest
 
-- A form row: a visible label tied to its field by LabeledBy, with the colon per form (WRD-19, LAY-6; `field.go:34-35`).
+- A form row: a visible label tied to its field by LabeledBy, no colon, above the field on the Windows form (WRD-19, LAY-6; `field.go:34-35`), and a required mark (CON-4).
+- A settings page: setting rows (label and one-line description leading, control trailing), a Settings item pinned last in the sidebar's footer, and an About section at its bottom (WIN-16, WRD-22, CMD-3; `sidebar.go` has no footer group today).
+- A Tip component for teaching tips, anchored and non-blocking (HLP-4, Q-48); Spotlight stays for tours.
+- Back history for in-window navigation, and a breadcrumb whose folded crumbs open a list (LAY-10; `breadcrumb.go:25-28` draws a "…" that cannot be followed).
 - Label `Selectable` for content text (CTL-18), and a tooltip with the full text when elided (PTR-12).
 - Symbols for formatting: bold, italic, underline, strikethrough, code, heading (CMD-22; the catalog's symbol list has none of them, though it has `link` and `plus`). kvit-notes' "B", "I", "U", "S", "<>" and "H" buttons need these before they can become IconButtons.
-- Check cycling back to the mix (CTL-5, Q-27; `check.go:49-51`).
 - Progress with Cancel or Stop and a time-remaining line (FDB-3, FDB-10).
-- A Toolbar component with leading, centre and trailing groups and overflow (CMD-18, CMD-19).
 - Notifications: an urgency, skipped while a Kvit window is active, silent on Windows (MSG-10, MSG-12).
 - An UndoStack with named entries for the Edit menu, ConfirmInPlace and Toast (FDB-7, WRD-11).
 - A help link to a topic (HLP-6, Q-34).

@@ -2,17 +2,19 @@
 
 Decisions the owner has to make before the rules can be built into kvit-ui, its tests and the skill. Each question names the rules it touches, the options, what each option changes, and a recommendation.
 
-The first eight block the most later work: each one decides how a component behaves on every platform, so a component change made before it is decided may have to be undone. The rest can be decided as their rules come up.
+The questions under the first heading block the most later work: each one decides how a component behaves on every platform, so a component change made before it is decided may have to be undone. The rest can be decided as their rules come up.
+
+Microsoft's current guidance (Fluent and WinUI, read on 2026-10-23 from the copy the owner supplied) settled eleven questions and narrowed five; those are at the end, under "Settled by Microsoft's current guidance", with what was decided. Questions Q-41 to Q-52 are new: the current guidance raised them.
 
 ## Decisions that block the most work
 
 ### Q-40. Linux
 
-The owner applies the Windows form on Linux until Linux is decided. That choice matters for 70 rules, listed in the last section. In most of them GTK and Qt do what Windows does (access keys, Enter on the focused button, Ctrl+Tab, every control a Tab stop). They part ways in a handful of visible places:
+The owner applies the Windows form on Linux until Linux is decided. That choice matters for the rules listed in the last section. In most of them GTK and Qt do what Windows does (access keys, Enter on the focused button, Ctrl+Tab, every control a Tab stop). They part ways in a handful of visible places:
 
 - WIN-1: GNOME puts the confirming button last, as macOS does; KDE puts it first, as Windows does.
-- WRD-6: GNOME and KDE use title case on buttons and menus in many apps; the Windows form is sentence case.
-- WIN-16, CMD-1, CMD-3: GNOME apps use a header bar with a primary menu (Preferences, About) and live preferences, not a menu bar with Tools > Options and OK and Cancel.
+- WRD-6: GNOME and KDE use title case on buttons and menus in many apps; the Windows form is sentence case for everything.
+- CMD-1, CMD-3: GNOME apps use a header bar with a primary menu (Preferences, About). The current Windows form (a toolbar with a More menu, Settings as a page applying at once, About inside Settings) is now close to GNOME's; only the names differ (Settings against Preferences).
 - KEY-2, KEY-5: Linux desktops use Ctrl+Shift+Z for Redo and Ctrl+Q for Quit.
 - MSG-17, CMD-24: GNOME shows tray icons only with an extension.
 
@@ -24,23 +26,9 @@ Options:
 
 Recommendation: 3. It costs two key bindings and settles the most noticed difference without a third form.
 
-### Q-1. A menu bar on Windows and Linux
-
-Rules: CMD-1, CMD-2, CMD-6, CMD-18. kvit-ui has no menu bar on any system (`menu.go`, survey). On macOS the system menu bar is required. The Windows 7 guide requires a menu bar for a main window with many commands, but lets a simple app hide it (Alt brings it back) or go without one when it would hold three menus or fewer.
-
-Options:
-
-1. Every main window has a visible Kvit-drawn menu bar on Windows and Linux. Every command is findable and has an access key; the window gains a row.
-2. As 1, but a simple app may start with the bar hidden; Alt and View > Menu bar show it.
-3. Also allow no menu bar when it would hold three menus or fewer, with toolbar menu buttons instead.
-
-What it changes: whether kvit-ui needs a Kvit-drawn menu bar (options 1 and 2) or a toolbar that must reach every command (option 3); whether "every command is in the menu bar" (CMD-1) can be a test on Windows.
-
-Recommendation: 2. One menu bar built from the app's commands serves keyboard and screen-reader users on every system, and small apps can still look uncluttered.
-
 ### Q-3. How a label gets its Windows and macOS capitalisation
 
-Rules: WRD-6 and every rule that names a label. The Windows form is sentence case for everything but window titles (Don't save, Select all); the macOS form is title case for menu items, buttons, tabs and column headings (Don't Save, Select All). The library's strings are sentence case today.
+Rules: WRD-6 and every rule that names a label. The Windows form is now sentence case for all text, window and dialog titles included (Don't save, Select all); the macOS form is title case for menu items, buttons, tabs and column headings (Don't Save, Select All). The library's strings are sentence case today.
 
 Options:
 
@@ -49,66 +37,60 @@ Options:
 3. **The app writes title case; the component converts to sentence case on Windows and Linux.** Lowering is easier to get wrong: proper nouns and acronyms (Wi-Fi, PDF, Kvit Notes) must be kept, and the app would need to mark them.
 4. **One form everywhere.** No platform behaviour; breaks the owner's decision.
 
-Recommendation: 1, with a short exception list in kvit-ui and labels that never contain user data (WRD-29 already forbids building text from pieces). A test renders every screen in both forms and compares each name with the converter's output, so the exceptions show up.
+Recommendation: 1, with a short exception list in kvit-ui and labels that never contain user data (WRD-29 already forbids building text from pieces). A test renders every screen in both forms and compares each name with the converter's output, so the exceptions show up. The current Windows guidance makes option 1 simpler: Windows takes the string as written, titles included.
 
-### Q-7. The default button in Windows dialogs
+### Q-7. Enter on a focused button
 
-Rules: KEY-6, WIN-3, MSG-3, KEY-15. Apple: a destructive dialog has no default, and a dialog that must be read has none. Windows 7: every dialog has a default, the safe answer in a risky question, and Enter presses whichever command button has focus. kvit-ui: Buttons answer to Space only (`button.go:75`); Dialog has no default and only focuses a button (`feedback.go:470-479`).
+Rules: KEY-6, WIN-3, KEY-15. Narrowed by the current guidance: on both systems a dialog now needs no default button, and gets one only when one answer is clearly the likely and safe one; a destructive answer is never the default. What still differs: on Windows, Enter presses whichever button has focus; on macOS, Return presses only the default, whatever has focus. kvit-ui: Buttons answer to Space only (`button.go:75`); Dialog has no default and only focuses a button (`feedback.go:470-479`).
 
 Options:
 
-1. Platform forms. Windows and Linux: a default in every dialog, Cancel when the dialog is destructive, Enter presses the focused command button. macOS: Return presses the default; none in a destructive dialog.
-2. Apple's rule everywhere: Return does nothing in a destructive dialog on every system.
+1. Platform forms: Button and IconButton also press on Enter when focused, on the Windows form only.
+2. Enter presses a focused button on every system.
 
-Recommendation: 1. Dialog already focuses Cancel in a destructive dialog, so on Windows "Enter presses the focused button" gives the safe default with no new layout.
+Recommendation: 1. It is one key binding by form, and it keeps the Mac's Return-means-default habit.
 
 ### Q-5. OK, Yes and No on Windows
 
-Rules: WRD-1, WRD-7, WRD-8, WIN-2. Apple: never OK, Yes or No on a confirming button, except OK in an alert that only informs. Windows 7: OK commits a settings or properties window; Yes and No answer a yes-or-no question, always as a pair, when specific answers would be long or the reader must stop and read; a message with no action of its own has a single Close. Apple's own pages also disagree on the one-button alert: OK (`apple-alerts-19`) or Done (`apple-alerts-30`).
+Rules: WRD-1, WRD-7, WRD-8. Narrowed by the current guidance: its Dialogs page asks for specific answers and gives Close for a message that only needs dismissing; its Buttons page still lists OK and Yes/No in the button order. WRD-7's Windows form now says: specific answers; Close on a message; OK, Cancel and Apply only on a properties dialog of one object; Yes and No only where no specific answer is possible, as a pair. Apple's own pages disagree on the one-button alert: OK (`apple-alerts-19`) or Done (`apple-alerts-30`).
 
-Options:
-
-1. Platform forms as in WRD-7. The default is still a specific verb on both systems, so most dialogs read the same.
-2. Specific verbs on every system; Yes, No and OK never.
+Options for Windows: the form as now written; or no Yes and No at all (specific verbs always).
 
 For the macOS one-button alert: OK (alerts-19, the common Mac practice) or Done (alerts-30).
 
-Recommendation: 1, and OK for the macOS informing alert. Either way Dialog loses its "Confirm" default (`feedback.go:424`).
-
-### Q-2. Settings: where it lives and how it applies
-
-Rules: WIN-16, WIN-23, CMD-3. Windows 7: Tools > Options opens a modal window that commits on OK, with Cancel. macOS: Settings… in the app menu opens a window whose changes apply at once. Current Windows apps mostly apply settings at once, but the only Windows source here is the Windows 7 guide.
-
-Options:
-
-1. Platform forms: modal Options with OK and Cancel on Windows and Linux, live Settings on macOS.
-2. Settings apply at once everywhere, in a window with Close.
-
-What it changes: whether a settings component needs OK, Cancel and Apply semantics (WIN-23) and a way to undo every change on Cancel.
-
-Recommendation: 2, against the Windows 7 text, for one reason: a live settings window is how Windows 10 and 11 apps behave and how Kvit's own theme and size settings already work, and building transactional settings for one platform is a large cost for a dated convention. Revisit when the Fluent pages can be read (Q-39).
+Recommendation: the Windows form as written, and OK for the macOS informing alert. Either way Dialog loses its "Confirm" default (`feedback.go:424`).
 
 ### Q-11. How far access keys go
 
-Rules: KEY-15, KEY-3, KEY-6. Today only Kvit menus have access keys, and only inside an open menu (`menu.go:525-564`).
+Rules: KEY-15, KEY-3, KEY-6. Today only Kvit menus have access keys, and only inside an open menu (`menu.go:525-564`). The current guidance's access-key and keyboard pages were not in the copy supplied (Q-39), so this rests on the Windows 7 guide.
 
 Options:
 
 1. The full Windows form on Windows and Linux: every eligible control has an Alt+letter key, underlined when Alt is held or always if the system asks, unique in the window, checked by a test.
-2. Menus only, plus Alt opening the menu bar.
+2. Menus only, plus Alt opening the menu bar where an app has one.
 
-Recommendation: 1. Access keys are on Microsoft's checklist several times, GTK and Qt have the same mnemonics, and they are the main keyboard route the apps lack. It needs a window-wide registry and a uniqueness test.
+Recommendation: 1, but read the current access-keys page first. Access keys are on Microsoft's checklist several times, GTK and Qt have the same mnemonics, and they are the main keyboard route the apps lack.
 
-### Q-39. Microsoft's current guidance was not read
+### Q-41. A Kvit-drawn title bar on Windows
 
-The Fluent and WinUI pages under learn.microsoft.com could not be fetched from this environment (the network policy refused the host). The Windows forms rest on the Windows 7 guide alone. Where current Windows practice is known to differ (live settings, "Learn more" links, select rather than click in help), the rule says so.
+Rules: WIN-11, CTL-15, LAY-10. The current Windows form lets the title bar hold Back, the sidebar toggle, an app-wide search box, document tabs and the account picture, as long as its empty parts still drag the window. kvit-ui uses the system's frame. Putting anything in the title bar means drawing it: the drag area, double-click to maximise, the system window menu on the icon, snap layouts on the maximise button, and the caption buttons.
 
 Options:
 
-1. Treat the Windows 7 forms as final.
-2. Fetch the Fluent pages (allow learn.microsoft.com in the environment's network settings, or supply them as files as was done for the Windows 7 guide) and rerun the merge for the rules marked "Fluent not consulted" before the library work starts.
+1. Keep the system frame; Back, search and tabs sit in the window's own header below it.
+2. Draw the title bar on Windows (and Linux), with those controls in it.
 
-Recommendation: 2, for the WRD, WIN and KEY rules only; the rest of the Windows 7 behaviour guidance is unlikely to change.
+What it changes: option 2 is a large library cost and a source of platform bugs (snap layouts, high contrast, accessibility of the caption buttons); option 1 gives up a few pixels and the Windows 11 look.
+
+Recommendation: 1. The rule allows controls in the title bar; it does not require them, and the owner does not take visual appearance.
+
+### Q-39. Microsoft's keyboard pages were not read
+
+The copy of the current guidance supplied on 2026-10-23 holds the design pages and the WinUI controls, but not six pages the brief named: keyboard accessibility, keyboard interactions, access keys, keyboard accelerators, focus navigation and guidelines for visual feedback. KEY-3, KEY-4, KEY-10, KEY-13, KEY-15 and the shortcut parts of WRD-13, WRD-24 and KEY-2 still rest on the Windows 7 guide.
+
+Options: treat the Windows 7 forms as final for these; or supply those six pages and rerun the merge for the KEY rules.
+
+Recommendation: supply them before the keyboard work (library-gaps.md step 6) starts; nothing earlier depends on them.
 
 ## Wording
 
@@ -136,22 +118,16 @@ Options: Move to Trash on macOS and Delete on Windows and Linux, with the dialog
 
 Recommendation: the first. Windows Explorer's own command is Delete, and the confirmation (or the undo toast) says it went to the Recycle Bin.
 
-### Q-15. "We", "you" and blame in messages
+### Q-15. "We" in messages, and one string for two systems
 
-Rules: WRD-14, MSG-4. Apple: never use we (`apple-writing-14`) and keep we for the maker (`apple-inclusion-04`), on two pages. Windows 7: no you or your in error messages, so the reader is never the culprit.
+Rules: WRD-14, MSG-4. Settled in substance by the current guidance: on Windows the app may take responsibility in the active voice with "we" (We couldn't save your file); Apple says never "we" (`apple-writing-14`). WRD-14 now has those two forms. What is left: one source string ships on both systems, so a message written with "we" needs a second, macOS string.
 
-Options: you in general, never the reader as the subject of a mistake, we never (one voice everywhere); Windows strictly (no you in any error message).
+Options:
 
-Recommendation: the first. It removes blame, which is what both rules are for.
+1. Per-platform message strings where the Windows form uses "we".
+2. Write problem messages in a form that suits both (Couldn't save the file), and use "we" on neither.
 
-### Q-22. A colon after a control's label
-
-Rules: WRD-19, WRD-20. Windows ends a label beside or above its control with a colon (Name:). Apple asks for one on a slider's label and a combo box's label but shows none elsewhere.
-
-Options: colon on the Windows form only; colon everywhere; no colons.
-
-Recommendation: colon on the Windows form only. The form-row helper sets LabeledBy either way, so screen readers do not depend on it.
-
+Recommendation: 2. It costs nothing, reads well on both systems, and still never blames the reader.
 ### Q-23. One tooltip text for both systems
 
 Rules: WRD-13, HLP-1, KEY-14. Windows: the tooltip of an unlabelled control is its name plus the shortcut, Bold (Ctrl+B). Apple: a fragment saying what the control does.
@@ -202,6 +178,16 @@ Rules: KEY-13. The Windows 7 guide gives Ctrl+E for the window's search box and 
 
 Recommendation: both keys go to the window's search field when there is one; Ctrl+F opens a find bar where there is a separate one. This answers kvit-works' missing Ctrl+F.
 
+### Q-49. Small keyboard differences in the current guidance
+
+Rules: KEY-8, KEY-9, HLP-1.
+
+- A Windows menu keeps focus until it is dismissed; KvitMenu closes on Tab (`menu.go:517-518`).
+- A Windows radio group stops at its ends; KvitRadioGroup wraps (`radiogroup.go:102-129`).
+- Escape (and Ctrl on Windows) dismisses a tooltip; if Escape closes the tooltip first, a dialog under it needs a second Escape.
+
+Recommendation: keep Tab closing a menu (Escape and Tab both leaving is the common desktop behaviour); stop at the ends on the Windows form; let Escape close a tooltip only when no popup is open, so one Escape still closes a dialog.
+
 ## Windows and dialogs
 
 ### Q-8. A close symbol on dialogs on macOS
@@ -212,22 +198,13 @@ Options: keep it everywhere (one look); drop it on macOS.
 
 Recommendation: drop it on macOS. Which ways out a dialog has is behaviour, not appearance.
 
-### Q-9. The command's name over a Windows message
-
-Rules: MSG-4. A Windows message box has a title bar naming the command it came from; the main instruction is the question. KvitDialog is drawn in the window without a title bar, and its Title is the question.
-
-Options: no caption on any system; a small caption naming the command on Windows and Linux.
-
-Recommendation: no caption. The window's own title already names the app, and a second title line costs room for little.
-
 ### Q-10. Command links
 
-Rules: CTL-25, WRD-2, WRD-14, WRD-29, CON-4. Windows 7 answers a question whose answers need many words with command links; macOS has no such control.
+Rules: CTL-25, WRD-2, WRD-14, WRD-29, CON-4. The Windows 7 guide answers a question whose answers need many words with command links. The current guidance has no command link control, and its Dialogs and Buttons pages turn further choices into radio buttons or checkboxes committed by one button (WIN-2). macOS has none either.
 
-Options: a CommandLink component on Windows and Linux, radio buttons with a specific commit button on macOS, built from one list of answers; no command links anywhere (radio buttons and one verb button everywhere); command links everywhere.
+Options: drop CTL-25's Windows form and use radio buttons with a specific commit button on every system; or build a CommandLink component for Windows and Linux anyway.
 
-Recommendation: no command links for now. No Kvit screen in the survey needs one, the wording rules apply either way, and the component can come when an app needs it.
-
+Recommendation: drop it. Neither platform's current guidance has the control, and no Kvit screen in the survey needs one.
 ### Q-12. Save automatically or ask on close
 
 Rules: WIN-19, FDB-7. Apple: save automatically; no explicit save needed. Windows 7: closing with unsaved changes asks Save, Don't save, Cancel. kvit-cash has no Ctrl+S today.
@@ -252,43 +229,54 @@ Options: lower the floor to about Px(800) by Px(560) and let the body reflow bel
 
 Recommendation: keep it. 800 × 600 screens are gone from the machines Kvit targets, and the floor already scales with the interface size. Record the decision so the rule's Windows form can say so.
 
-### Q-28. A choice that reveals more controls
+### Q-42. A dialog without a title
 
-Rules: CTL-14, CTL-16. The Windows list, radio and check box pages say choosing a value only sets it; the progressive-disclosure page allows a choice to reveal follow-up controls.
+Rules: MSG-4, WIN-6. On Windows a simple message, error or question may have no title, its first line saying what happened or asking the question. KvitDialog always has a title row; an empty Title leaves the row empty (`feedback.go:449`).
 
-Recommendation: allow it only for controls placed directly after the one that revealed them, announced to screen readers.
+Options: give Dialog a title-less form on the Windows form; or keep a title on every dialog on every system (allowed by both platforms).
 
-### Q-29. Pages that must not scroll at large interface sizes
+Recommendation: keep a title everywhere. Both forms allow it, and one layout is cheaper.
 
-Rules: CTL-10, LAY-9, A11Y-4. Windows: a dialog or tab page never scrolls. Kvit's interface size runs to 24 px, where some pages cannot fit.
+### Q-43. The click that closes a popover
 
-Recommendation: a page fits without scrolling at the default size and scrolls rather than clips above it.
+Rules: WIN-10, PTR-13. The current guidance says the click that closes a popover goes no further; kvit-ui passes it on to what is under it (`layer.go:31-34`), and PTR-13 wants one click to close one popover and open the next.
 
-### Q-30. A disabled Next button
+Options: absorb the click (the Windows form); pass it on (today, and the macOS behaviour PTR-13 describes); absorb it except on a control that opens another popover.
 
-Rules: CTL-8. Windows keeps commit buttons enabled and reports what is missing; Apple suggests keeping Continue unavailable until required fields are filled.
-
-Recommendation: the platform split, with the disabled button's Explanation saying why on macOS.
+Recommendation: the last. It keeps a stray click from pressing something by accident and keeps PTR-13's one-click switch.
 
 ## Controls
-
-### Q-26. Stepper arrows on Windows
-
-Rules: CTL-9. Windows puts the spin arrows inside the number box; KvitStepper has minus and plus buttons beside the value.
-
-Recommendation: keep Kvit's look and take the behaviour: a typed value, Up and Down keys, wrapping where sensible.
-
-### Q-27. A click on a mixed checkbox on macOS
-
-Rules: CTL-5. Windows cycles all on, all off, the original mix; Apple does not say; KvitCheck turns everything on and drops the mix (`check.go:49-51`).
-
-Recommendation: cycle on every system; it loses nothing.
 
 ### Q-33. Bold default item in context menus
 
 Rules: CMD-10, CMD-15. Windows marks a context menu's default item in bold. KvitMenu draws a checked line in bold as well as with a tick (`menu.go:236-239`).
 
 Recommendation: bold for the default item on Windows and Linux; a checked line keeps its tick and loses the bold.
+
+### Q-44. Small Windows control conventions Kvit does not have
+
+Rules: CTL-6, CTL-7, CTL-9, CTL-16. Each is a small behaviour the current Windows controls have and Kvit's do not:
+
+- A switch shows On or Off (or one other word) beside it (CTL-6). KvitSwitch shows no state word.
+- A focused single-line field holding text shows a clear button (CTL-7). Only KvitSearchField has one.
+- A slider's value label sits below it, centred, with a value tip while dragging (CTL-9). KvitSlider draws the value to the right (`slider.go:20-21`).
+- Expandable sections open independently; an accordion (opening one closes the others) only when the reader chooses it (CTL-16). KvitDisclosure's Group makes an accordion when the caller asks (`disclosure.go:21-29`).
+
+Options per item: adopt on the Windows form; adopt everywhere; leave out as appearance.
+
+Recommendation: adopt the switch's state word and the field's clear button on the Windows form (they are behaviour people rely on); leave the slider label's position as appearance; follow the current guidance on accordions everywhere.
+
+### Q-45. Search: start of words or anywhere
+
+Rules: CTL-15. The Windows 7 guide matches search at the start of words; the current guidance's filtering example keeps items containing the typed text anywhere.
+
+Recommendation: contains-anywhere for a filter over a list (what KvitSearchField does), start-of-words ranking first for a search across the app.
+
+### Q-46. Split buttons
+
+Rules: CMD-17. The current guidance makes the chosen menu item the main part's action every time; the rule keeps the likeliest variant, or the last one chosen when people repeat it.
+
+Recommendation: follow the current guidance on Windows (last chosen becomes the main action); there is no Mac counterpart to keep apart.
 
 ## Messages and feedback
 
@@ -306,11 +294,21 @@ Rules: MSG-10, MSG-12, MSG-16, MSG-17. Windows 7 never allows advertising in a n
 
 Recommendation: no advertising on any system; errors by platform form.
 
-### Q-32. A busy pointer
+### Q-47. Success notices or toasts
 
-Rules: FDB-2. Windows uses the busy pointer for waits of one to five seconds; kvit-ui sets none, and Button.Busy changes the words instead.
+Rules: MSG-1, MSG-16, MSG-7. The current guidance lets an in-window notice bar report success at the end of long or background work. KvitNotice's doc says a notice is a condition still true and a toast acknowledges what finished (`feedback.go:218-223`).
 
-Recommendation: a busy-pointer helper for blocking waits on Windows and Linux only, after checking unison's cursor set.
+Options: allow a success Notice for the end of background work the reader may have missed; keep success to toasts.
+
+Recommendation: keep toasts for success the reader just caused, and allow a success Notice only for background work that ended while the reader was elsewhere.
+
+### Q-48. Teaching tips
+
+Rules: HLP-4. The current guidance's teaching tip points at a control, never blocks, and can be ignored. KvitSpotlight shades the window, takes every press and places its text below.
+
+Options: add a Tip component (anchored, non-blocking, dismissable) and keep Spotlight for tours; or use Spotlight for both.
+
+Recommendation: a Tip component. A blocking spotlight for a one-line tip is the interruption HLP-4 forbids.
 
 ## Help, consistency and the rest
 
@@ -332,17 +330,49 @@ Rules: CMD-25. No Kvit app prints today and kvit-ui has no printing.
 
 Recommendation: leave printing out until an app needs it; then widen CMD-25 with what printed output must be.
 
-### Q-37. Kvit's own appearance settings
-
-Rules: CON-5, A11Y-4. Apple: no app-specific appearance setting (`apple-dark-mode-01`) and chrome may stay its size when text grows (`apple-typography-09`). Kvit has four themes with an override and scales the whole interface.
-
-Recommendation: keep Kvit's settings (the owner's visual decisions), following the desktop by default as it does now.
-
 ### Q-38. When to pause on losing focus
 
 Rules: FDB-9. Apple pauses things that need attention when the reader switches away, but keeps media playing. The pages do not draw the line.
 
 Recommendation: pause only what scores or times the reader; everything else keeps running.
+
+### Q-50. Contrast and high contrast on Windows
+
+Rules: A11Y-3. The current guidance asks for 5:1 text contrast (3:1 for large text) and the system's own high-contrast colours. Kvit's tables are held to 4.5:1, and its high-contrast theme is its own fixed table.
+
+Options: raise every table to 5:1 (they are shared across systems) or keep 4.5:1; read the system's high-contrast colours on Windows or keep Kvit's table.
+
+Recommendation: raise to 5:1 where the palette tests show it costs little, and keep Kvit's own high-contrast table: the owner does not take visual appearance, and the theme already follows the desktop's high-contrast switch.
+
+### Q-51. Windows-only details that could be shared
+
+Rules: WRD-2, WRD-27, WRD-29, CON-4. Some current Windows conventions were put in the Windows form only, because Apple's forms were not to change, though nothing on the Mac side argues against them: button text within 26 characters; no italics (they read badly for people with dyslexia); a check box label at most two lines, a radio label one line, a slider end one word; required fields marked with an asterisk after the label.
+
+Recommendation: make all four general rules. One form is cheaper to test, and none conflicts with Apple.
+
+### Q-52. Tooltips the reader did not ask for
+
+Rules: HLP-2. The current guidance shows a tooltip only in answer to the reader. `UI.ShowTooltip` (`popover.go:16-37`) lets an app show one unasked; the gallery uses it to show a tooltip permanently (`cmd/kvit-ui-gallery/specimens_feedback.go:14`).
+
+Recommendation: keep ShowTooltip for the gallery and tests, and say in its doc comment that apps must not call it.
+
+## Settled by Microsoft's current guidance
+
+The owner's rule is that where the current guidance and the Windows 7 guide disagree on behaviour, the current guidance wins for Windows. Applying it settled these. The rules already say what is written here.
+
+- **Q-1. A menu bar on Windows and Linux.** A menu bar is for apps with many commands in several categories (editing apps, as Notepad keeps one); other main windows may use a toolbar with a More menu as their command surface. Either way every command is reachable from a visible command surface, never only from a context menu (CMD-1). The macOS menu bar stays required. For the Kvit apps that likely means a menu bar in kvit-notes and toolbars with More menus in kvit-cash and kvit-works, an app decision the library should support both ways.
+- **Q-2. Settings.** On Windows and Linux, Settings (not Options) is a page in the app's window that applies each change at once, with no OK, Cancel or Apply; it is the last item of the navigation sidebar, or of the toolbar's More menu, or of Tools where there is a menu bar and no sidebar. About is a section at the bottom of the Settings page, not a Help menu item. OK, Cancel and Apply stay only for a properties dialog of one object (WIN-16, WIN-23, CMD-3, CMD-8, CMD-20). This is what Q-2 recommended.
+- **Q-9. The command's name over a Windows message.** No caption: a dialog's title is its main instruction on Windows too (MSG-4, WIN-6).
+- **Q-22. A colon after a label.** No colon after a control's label or a group label on any system (WRD-19, WRD-20, CTL-5).
+- **Q-26. Stepper on Windows.** Stepping stops at the limits, the button that would pass a limit is disabled, and the buttons sit beside the value, on every system (CTL-9). KvitStepper already does this (`stepper.go:61-69`).
+- **Q-27. A click on a mixed checkbox.** All on, then all off, on every system; no cycle back to the mix (CTL-5). KvitCheck already does this (`check.go:49-51`).
+- **Q-28. A choice that reveals more controls.** A checkbox may reveal the fields that depend on it, placed directly after it; a list never shows or hides other controls (CTL-14).
+- **Q-29. Pages that must not scroll.** A settings page is one column that scrolls when it does not fit; dialogs and flow pages fit without scrolling at the default interface size and scroll rather than clip above it (LAY-9).
+- **Q-30. A disabled Next button.** One rule on every system: a submit button may stay disabled until every required field is filled, with the required fields marked and the reason shown; otherwise it stays enabled and reports what is missing beside the field (CTL-8).
+- **Q-32. A busy pointer.** Kept for short waits on Windows and Linux; the current guidance adds an indeterminate ring where the result will appear for blocking work of unknown length (FDB-2).
+- **Q-37. Kvit's own appearance settings.** The current guidance has apps follow the system's light or dark theme by default and offer their own theme setting (Light, Dark, Use system setting), which is what Kvit does (CON-5).
+
+Narrowed, still open above: Q-3 (Windows is now sentence case everywhere, which simplifies the conversion), Q-5, Q-7, Q-10, Q-15 and Q-39.
 
 ## Contradictions settled in the rules
 
@@ -359,19 +389,20 @@ No decision is needed unless the owner disagrees.
 
 ## Where the Windows form matters on Linux
 
-Seventy rules. For each, what Linux users see with the Windows form:
+For each rule with a Windows form, what Linux users see with it. The current Windows guidance moved several rules closer to GNOME (live settings, a toolbar instead of a menu bar, no colons, placeholders kept on focus), so the visible differences are fewer than before.
 
-- A11Y-4: Linux desktops also scale at 125 and 150 percent, so the scaling test applies.
-- CMD-1, CMD-2, CMD-3: a menu bar with File, Edit, View, Tools, Help, Options in Tools and About in Help, where GNOME uses a header-bar menu.
-- CMD-10, CMD-11, CMD-12, CMD-15, CMD-16: Kvit-drawn context menus with a bold default, shortcuts shown, no submenus, bullets for exclusive options, no alternates.
+- A11Y-3, A11Y-4: Windows contrast and scaling tests; Linux desktops also scale at 125 and 150 percent.
+- CMD-1, CMD-2, CMD-3, CMD-8, CMD-20: a toolbar with a More menu or a menu bar with File, Edit, View, Tools, Help; Settings as the last item and About inside Settings, where GNOME has Preferences and About in its primary menu.
+- CMD-10, CMD-11, CMD-12, CMD-15, CMD-16, CMD-17, CMD-22: Kvit-drawn context menus with common commands first, shortcuts shown, inapplicable items left out, bullets for exclusive options, no modifier alternates; split buttons; toolbar words beside symbols on wide windows.
 - CMD-24, MSG-17: tray menus over StatusNotifierItem, which GNOME shows only with an extension; nothing may live only in the tray.
+- CON-4: required fields marked with an asterisk.
 - CON-5: Linux has no hover-time setting, so tooltip timing keeps its defaults.
-- CTL-2, CTL-5, CTL-8, CTL-9, CTL-10, CTL-11, CTL-15, CTL-16, CTL-25: up to seven radio buttons, mixed checkboxes cycling, commit buttons left enabled, stepper keys and wrap, up to seven tabs, no column browser, search at the top trailing corner, More options / Fewer options, command links.
+- CTL-2, CTL-10, CTL-11, CTL-15: a switch for any setting that applies at once; a sidebar beyond a few tabs; no column browser, drill-down lists where a tree is not needed; search centred in the window's top area for the app, at a view's top trailing corner for the view.
 - FDB-2, FDB-3: busy pointer from the cursor theme; Cancel or Stop on halt buttons.
-- HLP-2, HLP-6, HLP-8: infotips; a question-worded help link where GNOME and KDE use a Help button; Windows help terms.
-- KEY-2, KEY-3, KEY-4, KEY-5, KEY-6, KEY-9, KEY-10, KEY-11, KEY-12, KEY-13, KEY-15: Windows shortcuts (Q-19 for Redo and Quit), no Ctrl+Alt, Super reserved like the Windows key, Enter on the focused button, Ctrl+Tab, every control a Tab stop, Ctrl+wheel zoom (the middle button pastes on Linux, so no autoscroll there), no Alt on pointer gestures (window managers use Alt+drag), Ctrl+F and Ctrl+E (Q-20), Alt access keys.
-- LAY-3, LAY-6, LAY-7: the 800 × 600 floor (Q-25), labels before fields, a dialog about an object opening beside it.
-- MSG-1, MSG-6, MSG-10, MSG-11, MSG-13: attention through the urgency hint or xdg-activation, inline field messages, background failures as notifications, Windows title and body lengths, no notification buttons.
+- HLP-1, HLP-2, HLP-4, HLP-6, HLP-8: Ctrl dismissing a tooltip; infotips; teaching-tip placement; question-worded help links, where GNOME and KDE use a Help button; Windows help terms.
+- KEY-2, KEY-3, KEY-4, KEY-5, KEY-6, KEY-9, KEY-10, KEY-11, KEY-12, KEY-13, KEY-14, KEY-15: Windows shortcuts (Q-19 for Redo and Quit), no Ctrl+Alt, Super reserved like the Windows key, document-tab keys, Enter on the focused button (Q-7), Ctrl+Tab, every control a Tab stop, Ctrl+wheel zoom (the middle button pastes on Linux, so no autoscroll there), no Alt on pointer gestures (window managers use Alt+drag), Ctrl+F and Ctrl+E (Q-20), shortcuts in tooltips, Alt access keys.
+- LAY-3, LAY-5, LAY-6, LAY-7: the 800 × 600 floor (Q-25); a lone page button at the leading edge; labels above fields; a dialog about an object opening beside it.
+- MSG-1, MSG-4, MSG-10, MSG-11, MSG-13: attention through the urgency hint or xdg-activation; a simple message may have no title; background failures as notifications; Windows title and body lengths; no notification buttons.
 - PTR-1, PTR-15: tray hosts differ on what a left click does; Ctrl-click toggles a selection.
-- WIN-1, WIN-6, WIN-7, WIN-11, WIN-12, WIN-15, WIN-16, WIN-19, WIN-23, WIN-25: confirming button first, a close symbol on every dialog titled by its command, helper dialogs over their owner, maximise and the size floor, "document - program" titles, F11 for full screen, Options with OK and Cancel, Save / Don't save / Cancel on close, OK/Cancel/Apply, placement best effort on Wayland.
-- WRD-1, WRD-4, WRD-6, WRD-7, WRD-8, WRD-12, WRD-13, WRD-17, WRD-19, WRD-20, WRD-21, WRD-23, WRD-24: verbless standard labels, no ellipsis on Options, sentence case, OK and Yes/No, Cancel becoming Close or Stop, ticked toggles, shortcuts in tooltips, "click" for menu items, colons after labels, Close at the end of flows, "notification area" (which Linux calls the system tray), Ctrl+Shift+N key names.
+- WIN-1, WIN-2, WIN-6, WIN-7, WIN-10, WIN-11, WIN-12, WIN-15, WIN-19, WIN-23, WIN-25: the main action first and the safe button last, where GNOME puts the main action last; body text in every dialog; a close symbol on every dialog; helper dialogs over their owner; a popover with commit and Cancel discarding on an outside click; title-bar controls (Q-41); window titles; F11 for full screen; Save, Don't save, Cancel on close; OK, Cancel and Apply only in properties dialogs; placement best effort on Wayland.
+- WRD-1, WRD-2, WRD-4, WRD-6, WRD-7, WRD-8, WRD-12, WRD-13, WRD-14, WRD-17, WRD-20, WRD-21, WRD-22, WRD-23, WRD-24, WRD-27, WRD-29: verbless standard labels, one-word toolbar labels, no ellipsis on Settings, sentence case for everything, specific answers with OK only in properties dialogs, Cancel becoming Close or Stop, ticked toggles, shortcuts in tooltips, "we" in problem messages, "select" as the verb, no colons, a labelled Back beside Next, setting rows, "notification area" (which Linux calls the system tray), Ctrl+Shift+N key names, no italics, short option labels.

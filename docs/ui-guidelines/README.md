@@ -2,7 +2,7 @@
 
 AI agents build most of the screens in kvit-cash, kvit-notes and kvit-works, and the results are often clunky: sentences on buttons, letters typed where symbols belong, one command under several names, generic labels such as OK, permanent paragraphs of explanation, missing shortcuts (survey of 2026-10-22). The kvit-ui skill teaches colour, sizes and screen-reader names, and says nothing about wording, symbols, menus or shortcuts.
 
-This folder condenses Apple's and Microsoft's published desktop guidelines into rules for the Kvit apps, each traced to its source, and compares each rule with what kvit-ui does today. Later work turns the rules into behaviour in kvit-ui's components, automated tests, a section of the kvit-ui skill and a reviewer's checklist. This folder is documents only: no component, test or skill was changed.
+This folder condenses Apple's and Microsoft's published desktop guidelines (Apple's Human Interface Guidelines, Microsoft's Windows 7 UX guide, and Microsoft's current Fluent and WinUI guidance) into rules for the Kvit apps, each traced to its source, and compares each rule with what kvit-ui does today. Later work turns the rules into behaviour in kvit-ui's components, automated tests, a section of the kvit-ui skill and a reviewer's checklist. This folder is documents only: no component, test or skill was changed.
 
 The owner's decisions applied throughout:
 
@@ -17,10 +17,10 @@ The owner's decisions applied throughout:
 |---|---|
 | `extracted.jsonl` | Every rule found on every page read, one JSON object per line, including those left out and why. Each record names the merged rules it went into (`merged_into`). |
 | `rules.md` | The merged rules, grouped by topic, each with its Windows and macOS forms, its sources, where it should be enforced and what kvit-ui does now. |
-| `open-questions.md` | The decisions the owner has to make, with options, what each changes, and a recommendation. The first eight block the most later work. |
+| `open-questions.md` | The decisions the owner has to make, with options, what each changes, and a recommendation; the first group blocks the most later work. Also the questions the current Microsoft guidance settled. |
 | `library-gaps.md` | Where kvit-ui contradicts or lacks a rule, with file:line, the change or test proposed, and the order to do them in. Also what kvit-ui needs to know about the platform at run time, and how a label can get its two capitalisations. |
-| `checklist.md` | 45 judgment items for a reviewer agent looking at a screenshot and the screen reader's list of controls. |
-| `skill-section-draft.md` | A draft section for `agent/skills/kvit-ui/SKILL.md`: 26 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
+| `checklist.md` | 47 judgment items for a reviewer agent looking at a screenshot and the screen reader's list of controls. |
+| `skill-section-draft.md` | A draft section for `agent/skills/kvit-ui/SKILL.md`: 28 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
 
 The extracted records are the evidence; the merged rules are what later work builds on; the open questions say what is not settled; library-gaps, the checklist and the skill draft are the three ways the rules reach code, review and agents.
 
@@ -116,16 +116,22 @@ learn.microsoft.com could not be reached from the environment this work ran in (
 
 Pages: how-to-design-desktop-ux, top-violations, ctrl-balloons, ctrl-check-boxes, ctrl-command-buttons, ctrl-command-links, ctrl-drop, ctrl-group-boxes, ctrl-links, ctrl-list-boxes, ctrl-list-views, progress-bars, ctrl-progressive-disclosure-controls, ctrl-radio-buttons, ctrl-search-boxes, ctrl-sliders, ctrl-spin-controls, ctrl-status-bars, ctrl-tabs, ctrl-text-boxes, ctrl-tooltips-and-infotips, ctrl-tree-views, cmd-menus, cmd-toolbars, text-ui, text-style-tone, mess-error, mess-warn, mess-confirm, mess-notif, inter-keyboard, inter-mouse, inter-accessibility, win-window-mgt, win-window-frames, win-dialog-box, win-wizards, win-property-win, vis-layout, vis-fonts, vis-color, vis-std-icons, exper-first-exper, exper-printing, winenv-help, winenv-notification. All under `https://learn.microsoft.com/en-us/windows/win32/uxguide/`.
 
-### Microsoft's current guidance (Fluent and WinUI): not read
+### Microsoft's current guidance (Fluent and WinUI)
 
-The 21 pages under `https://learn.microsoft.com/en-us/windows/apps/` named in the brief (design basics, navigation, commanding, writing style, iconography, layout, usability, keyboard accessibility, keyboard interactions, access keys, keyboard accelerators, focus navigation, visual feedback, dialogs, command bar, menus, buttons, tooltips, and the control pages for kvit-ui's controls) could not be fetched for the same reason, and no offline copy was supplied. The Windows forms therefore rest on the Windows 7 guide alone. Where current Windows practice is known to differ, the rule says so; open-questions.md Q-39 proposes reading these pages before the library work starts.
+learn.microsoft.com could not be reached from this environment, so the owner supplied the current guidance on 2026-10-23 as two EPUB files, an offline copy of the MicrosoftDocs/windows-dev-docs source (CC-BY-4.0): "Windows App Design Guidance (Fluent, Windows 11)" and "WinUI Controls and Patterns Library (Fluent, Windows 11)". The copy carries no per-page dates. Each record's url is the page's address under `https://learn.microsoft.com/en-us/windows/apps/design/`, derived from the file name, with an anchor derived from its heading; neither was checked against the live site.
+
+83 pages were read: the 31 design pages that state behaviour or wording (design principles, guidelines overview, commanding, navigation, content and app silhouette, title bar, layout and responsive design, usability, accessibility, app settings, bidirectional text, in-app help, writing style, and the colour, typography, motion, materials and iconography overviews, whose visual rules were recorded and left out), and the 52 WinUI control pages for the controls kvit-ui has or the rules name. Left unread: app-icon construction, icon fonts, widgets and downloads (appearance or not applicable), and the control pages for media, images, shapes, date and time pickers, flip view, pips pager, swipe, pull to refresh, inverted lists, semantic zoom, two-pane view, item templates and item repeaters.
+
+Six pages the brief named were not in the copy: keyboard accessibility, keyboard interactions, access keys, keyboard accelerators, focus navigation, and guidelines for visual feedback. The keyboard rules that depend on them still rest on the Windows 7 guide (open-questions.md, Q-39).
+
+Where the current guidance and the Windows 7 guide disagree on behaviour, the current guidance wins for the Windows form, as the brief says. It changed the Windows forms of about forty rules and settled eleven open questions; the biggest changes are listed in open-questions.md under "Settled by Microsoft's current guidance".
 
 The downloaded pages and their text conversions are kept outside the repository, in `~/.cache/kvit/ui-guidelines/`.
 
 ## How the rules were made
 
 1. **Extraction.** Every guideline on every page became one record: a paragraph led by a bold sentence, a guideline bullet, a guidance sentence, a table of standard items. Each record has a quote of at most 25 words, the rule in our own words, its platform, its topic, and whether it is kept. Six agents read the Apple pages and eight the Windows 7 pages, one group of pages each; a ninth read Microsoft's checklist and marked every record whose rule appears there (`in_windows_checklist`).
-2. **Merging.** The Apple records were merged first into draft rules. Each Windows record was then mapped onto a draft rule, noted where Windows does it differently (the Windows form) or contradicts it, or marked new. Six agents, one per family of topics, folded the new Windows records into the rules under a cap that kept the total under 200, wrote the Windows forms and raised open questions. Every kept record ends in at least one merged rule.
+2. **Merging.** The Apple records were merged first into draft rules. Each Windows record was then mapped onto a draft rule, noted where Windows does it differently (the Windows form) or contradicts it, or marked new. Six agents, one per family of topics, folded the new Windows records into the rules under a cap that kept the total under 200, wrote the Windows forms and raised open questions. Last, the current Microsoft guidance was read the same way (seven agents) and each record mapped onto the merged rules as agreeing, adding, changing or removing part of a Windows form, answering an open question, or new; six agents, one per family, applied those changes, and one new rule (LAY-10, in-app navigation) came of it. Every kept record ends in at least one merged rule.
 3. **Comparison with kvit-ui.** An agent surveyed the library (every component, default string, key binding and platform switch, with file:line); each merged rule's "kvit-ui now" was written against it and checked in the code.
 4. **Enforcement, platform knowledge, examples:** library-gaps.md, open-questions.md and skill-section-draft.md.
 
@@ -133,19 +139,17 @@ The application repositories (kvit-cash, kvit-notes, kvit-works) were not availa
 
 ## Counts
 
-| | Apple | Windows 7 | Total |
-|---|---|---|---|
-| Pages read | 75 | 46 | 121 |
-| Rules extracted | 1,267 | 2,479 | 3,746 |
-| Kept | 881 | 2,336 | 3,217 |
-| Left out: visual appearance | 116 | 108 | 224 |
-| Left out: other platforms (iOS, watchOS, visionOS, tvOS; pen and touch) | 245 | 6 | 251 |
-| Left out: not applicable (Apple-only services, Windows-only technology such as UAC and the Ribbon) | 25 | 29 | 54 |
-| On Microsoft's checklist | | 458 (131 of them the checklist page's own items) | |
+| | Apple | Windows 7 | Fluent and WinUI | Total |
+|---|---|---|---|---|
+| Pages read | 75 | 46 | 83 | 204 |
+| Rules extracted | 1,267 | 2,479 | 1,045 | 4,791 |
+| Kept | 881 | 2,336 | 854 | 4,071 |
+| Left out: visual appearance | 116 | 108 | 110 | 334 |
+| Left out: other platforms (iOS, watchOS, visionOS, tvOS; pen, touch, gamepad) | 245 | 6 | 35 | 286 |
+| Left out: not applicable (Apple-only services; Windows-only technology such as UAC, the Ribbon, widgets; XAML API choices) | 25 | 29 | 46 | 100 |
+| On Microsoft's Windows 7 checklist | | 458 (131 of them the checklist page's own items) | | |
 
-The Fluent pages (21) were not read.
-
-- Merged rules: 198 (WRD 28, CMD 25, KEY 15, PTR 15, WIN 24, MSG 17, CTL 26, FDB 10, LAY 9, A11Y 8, CON 8, HLP 8, OTH 5). 91 have a separate Windows and macOS form.
-- kvit-ui today: enforces 26, partly covers 92, contradicts 10, does not cover 70.
-- Where each rule should be enforced (a rule can have several): a component 133, a test reading one screen's controls 62, a test reading the Go source 20, a test reading every screen of an app 18, a reviewer 118.
-- Open questions: 40.
+- Merged rules: 199 (WRD 28, CMD 25, KEY 15, PTR 15, WIN 24, MSG 17, CTL 26, FDB 10, LAY 10, A11Y 8, CON 8, HLP 8, OTH 5). 99 have a separate Windows and macOS form.
+- kvit-ui today: enforces 20, partly covers 101, contradicts 9, does not cover 69.
+- Where each rule should be enforced (a rule can have several): a component 140, a test reading one screen's controls 66, a test reading the Go source 22, a test reading every screen of an app 18, a reviewer 123.
+- Open questions: 41 still open (29 from the first pass, 12 raised by the current guidance); 11 settled by the current guidance.
