@@ -1,0 +1,68 @@
+{
+    "hooks": {
+        "Notification": [
+            {
+                "hooks": [
+                    {
+                        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/kvit-cloud/cloud-progress.sh",
+                        "type": "command"
+                    }
+                ],
+                "matcher": "permission_prompt"
+            }
+        ],
+        "PostToolUse": [
+            {
+                "hooks": [
+                    {
+                        "async": true,
+                        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/kvit-cloud/cloud-progress.sh",
+                        "type": "command"
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "hooks": [
+                    {
+                        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/kvit-cloud/cloud-no-questions.sh",
+                        "type": "command"
+                    }
+                ],
+                "matcher": "AskUserQuestion"
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/kvit-cloud/cloud-turn-end.sh",
+                        "type": "command"
+                    }
+                ]
+            }
+        ],
+        "StopFailure": [
+            {
+                "hooks": [
+                    {
+                        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/kvit-cloud/cloud-turn-end.sh",
+                        "type": "command"
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/kvit-cloud/cloud-turn-start.sh",
+                        "timeout": 300,
+                        "type": "command"
+                    }
+                ]
+            }
+        ]
+    }
+}
