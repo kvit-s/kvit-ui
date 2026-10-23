@@ -27,6 +27,8 @@ type Link struct {
 	Explanation string
 	// OnActivate runs when the link is followed.
 	OnActivate func()
+
+	lead unison.Paneler // drawn in place of the symbol (SetLead)
 }
 
 // NewLink returns a link in the body role.
@@ -51,11 +53,14 @@ func NewLink(ui *UI, s string) *Link {
 func (l *Link) active() bool { return l.hovered || l.KeyboardFocus() }
 
 func (l *Link) symbolWidth() float32 {
-	if l.Symbol == "" {
-		return 0
-	}
 	m := l.ui.Interface
-	return float32(m.IconSizeSmall() + m.SpaceNear())
+	switch {
+	case l.lead != nil:
+		return l.leadSize().Width + float32(m.SpaceNear())
+	case l.Symbol != "":
+		return float32(m.IconSizeSmall() + m.SpaceNear())
+	}
+	return 0
 }
 
 func (l *Link) layout(width float32) *text.Layout {
@@ -72,6 +77,9 @@ func (l *Link) layout(width float32) *text.Layout {
 func (l *Link) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	w, h := l.layout(0).Size()
 	h = max(h, float32(l.ui.Interface.IconSizeSmall()))
+	if l.lead != nil {
+		h = max(h, l.leadSize().Height)
+	}
 	pref := geom.NewSize(l.symbolWidth()+w, h)
 	// It can be made narrower, and is then cut short with "…"; given more
 	// room than it needs, it keeps to its words on the left.
@@ -82,7 +90,9 @@ func (l *Link) draw(gc *unison.Canvas, _ geom.Rect) {
 	t := l.ui.Theme.Tokens()
 	b := l.ContentRect(false)
 	x := float32(0)
-	if l.Symbol != "" {
+	if l.lead != nil {
+		x = l.symbolWidth()
+	} else if l.Symbol != "" {
 		ink := t.Link
 		if l.active() {
 			ink = t.Accent

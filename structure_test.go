@@ -494,3 +494,53 @@ func TestTheStatusBarMenuHoldsWhatDidNotFit(t *testing.T) {
 		t.Errorf("choosing the entry reported %v", pressed)
 	}
 }
+
+// A fact can carry the application's own mark in place of its symbol: the
+// mark sits where the symbol would, is part of the fact's link, and a press
+// on it follows the fact.
+func TestAStatusFactsMarkIsPartOfItsLink(t *testing.T) {
+	var bar *kvitui.StatusBar
+	var dot *kvitui.Dot
+	var pressed [][2]int
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		bar = kvitui.NewStatusBar(ui)
+		dot = kvitui.NewDot(ui)
+		dot.Ink, dot.Label = kvitui.InkSuccess, "Running"
+		bar.GroupsFirst = true
+		bar.Groups = []kvitui.StatusGroup{{Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot", Mark: dot}}}}
+		bar.OnFact = func(g, f int) { pressed = append(pressed, [2]int{g, f}) }
+		return []unison.Paneler{kvitui.Width(ui, kvitui.Px(600), bar)}
+	})
+	var link *kvitui.Link
+	var dotBox, linkBox geom.Rect
+	screen.Do(func() {
+		if l, ok := dot.Parent().Self.(*kvitui.Link); ok {
+			link = l
+		}
+		dotBox = dot.RectToRoot(dot.ContentRect(true))
+		if link != nil {
+			linkBox = link.RectToRoot(link.ContentRect(true))
+		}
+	})
+	if link == nil || link.Lead() != unison.Paneler(dot) || link.Text != "2 agents" {
+		t.Fatalf("the mark is not in the fact's link: %v", link)
+	}
+	// At the link's left, centred on its height, with the words a near
+	// space after it.
+	if dotBox.X != linkBox.X || dotBox.Y+dotBox.Height/2 != linkBox.Y+linkBox.Height/2 {
+		t.Errorf("the mark is at %v in a link at %v", dotBox, linkBox)
+	}
+	var pref geom.Size
+	screen.Do(func() { _, pref, _ = link.Sizes(geom.Size{}) })
+	if pref.Width <= dotBox.Width+float32(ui.Interface.SpaceNear()) {
+		t.Errorf("the link is %v wide beside a mark %v wide", pref.Width, dotBox.Width)
+	}
+	if n := screen.AccessibilityNodeFor(link); n == nil || n.Role != role.Link || n.Name != "2 agents" {
+		t.Errorf("the link's node: %+v", n)
+	}
+	screen.Click(screen.PanelCenter(dot))
+	screen.Sync()
+	if len(pressed) != 1 || pressed[0] != [2]int{0, 0} {
+		t.Errorf("pressing the mark reported %v", pressed)
+	}
+}

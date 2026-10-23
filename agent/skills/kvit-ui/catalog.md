@@ -223,7 +223,7 @@ func NewLink(ui *UI, s string) *Link
 | `Explanation` | `string` | Explanation says in a sentence where following the link goes, for a destination its words alone do not describe. |
 | `OnActivate` | `func()` | OnActivate runs when the link is followed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`.
 
 *Plain, symbolic and keyboard-focused*
 
@@ -457,7 +457,7 @@ func viewHeadWithControls(ui *kvitui.UI) unison.Paneler {
 
 ### KvitStatusBar
 
-The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `GroupsFirst` puts the groups before the activity, for a bar whose left end is the list of what is waiting.
+The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `GroupsFirst` puts the groups before the activity, for a bar whose left end is the list of what is waiting. A fact may carry the application's own mark in place of its symbol (`StatusFact.Mark`).
 
 ```go
 func NewStatusBar(ui *UI, controls ...unison.Paneler) *StatusBar
@@ -547,6 +547,30 @@ func statusBarGroupsFirst(ui *kvitui.UI) unison.Paneler {
         {Label: "Waiting on you", Facts: []kvitui.StatusFact{
             {Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
         {Label: "Running", Facts: []kvitui.StatusFact{{Text: "2 agents", Symbol: "robot"}}},
+    }
+    bar.Facts = []string{"7 changes", "main, 2 ahead"}
+    return kvitui.FullWidth(bar)
+}
+```
+
+*Facts with the application's own marks*
+
+```go
+func statusBarMarks(ui *kvitui.UI) unison.Paneler {
+    // An application with marks of its own for what waits and what runs
+    // hands the bar one panel per fact, drawn where the symbol would be. It
+    // is part of the fact's link: pressing it follows the fact, and hover
+    // over it is hover over the link.
+    mark := func(ink kvitui.Ink, label string) *kvitui.Dot {
+        d := kvitui.NewDot(ui)
+        d.Ink, d.Label, d.Size = ink, label, kvitui.SizeIconSizeSmall
+        return d
+    }
+    bar := kvitui.NewStatusBar(ui)
+    bar.GroupsFirst = true
+    bar.Groups = []kvitui.StatusGroup{
+        {Facts: []kvitui.StatusFact{{Text: "Scout", Mark: mark(kvitui.InkAccent, "Waiting")}}},
+        {Facts: []kvitui.StatusFact{{Text: "Verify", Mark: mark(kvitui.InkSuccess, "Running")}}},
     }
     bar.Facts = []string{"7 changes", "main, 2 ahead"}
     return kvitui.FullWidth(bar)

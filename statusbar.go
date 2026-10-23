@@ -17,6 +17,10 @@ type StatusFact struct {
 	// Explanation is the one sentence the words do not say: what state the
 	// thing is in, what pressing it opens.
 	Explanation string
+	// Mark is an optional panel drawn in place of the symbol, for a state
+	// the application draws its own way (Link.SetLead); each fact needs a
+	// panel of its own. A bar given a new one builds the fact again.
+	Mark unison.Paneler
 }
 
 // StatusGroup is a named group of facts, such as "Waiting on you".
@@ -126,6 +130,9 @@ func (s *StatusBar) sync() {
 			for fi, f := range g.Facts {
 				link := NewLink(s.ui, f.Text)
 				link.Role, link.Symbol, link.Explanation = RoleCaption, f.Symbol, f.Explanation
+				if f.Mark != nil {
+					link.SetLead(f.Mark)
+				}
 				link.OnActivate = func() { s.activate(gi, fi) }
 				parts = append(parts, link)
 			}

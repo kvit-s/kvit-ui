@@ -158,6 +158,26 @@ func statusBarGroupsFirst(ui *kvitui.UI) unison.Paneler {
 	return kvitui.FullWidth(bar)
 }
 
+func statusBarMarks(ui *kvitui.UI) unison.Paneler {
+	// An application with marks of its own for what waits and what runs
+	// hands the bar one panel per fact, drawn where the symbol would be. It
+	// is part of the fact's link: pressing it follows the fact, and hover
+	// over it is hover over the link.
+	mark := func(ink kvitui.Ink, label string) *kvitui.Dot {
+		d := kvitui.NewDot(ui)
+		d.Ink, d.Label, d.Size = ink, label, kvitui.SizeIconSizeSmall
+		return d
+	}
+	bar := kvitui.NewStatusBar(ui)
+	bar.GroupsFirst = true
+	bar.Groups = []kvitui.StatusGroup{
+		{Facts: []kvitui.StatusFact{{Text: "Scout", Mark: mark(kvitui.InkAccent, "Waiting")}}},
+		{Facts: []kvitui.StatusFact{{Text: "Verify", Mark: mark(kvitui.InkSuccess, "Running")}}},
+	}
+	bar.Facts = []string{"7 changes", "main, 2 ahead"}
+	return kvitui.FullWidth(bar)
+}
+
 func windowShell(ui *kvitui.UI) unison.Paneler {
 	// Source only: a window has no place inside another window, so this is
 	// the one page that shows a sample without drawing it. The gallery's

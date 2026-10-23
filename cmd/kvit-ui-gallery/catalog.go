@@ -125,12 +125,13 @@ var catalog = []entry{
 	{
 		name:    "KvitStatusBar",
 		group:   "Structure",
-		summary: "The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `GroupsFirst` puts the groups before the activity, for a bar whose left end is the list of what is waiting.",
+		summary: "The strip along the bottom: what is happening on the left, standing facts on the right. Facts come in three shapes — plain strings, named groups whose facts open what they name, and whole controls at the end. What the bar has no room for goes into a menu behind a control saying how many there are, rather than being cut off the end of the list. `GroupsFirst` puts the groups before the activity, for a bar whose left end is the list of what is waiting. A fact may carry the application's own mark in place of its symbol (`StatusFact.Mark`).",
 		specimens: []specimen{
 			{caption: "Working, with two facts", build: statusBarWorking},
 			{caption: "Grouped facts that open what they name", build: statusBarGroups},
 			{caption: "Narrow: what does not fit is in the menu, not gone", build: statusBarNarrow},
 			{caption: "Groups first, for a bar whose left end is the work", build: statusBarGroupsFirst},
+			{caption: "Facts with the application's own marks", build: statusBarMarks},
 		},
 	},
 	{
