@@ -1,6 +1,6 @@
 ---
 name: kvit-ui
-description: The shared interface vocabulary for the kvit desktop applications, written in Go on unison: how to describe a screen, which component to reach for, what each colour means and what it is reserved for, and the workflow for getting a screen from a description to working Go. Use whenever building, changing or reviewing a screen in kvit-notes, kvit-notes-pro, kvit-hub or kvit-cash, or when writing anything in Go that draws.
+description: The shared interface vocabulary for the kvit desktop applications, written in Go on unison: how to describe a screen, which component to reach for, what each colour means and what it is reserved for, how to word labels, menus, dialogs and messages and when to use a symbol or a shortcut, and the workflow for getting a screen from a description to working Go. Use whenever building, changing or reviewing a screen in kvit-notes, kvit-notes-pro, kvit-hub or kvit-cash, or when writing anything in Go that draws.
 ---
 
 # Building a screen in the kvit estate
@@ -157,6 +157,235 @@ ramp for magnitude, the diverging ramp for distance from a reference. Never a
 meaning colour for a chart series: a bar in `Danger` says "stalled" to anyone
 who has read the conventions, whatever the key claims.
 
+## Words, symbols, commands and shortcuts
+
+Interface text is not prose. The writing rules for documents and reports ask
+for whole sentences, spelled-out meaning and no compressed labels; they do
+not apply to a button, a menu item, a tab or a tooltip. Interface text has
+its own conventions, shared by Apple and Microsoft: a command starts with its
+verb, takes one to three words, drops articles, and is named the same
+everywhere it appears. A sentence on a button is a defect, however clear the
+sentence is.
+
+The rules below hold on every system unless they say Windows or macOS; Linux
+takes the Windows form. Each names its rules in
+`docs/ui-guidelines/rules.md`, where the reasoning and sources are. Some lean
+on library support that is still being built (`docs/ui-guidelines/library-gaps.md`);
+where they do, the rule says what to do with the library as it is today.
+
+### Labels
+
+**1. A command is a verb that names what happens.** Buttons and menu items
+start with a specific verb: Import, Archive, Reconcile, not Manage,
+Configure or Do it. A statement or a description is not a command. (WRD-1)
+
+- "The data is right" → "Mark correct"
+
+**2. One to three words, within 26 characters.** Use only the words the
+command needs. When a command seems to need a sentence, the sentence belongs
+in its Explanation, its dialog, or nowhere. A toolbar label is preferably
+one word. (WRD-2)
+
+- "Take the new default" → "Reset to default…"
+- "Save to the workspace" → "Save"
+- "Move the selected column earlier" → "Move up"
+
+**3. No articles, no "my" or "your".** Not on labels, menu items, tabs or
+tooltips. (WRD-3)
+
+- "Close the preview" on a back arrow → "Back"
+- "Clear the filter" → "Clear"
+- "Dismiss this notice" → "Dismiss"
+
+**4. The label says exactly what happens.** Read the handler before naming
+it. A label that names a different action from the one that runs is the
+worst kind of wrong. (WRD-1, WRD-10)
+
+- "Add the rows shown" that selects every row → "Select all"
+- "Delete…" that moves a folder to the trash → "Move to Trash…" on macOS,
+  "Delete…" on Windows and Linux with the dialog or undo saying it went to
+  the Recycle Bin
+
+**5. Ellipsis when the command asks for more.** A command that opens a
+dialog, a chooser or a confirmation before acting ends with "…", the one
+character U+2026, never three full stops. One that acts at once has none. On
+Windows, a command whose whole job is to show a window (Settings,
+Properties, About) has none. Write it into the label yourself for now.
+(WRD-4)
+
+- "Export the ledger" opening a dialog → "Export…"
+
+**6. Write sentence case.** Write every label once, in sentence case:
+"Select all", "Don't save". That is the Windows and Linux form for all text,
+window and dialog titles included. kvit-ui will turn menu items, buttons,
+tabs and column headings into title case on macOS; never write title case
+yourself, and never mix the two in one menu. (WRD-6)
+
+- "Quick Capture…" beside "Quick capture note…" in one menu → every item in
+  sentence case
+
+**7. Confirming buttons name the action; never Confirm.** The button that
+carries out a dialog says what it does, so always set Dialog's ConfirmText:
+its default, "Confirm", is a placeholder, not a label. A message that only
+informs has one button: Close on Windows, OK on macOS. OK, Cancel and Apply
+belong only to a properties dialog of one object (Windows). Yes and No
+appear only together, on Windows, where no specific answer is possible. The
+abandoning button is Cancel; once the work is done it becomes Close. Every
+dialog has a safe button that leaves without acting. (WRD-7, WRD-8)
+
+- "OK" on Insert link → "Insert"
+- "OK" on Confirm import → "Import"
+- "Delete them" → "Delete"
+
+**8. Busy words say what is happening.** Not "Working…", "Loading…" or
+"Please wait": an -ing phrase naming the operation. Always set Button's
+BusyText. (WRD-25)
+
+- "Working…" → "Importing statement…"
+
+**9. A search field says what it searches.** Set SearchField's Placeholder;
+its default, "Filter…", says nothing. (CTL-15)
+
+- "Filter…" → "Search transactions"
+
+**10. Tooltips are short and add something.** A symbol-only button's Label
+is its tooltip and its screen-reader name: the command, verb first.
+Explanation adds a sentence only when the name cannot say it: why the
+control is disabled, what it opens. Never repeat a visible label, never
+explain how to operate the control. (WRD-13, HLP-2)
+
+- "Select every row the current filter shows" → "Select shown rows"
+
+### Symbols or words
+
+**11. A symbol for a familiar action, words for the rest.** Bold, italic,
+search, delete, close, back, add: symbols, as IconButtons with a Label. An
+action people would have to guess from a symbol: words. (CMD-22)
+
+**12. Never letters or punctuation standing in for a symbol.** A text button
+reading "B", "<>" or "+ Insert" is a symbol drawn in the wrong component.
+Use an IconButton with the meaning name and a Label in words. If the symbol
+you need is not in the catalogue (bold, italic, underline, strikethrough,
+code and heading are not, yet), say so; do not type it. (CMD-22)
+
+- "B", "I", "U", "S" → IconButtons named "Bold", "Italic", "Underline",
+  "Strikethrough"
+- "<>" → an IconButton named "Code"; "H" → one named "Heading"
+- "+ Insert" → "Insert…" with the `plus` symbol before the words
+
+**13. One symbol, one meaning, across the whole app.** Before using a
+symbol, check what else in the app uses it. The close symbol closes; it does
+not archive, withdraw, remove or cancel. (CON-2)
+
+- X for archive → `archive`, "Archive"
+- X for withdraw → `undo`, "Withdraw"
+- X labelled "Close agent" that opens a browser → `external`, "Open in
+  browser"
+
+### Commands
+
+**14. One command, one name, everywhere.** A command has the same words in
+the menu bar, on its button, in its tooltip, in the tray menu and in any
+dialog it opens. Until kvit-ui has a Command type, give each command one
+name constant and one handler, and make every control that runs it from
+those two. (CON-1)
+
+- "Quick Capture…", "Quick capture note…" and "Quick capture" for one
+  command → "Quick capture…" in every place
+
+**15. Every command is on a visible command surface.** On macOS that is the
+menu bar. On Windows and Linux it is the menu bar for an app with many
+commands, or a toolbar and its More menu for one with few. Buttons and
+context menus are extra routes to commands that also live there; a command
+reached only from a context menu or a hover button cannot be found. (CMD-1)
+
+**16. Standard commands in the standard menus.** Undo, Redo, Cut, Copy,
+Paste, Select all and Find go in Edit; New, Open, Save, Close and Print in
+File; show and hide commands in View. On Windows and Linux, Settings is the
+last item of the sidebar or the toolbar's More menu, and About is a section
+at the bottom of the Settings page; on macOS both are in the app menu. Exit
+on Windows, Quit on macOS. (CMD-2 to CMD-8)
+
+**17. Menus: most used first, grouped, short, destructive last.** Separate
+groups with separators; at most one level of submenu, none in a context
+menu on Windows; a destructive item goes last, after a separator. A context
+menu holds only what applies to what was clicked. (CMD-10, CMD-12, CMD-13,
+CMD-23)
+
+**18. A toggle says what it does.** On Windows and Linux a menu item keeps
+its name and shows a tick ("Sidebar" ✓); on macOS it swaps its words ("Show
+sidebar" / "Hide sidebar"). Until MenuItem takes both words, use the tick
+(`Checked`). (WRD-12)
+
+### Shortcuts
+
+**19. Standard commands get the standard shortcut.** If the app has Save,
+Ctrl+S (Cmd-S) saves; Find, New, Close, Undo, Redo, Copy, Paste and Select
+all likewise. Redo is both Ctrl+Y and Ctrl+Shift+Z on Windows and Linux.
+Ctrl+F and Ctrl+E go to the window's search field. A shortcut whose command
+cannot act does nothing, silently. Until kvit-ui has a shortcut registry,
+handle the keys in `Window.OnKeyDown` and set the same key on the command's
+MenuItem. (KEY-2, KEY-13)
+
+- Save with no Ctrl+S → Save on Ctrl+S
+- a window with search but no Ctrl+F → Ctrl+F focuses its SearchField
+
+**20. Menus show their shortcuts.** A menu item whose command has a key
+shows it in `Key`; that is how people learn it. Context menus on macOS show
+none. (KEY-14, CMD-11)
+
+- 23 menu items, none showing a shortcut → every item with a key shows it
+
+**21. Few new shortcuts, and never the system's.** Give a new shortcut only
+to a frequent command, on a letter that recalls its name, built on the
+command modifier (`mod.OSMenuCommand()`, never `mod.Control` or
+`mod.Command` by hand). Never Alt+letter on Windows (access keys own it),
+never Ctrl+Alt, never Ctrl+Q, never a key the system or another command
+already uses. (KEY-3, KEY-4, KEY-5)
+
+**22. Access keys on Windows and Linux.** In a MenuItem's Text, put "&"
+before the access letter ("&Import"); kvit-ui underlines it on Windows and
+Linux and drops it on macOS. Not on OK, Cancel, Close, links or tabs; two
+items at one level never share a letter. Text that comes from the reader's
+data goes through `PlainMenuText`. Outside menus kvit-ui does not read "&"
+yet, so do not write it there. (KEY-15)
+
+### Dialogs and messages
+
+**23. Let Dialog place its buttons.** Give Dialog its ConfirmText and
+CancelText and let it lay them out; never build a row of dialog buttons
+yourself. The platform order (the main action first and the safe button
+last on Windows and Linux, the default last on macOS) is the Dialog's job.
+(WIN-1)
+
+**24. Ask only when it matters.** No dialog before an action that can be
+undone: do it, and show ConfirmInPlace or a toast with Undo. Ask before a
+rare action that loses data for good, and then say what will be lost.
+(MSG-3)
+
+**25. A message says what happened and what to do.** The title is the
+problem or the question, specific, never "Error". The detail adds the cause
+and the fix. An input error sits under its field and says how to put it
+right. No "Oops", no blame, and no "we": write "Couldn't save the file",
+which reads right on both systems. (MSG-4, MSG-5, MSG-6, WRD-14, WRD-28)
+
+**26. Explanations stay short.** A setting gets a label and at most one
+short line. A longer explanation goes behind a Hint. A paragraph that is
+always on screen is read once and then ignored. (WRD-22)
+
+- a permanent 50-word paragraph under one setting → one line, the rest in a
+  Hint
+
+**27. Settings apply at once.** An app's settings are a page (on macOS a
+window) where each change takes effect as it is made: no OK, Cancel or
+Apply. On Windows a setting that applies at once is a switch, not a
+checkbox. Each setting is one row: its label, a one-line description where
+needed, and the control. (WIN-16, WIN-23, CTL-2, WRD-22)
+
+**28. Links go somewhere; buttons act.** A link opens a page, a window or a
+help topic and commits nothing; anything that changes data is a button.
+Labels end without a colon. (CTL-26, WRD-19)
+
 ## The workflow for a new screen
 
 Four steps, in order. The first two are cheap and the last two are not, which
@@ -197,6 +426,9 @@ alone becomes obvious.
   the screenshot run.
 - The tests beside each file, and `rules_test.go`: what holds all of the above
   to the rules on this page.
+- `docs/ui-guidelines/`: the interface rules behind "Words, symbols, commands
+  and shortcuts", merged from Apple's and Microsoft's guidelines, with the
+  owner's decisions and a reviewer's checklist.
 
 An application keeps its own mockups, its own data packs and its own
 components built on top; only the stylesheets, the render script and the two
