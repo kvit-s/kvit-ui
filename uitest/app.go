@@ -234,7 +234,14 @@ func App(screens ...Screen) []Problem {
 				written[k] = map[string]string{}
 			}
 			plain, _, _ := kvitui.AccessText(n.Name)
-			written[k][strings.TrimSuffix(plain, "…")] = s.Name + ", " + n.Where
+			plain = strings.TrimSuffix(plain, "…")
+			// On the macOS form a button is in title case and a symbol
+			// button's name, its tooltip, in sentence case, as Apple writes
+			// a tooltip: one command written one way.
+			if s.Form == kvitui.FormMac {
+				plain = kvitui.TitleCase(plain)
+			}
+			written[k][plain] = s.Name + ", " + n.Where
 		}
 	}
 	for _, k := range sortedKeys(written) {

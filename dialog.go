@@ -91,6 +91,10 @@ type Dialog struct {
 	// over another on both forms. Otherwise one dialog is open at a time
 	// (WIN-7).
 	Helper bool
+	// Alert lets a question about something outside the dialog under it,
+	// such as quitting while that dialog is open, open over it on both
+	// forms, as an alert may sit over a dialog (WIN-7).
+	Alert bool
 	// OnAccept and OnReject run when the dialog is answered; OnOther when
 	// the second answer is chosen; OnApply when a properties dialog's Apply
 	// is pressed, which leaves it open.
@@ -423,7 +427,7 @@ func (d *Dialog) Open(window *Window) {
 	if d.Title == "" {
 		slog.Warn("kvitui: a dialog has no title")
 	}
-	over := d.Kind == DialogInform || (d.Helper && d.ui.form == FormWindows)
+	over := d.Kind == DialogInform || d.Alert || (d.Helper && d.ui.form == FormWindows)
 	for _, p := range window.popups {
 		if p.Modal && !over {
 			slog.Warn("kvitui: a dialog was not opened over another", "title", d.Title)

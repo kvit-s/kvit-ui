@@ -176,7 +176,7 @@ func TestTheKeyboardStaysInADialogAndGoesBack(t *testing.T) {
 
 // The close symbol and Escape ask OnDiscard before throwing away the
 // reader's input, and Cancel does not (WIN-8); a second dialog is refused
-// while one is open, and a message may open over it (WIN-7).
+// while one is open, and a message or an alert may open over it (WIN-7).
 func TestADialogKeepsInputAndOpensOneAtATime(t *testing.T) {
 	screen, ui, w := windowSession(t, func(*kvitui.UI) []unison.Paneler { return nil })
 	asked, keep := 0, true
@@ -203,6 +203,16 @@ func TestADialogKeepsInputAndOpensOneAtATime(t *testing.T) {
 	screen.Do(func() { kvitui.NewMessage(ui, "Account names must be unique", "").Open(w) })
 	if len(w.Popups()) != 2 {
 		t.Errorf("a message did not open over the dialog: %d popups", len(w.Popups()))
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	screen.Sync()
+	screen.Do(func() {
+		quit := kvitui.NewDialog(ui, "Quit while importing?")
+		quit.ConfirmText, quit.Alert = "Quit", true
+		quit.Open(w)
+	})
+	if len(w.Popups()) != 2 {
+		t.Errorf("an alert did not open over the dialog: %d popups", len(w.Popups()))
 	}
 	screen.KeyPress(unison.KeyEscape, 0)
 	screen.Sync()

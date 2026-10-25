@@ -2580,6 +2580,7 @@ func NewMessage(ui *UI, title, detail string) *Dialog
 | `Suppressible` | `bool` | Suppressible offers "Don't show this message again" under the detail, for a routine message that can recur; an error or a destructive question never offers it (WIN-2). |
 | `SuppressNoun` | `string` |  |
 | `Helper` | `bool` | Helper lets the dialog open over another on the Windows form, as a chooser over the dialog that needs it; an informing dialog may open over another on both forms. |
+| `Alert` | `bool` | Alert lets a question about something outside the dialog under it, such as quitting while that dialog is open, open over it on both forms, as an alert may sit over a dialog (WIN-7). |
 | `OnAccept` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |
 | `OnReject` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |
 | `OnOther` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |

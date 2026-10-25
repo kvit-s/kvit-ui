@@ -1245,7 +1245,7 @@ One modal at a time: close a dialog before opening another, except that an alert
   - Windows 7: [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 30, 26; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 28
 - **Enforce:**
   - Component: Window.Show refuses a second modal popup other than an alert (or, on Windows and Linux, a helper owned by the top dialog); Popover closes any open popover first.
-- **kvit-ui now:** partly. A dialog is not opened, with a warning, while another is open, unless it informs or, on the Windows form, is a `Helper` (`dialog.go`); a popover does not close another before opening.
+- **kvit-ui now:** partly. A dialog is not opened, with a warning, while another is open, unless it informs, is an `Alert` (a question about something outside the dialog under it, such as quitting) or, on the Windows form, is a `Helper` (`dialog.go`); a popover does not close another before opening.
 
 ### WIN-8
 

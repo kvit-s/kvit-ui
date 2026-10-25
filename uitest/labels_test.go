@@ -70,6 +70,19 @@ func TestTheLabelChecksFindWhatIsPlanted(t *testing.T) {
 	}
 }
 
+// On the macOS form a button's words are in title case and a symbol
+// button's name in sentence case, as Apple writes a tooltip, so a button and
+// a symbol button for one command are not one command written two ways.
+func TestTheAppChecksTakeTheMacFormsCases(t *testing.T) {
+	s := uitest.Open(t, uitest.Options{Form: kvitui.FormMac}, func(ui *kvitui.UI) unison.Paneler {
+		return kvitui.Column(ui, kvitui.SizeSpace, kvitui.NewButton(ui, "Add agent"),
+			kvitui.NewIconButton(ui, "plus", "Add agent"))
+	})
+	if problems := uitest.App(s.Collect("agents")); found(problems, "CON-1", "add agent") {
+		t.Errorf("a button and a symbol button for one command were reported: %v", problems)
+	}
+}
+
 // The whole-app checks find one command written two ways, one symbol with
 // two meanings, one key for two commands, a standard command made by hand
 // and a command on no surface.
