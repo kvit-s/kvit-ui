@@ -292,3 +292,103 @@ func (r *recorder) Error(args ...any) { r.errors = append(r.errors, fmt.Sprint(a
 func (r *recorder) Errorf(format string, args ...any) {
 	r.errors = append(r.errors, fmt.Sprintf(format, args...))
 }
+
+// Names sharing a verb are one meaning of a symbol: several Add … buttons
+// and a stepper's Increase … button on plus are not reported; two verbs
+// outside such a table, as next period and show fields on one chevron, are
+// (CON-2).
+func TestSymbolUsesSharingAVerbAreOneMeaning(t *testing.T) {
+	plus := func(ui *kvitui.UI, words string) *kvitui.Button {
+		b := kvitui.NewButton(ui, words)
+		b.Symbol = "plus"
+		return b
+	}
+	var screens []uitest.Screen
+	for i, build := range []func(ui *kvitui.UI) unison.Paneler{
+		func(ui *kvitui.UI) unison.Paneler {
+			return kvitui.Column(ui, kvitui.SizeSpace,
+				plus(ui, "Add rule"), plus(ui, "Add condition"), plus(ui, "Add action"))
+		},
+		func(ui *kvitui.UI) unison.Paneler {
+			return kvitui.Column(ui, kvitui.SizeSpace,
+				kvitui.NewStepper(ui, "Interface size", 10, 12),
+				kvitui.NewIconButton(ui, "chevron-down", "Next period"),
+				kvitui.NewIconButton(ui, "chevron-down", "Show fields"))
+		},
+	} {
+		s := uitest.Open(t, uitest.Options{}, build)
+		screens = append(screens, s.Collect([]string{"rules", "ledger"}[i]))
+		// One headless screen runs at a time.
+		s.Screen.Stop()
+	}
+	problems := uitest.App(screens...)
+	for _, symbol := range []string{"plus", "minus"} {
+		if found(problems, "CON-2", symbol) {
+			t.Errorf("uses sharing the adding or taking-away verb were reported: %v", problems)
+		}
+	}
+	if !found(problems, "CON-2", "chevron-down") {
+		t.Errorf("two verbs sharing one chevron were not reported: %v", problems)
+	}
+}
+
+// A placeholder that is only a dash stands for a value that is not set,
+// while words ending in punctuation are still reported (WRD-19).
+func TestADashPlaceholderStandsForAnUnsetValue(t *testing.T) {
+	field := func(ui *kvitui.UI, label, placeholder string) *kvitui.Field {
+		f := kvitui.NewField(ui)
+		f.Label, f.Placeholder = label, placeholder
+		return f
+	}
+	s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler {
+		return kvitui.Column(ui, kvitui.SizeSpace,
+			field(ui, "Payee", "—"), field(ui, "Notes", " – "),
+			field(ui, "Code", "-"), field(ui, "Name", "Enter a name:"))
+	})
+	var problems []uitest.Problem
+	s.Do(func() { problems = uitest.Labels(s.Window) })
+	for _, label := range []string{"Payee", "Notes", "Code"} {
+		if found(problems, "WRD-19", label) {
+			t.Errorf("a dash standing for an unset value was reported: %v", problems)
+		}
+	}
+	if !found(problems, "WRD-19", "Name") {
+		t.Errorf("words ending in punctuation were not reported: %v", problems)
+	}
+}
+
+// A compact select's words are the value in force: no WRD-1 in either form,
+// and one calendar meaning whatever the period is (CON-2).
+func TestACompactSelectReadsAsAValue(t *testing.T) {
+	build := func(value string) func(ui *kvitui.UI) unison.Paneler {
+		return func(ui *kvitui.UI) unison.Paneler {
+			s := kvitui.NewSelect(ui, "Period",
+				kvitui.Option{Value: "all", Label: "All history"},
+				kvitui.Option{Value: "month", Label: "Month"})
+			s.Symbol, s.Compact, s.Current = "calendar", true, value
+			return kvitui.Column(ui, kvitui.SizeSpace, s)
+		}
+	}
+	s := uitest.Open(t, uitest.Options{}, build("all"))
+	var problems []uitest.Problem
+	s.Do(func() { problems = uitest.Labels(s.Window) })
+	s.SetForm(kvitui.FormMac)
+	s.Do(func() { problems = append(problems, uitest.Labels(s.Window)...) })
+	for _, p := range problems {
+		if p.Rule == "WRD-1" && strings.Contains(p.String(), "All history") {
+			t.Errorf("a compact select's value was read as a command: %s", p)
+		}
+	}
+	// One headless screen runs at a time.
+	s.Screen.Stop()
+	var screens []uitest.Screen
+	for i, value := range []string{"all", "month"} {
+		r := uitest.Open(t, uitest.Options{}, build(value))
+		screens = append(screens, r.Collect([]string{"ledger", "ledger-month"}[i]))
+		// One headless screen runs at a time.
+		r.Screen.Stop()
+	}
+	if app := uitest.App(screens...); found(app, "CON-2", "calendar") {
+		t.Errorf("one calendar meaning period was reported: %v", app)
+	}
+}

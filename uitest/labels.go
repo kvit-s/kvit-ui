@@ -235,13 +235,16 @@ func (c *labelCheck) walk(p *unison.Panel, region *unison.Panel, inDialog bool) 
 		c.fieldLabel(&v.Field)
 	case *kvitui.Field:
 		c.fieldLabel(v)
-		if c.form == kvitui.FormWindows && v.Placeholder != "" && endsInPunctuation(v.Placeholder) {
+		if c.form == kvitui.FormWindows && v.Placeholder != "" && !dashPlaceholder(v.Placeholder) && endsInPunctuation(v.Placeholder) {
 			c.add("WRD-19", "field "+quote(v.Label), "its placeholder ends in punctuation")
 		}
 	case *kvitui.Check:
 		c.optionLabel("check box", v.Text)
 	case *kvitui.Switch:
 		c.optionLabel("switch", v.Text)
+	case *kvitui.Select:
+		// A select's words are the value in force, read as a value and never
+		// as a command: no WRD-1, in either form.
 	case *kvitui.Link:
 		c.link(v)
 	case *kvitui.HelpLink:
@@ -768,6 +771,17 @@ func countLines(lines []kvitui.MenuItem) int {
 func endsInPunctuation(s string) bool {
 	rs := []rune(strings.TrimSpace(s))
 	return len(rs) > 0 && unicode.IsPunct(rs[len(rs)-1]) && rs[len(rs)-1] != ')'
+}
+
+// dashPlaceholder reports whether a placeholder is only a dash standing for
+// a value that is not set, as a record pane's fields and Figure do for a
+// value nobody measured, rather than words ending in punctuation (WRD-19).
+func dashPlaceholder(s string) bool {
+	switch strings.Join(strings.Fields(s), "") {
+	case "—", "–", "-":
+		return true
+	}
+	return false
 }
 
 // Report fails the test for every problem not listed in known, and for every

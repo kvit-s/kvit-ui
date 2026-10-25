@@ -256,3 +256,14 @@ func selectCurrency(ui *kvitui.UI) unison.Paneler {
 	}
 	return kvitui.NewSelect(ui, "Currency", options...)
 }
+
+func selectCompact(ui *kvitui.UI) unison.Paneler {
+	// A filter that states its value: the quiet button with the calendar
+	// before the period in force, opening the same list as the field form.
+	period := kvitui.NewSelect(ui, "Period",
+		kvitui.Option{Value: "all", Label: "All history"},
+		kvitui.Option{Value: "month", Label: "Month"},
+		kvitui.Option{Value: "custom", Label: "1–31 Jan 2026"})
+	period.Symbol, period.Compact = "calendar", true
+	return kvitui.Left(period)
+}

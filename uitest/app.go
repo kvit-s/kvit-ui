@@ -134,6 +134,13 @@ func Collect(name string, w *kvitui.Window) Screen {
 			}
 			s.Names = append(s.Names, NameUse{Name: v.Name(), Where: "symbol button"})
 			s.Symbols = append(s.Symbols, NameUse{Key: sym, Name: v.Name(), Where: "symbol button"})
+		case *kvitui.Select:
+			// A compact select's symbol names what the choice is about, its
+			// Label, rather than the value in force: the calendar on a
+			// period filter means period whatever the period is.
+			if v.Symbol != "" {
+				s.Symbols = append(s.Symbols, NameUse{Key: v.Symbol, Name: v.Label, Where: "select"})
+			}
 		}
 		for _, c := range p.Children() {
 			walk(c)
@@ -177,9 +184,30 @@ func sameName(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
-// closeWords are the names the library itself gives the close symbol, which
-// mean the same thing: take this away.
-var closeWords = map[string]bool{"close": true, "dismiss": true, "clear": true}
+// symbolVerbs are the verbs that name one meaning of a symbol: adding for
+// plus, taking away for minus, taking away for close. A symbol's uses are
+// compared by their verb, the first word of the name, so two Add … buttons
+// carrying the plus symbol are one meaning; two names whose verbs differ
+// outside such a table are still two meanings, as next period and show fields
+// on one chevron are.
+var symbolVerbs = map[string]map[string]string{
+	"close": {"close": "close", "dismiss": "close", "clear": "close"},
+	"plus":  {"add": "add", "new": "add", "create": "add", "increase": "add"},
+	"minus": {"remove": "remove", "decrease": "remove"},
+}
+
+// symbolMeaning reduces a use of a symbol to the meaning CON-2 compares: the
+// verb, the first word of the name, with the verbs in the symbol's table
+// standing for the one meaning.
+func symbolMeaning(symbol, name string) string {
+	verb := strings.Fields(sameName(name) + " x")[0]
+	if table, ok := symbolVerbs[symbol]; ok {
+		if canon, ok := table[verb]; ok {
+			return canon
+		}
+	}
+	return verb
+}
 
 // App lists where an app's screens, read together, break the rules that
 // need every screen at once (rules.md, the "test, all screens of an app"
@@ -267,10 +295,7 @@ func App(screens ...Screen) []Problem {
 			if u.Key == "" {
 				continue
 			}
-			n := sameName(u.Name)
-			if u.Key == "close" && closeWords[strings.Fields(n + " x")[0]] {
-				n = "close"
-			}
+			n := symbolMeaning(u.Key, u.Name)
 			key := s.Form.String() + " form: symbol " + quote(u.Key)
 			if meanings[key] == nil {
 				meanings[key] = map[string]bool{}

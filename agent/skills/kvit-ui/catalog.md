@@ -1951,7 +1951,7 @@ func checkStates(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSelect
 
-A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason.
+A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form.
 
 ```go
 func NewSelect(ui *UI, label string, options ...Option) *Select
@@ -1963,6 +1963,8 @@ func NewSelect(ui *UI, label string, options ...Option) *Select
 | `Options` | `[]Option` | Options are the choices. |
 | `Current` | `string` | Current is the Value of the chosen option. |
 | `Placeholder` | `string` | Placeholder is what the select says while no option is chosen. |
+| `Symbol` | `string` | Symbol is an optional meaning name drawn before the chosen option's words in the compact form, naming what the choice is about, such as calendar for a period. |
+| `Compact` | `bool` | Compact draws the select as a quiet button with the chosen option's words, for a filter stating its value, rather than as a full-width field. |
 | `OnChoose` | `func(value string)` | OnChoose runs after an option is chosen, with its value. |
 
 Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
@@ -1976,6 +1978,21 @@ func selectCurrency(ui *kvitui.UI) unison.Paneler {
         options = append(options, kvitui.Option{Value: code, Label: code})
     }
     return kvitui.NewSelect(ui, "Currency", options...)
+}
+```
+
+*Compact, a filter stating its value*
+
+```go
+func selectCompact(ui *kvitui.UI) unison.Paneler {
+    // A filter that states its value: the quiet button with the calendar
+    // before the period in force, opening the same list as the field form.
+    period := kvitui.NewSelect(ui, "Period",
+        kvitui.Option{Value: "all", Label: "All history"},
+        kvitui.Option{Value: "month", Label: "Month"},
+        kvitui.Option{Value: "custom", Label: "1–31 Jan 2026"})
+    period.Symbol, period.Compact = "calendar", true
+    return kvitui.Left(period)
 }
 ```
 

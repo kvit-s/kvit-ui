@@ -373,6 +373,16 @@ the words without it. OK, Cancel, Close, links, tabs and symbol buttons take
 none. Text that comes from the reader's data goes through `PlainMenuText`.
 (KEY-15)
 
+### Controls
+
+**29. A filter that states its value is a compact `Select`.** Where the
+control chooses one of a few values and shows the one in force — a ledger
+period reading "All history" — use `Select` with `Compact` and a `Symbol`
+naming what the choice is about (`calendar`). A `Button` or `MenuButton`
+there reads its value as a command and fails WRD-1; the full-width `Select`
+field is for a choice on a form or in settings, not for a filter bar.
+(WRD-1)
+
 ### Dialogs and messages
 
 **23. Let Dialog place its buttons.** Give Dialog its ConfirmText, and

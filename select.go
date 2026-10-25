@@ -2,6 +2,7 @@ package kvitui
 
 import (
 	"github.com/kvit-s/kvit-ui/icons"
+	"github.com/kvit-s/kvit-ui/palette"
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
@@ -15,6 +16,12 @@ import (
 // once, Segmented is right: a three-item list hides two of the answers behind
 // a press. The list opens as unison's menu, as the owner chose for menus, with
 // the chosen option ticked; Up and Down change the choice without opening it.
+//
+// Compact draws the same choice as a quiet button: the optional Symbol before
+// the chosen option's words, no field outline. It is the control for a filter
+// that states its value, such as a ledger's period reading All history, where
+// the full-width field would take the room the list it filters needs. Its
+// words are read as a value, never as a command.
 type Select struct {
 	control
 	// Label names the choice for a screen reader.
@@ -25,6 +32,14 @@ type Select struct {
 	Current string
 	// Placeholder is what the select says while no option is chosen.
 	Placeholder string
+	// Symbol is an optional meaning name drawn before the chosen option's
+	// words in the compact form, naming what the choice is about, such as
+	// calendar for a period.
+	Symbol string
+	// Compact draws the select as a quiet button with the chosen option's
+	// words, for a filter stating its value, rather than as a full-width
+	// field.
+	Compact bool
 	// OnChoose runs after an option is chosen, with its value.
 	OnChoose func(value string)
 
@@ -65,13 +80,23 @@ func NewSelect(ui *UI, label string, options ...Option) *Select {
 		}
 		return true
 	}
-	s.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
-		m := ui.Interface
-		h := float32(m.ControlHeight())
-		return geom.NewSize(float32(m.Px(60)), h), geom.NewSize(float32(m.Px(180)), h), geom.NewSize(unison.DefaultMaxSize, h)
-	})
+	s.SetSizer(s.sizes)
 	s.DrawCallback = s.draw
 	return s
+}
+
+// sizes is the select's size: a full-width field in the field form, its
+// natural width as a quiet button in the compact form, read at layout time so
+// it follows the interface size.
+func (s *Select) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	m := s.ui.Interface
+	h := float32(m.ControlHeight())
+	if !s.Compact {
+		return geom.NewSize(float32(m.Px(60)), h), geom.NewSize(float32(m.Px(180)), h), geom.NewSize(unison.DefaultMaxSize, h)
+	}
+	w, _ := s.compactContent()
+	size := geom.NewSize(w+2*float32(m.SpaceLoose()), max(h, float32(m.Px(22))))
+	return size, size, size
 }
 
 // index is the position of the chosen option, or -1.
@@ -121,6 +146,10 @@ func (s *Select) shown() string {
 }
 
 func (s *Select) draw(gc *unison.Canvas, _ geom.Rect) {
+	if s.Compact {
+		s.drawCompact(gc)
+		return
+	}
 	ui, t, m := s.ui, s.ui.Theme.Tokens(), s.ui.Interface
 	p := painterFor(gc, ui)
 	r := s.ContentRect(false)
@@ -147,6 +176,68 @@ func (s *Select) draw(gc *unison.Canvas, _ geom.Rect) {
 		text.Options{MaxWidth: max(0, room), Elide: true})
 	_, h := l.Size()
 	l.Draw(gc, r.X+near, r.Y+(r.Height-h)/2)
+}
+
+// compactContent is the width and height of the compact form's symbol and
+// words, read at layout and draw time so both agree.
+func (s *Select) compactContent() (width, height float32) {
+	m := s.ui.Interface
+	ink := s.ui.Theme.Tokens().TextPrimary
+	if !s.Enabled() {
+		ink = s.ui.Theme.Tokens().TextDisabled
+	}
+	l := s.ui.Fonts.Layout([]text.Span{{Text: s.shown(), Style: s.ui.Chrome(s.ui.Size(RoleBody), text.Regular, ink)}},
+		text.Options{})
+	width, height = l.Size()
+	if s.Symbol != "" {
+		c := float32(m.IconSizeSmall())
+		width += c + float32(m.SpaceNear())
+		height = max(height, c)
+	}
+	return width, height
+}
+
+// drawCompact draws the select as a quiet button: the chip ground, the faint
+// border rather than the field's strong one, the optional symbol before the
+// chosen option's words. Hover and press answer as a button's do.
+func (s *Select) drawCompact(gc *unison.Canvas) {
+	ui, t, m := s.ui, s.ui.Theme.Tokens(), s.ui.Interface
+	p := painterFor(gc, ui)
+	r := s.ContentRect(false)
+	radius := float32(m.RadiusControl())
+	var ground palette.Color
+	switch {
+	case !s.Enabled():
+		ground = t.ChipBackground
+	case s.pressed:
+		ground = t.SelectionTint
+	case s.hovered:
+		ground = t.HoverTint
+	default:
+		ground = t.ChipBackground
+	}
+	p.round(r, radius, ground)
+	edge := t.Border
+	if s.Focused() {
+		edge = t.FocusRing
+	}
+	p.outline(r, radius, float32(m.Hairline()), edge)
+	ink := t.TextPrimary
+	if !s.Enabled() {
+		ink = t.TextDisabled
+	}
+	x := r.X + float32(m.SpaceLoose())
+	if s.Symbol != "" {
+		c := float32(m.IconSizeSmall())
+		if g, ok := icons.Glyph(s.Symbol); ok {
+			drawGlyph(gc, ui, g, c, ink, geom.NewRect(x, r.Y+(r.Height-c)/2, c, c))
+		}
+		x += c + float32(m.SpaceNear())
+	}
+	l := ui.Fonts.Layout([]text.Span{{Text: s.shown(), Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}},
+		text.Options{})
+	_, h := l.Size()
+	l.Draw(gc, x, r.Y+(r.Height-h)/2)
 }
 
 // ProvideAccessibility describes the select as a combo box with its choice

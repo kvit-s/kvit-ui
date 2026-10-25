@@ -322,6 +322,51 @@ func TestASelectStepsWithTheArrowsAndOpensAMenu(t *testing.T) {
 	}
 }
 
+func TestACompactSelectShowsItsValueAndOpensTheSameList(t *testing.T) {
+	var s *kvitui.Select
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		s = kvitui.NewSelect(ui, "Period",
+			kvitui.Option{Value: "all", Label: "All history"},
+			kvitui.Option{Value: "month", Label: "Month"})
+		s.Symbol, s.Compact = "calendar", true
+		return []unison.Paneler{s}
+	})
+
+	// Its natural width holds the symbol and the value, not a field's width.
+	screen.Do(func() {
+		_, p, _ := s.Sizes(geom.Size{})
+		_, field, _ := kvitui.NewSelect(ui, "Period",
+			kvitui.Option{Value: "all", Label: "All history"}).Sizes(geom.Size{})
+		if p.Width >= field.Width {
+			t.Errorf("a compact select is %.1f wide, a field %.1f", p.Width, field.Width)
+		}
+		if h := s.FrameRect().Height; h < 22 {
+			t.Errorf("a compact select is %.1f tall", h)
+		}
+	})
+	screen.Do(func() { s.Focus() })
+	screen.KeyPress(unison.KeyDown, 0)
+	if s.Current != "month" {
+		t.Errorf("Down chose %q", s.Current)
+	}
+	if n := screen.AccessibilityNodeFor(s); n == nil || n.Role != role.ComboBox || n.Name != "Period" || n.Value != "Month" {
+		t.Errorf("the compact select's node: %+v", n)
+	}
+	screen.KeyPress(unison.KeySpace, 0)
+	screen.Sync()
+	var w *unison.Window
+	screen.Do(func() { w = s.Window() })
+	found := false
+	for _, n := range screen.AccessibilityTree(w).Nodes {
+		if n.Role == role.MenuItem && n.Name == "All history" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("Space opened no menu with the options")
+	}
+}
+
 func TestAReadOnlyTextAreaTakesNoTyping(t *testing.T) {
 	var a *kvitui.TextArea
 	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
