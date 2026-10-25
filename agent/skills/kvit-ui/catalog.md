@@ -2572,7 +2572,7 @@ func NewMessage(ui *UI, title, detail string) *Dialog
 | `Help` | `*HelpLink` | Help opens the help topic for the dialog, where the topic says what the dialog cannot; nil for none (HLP-6). |
 | `ConfirmKeepsOpen` | `bool` | ConfirmKeepsOpen leaves the dialog open when it is confirmed, for an answer the application checks and may refuse, saying why in the dialog; Close takes it away once the answer is taken. |
 
-Methods: `Accept`, `ButtonWords`, `Close`, `Done`, `MarkChanged`, `MoveTo`, `Open`, `Position`, `SafeButton`, `Suppressed`.
+Methods: `Accept`, `ApplyButton`, `ButtonWords`, `Buttons`, `CancelButton`, `Close`, `ConfirmButton`, `Done`, `MarkChanged`, `MoveTo`, `Open`, `OtherButton`, `Position`, `SafeButton`, `Suppressed`.
 
 *A destructive confirmation*
 

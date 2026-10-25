@@ -343,3 +343,86 @@ func TestApplyWaitsForAChange(t *testing.T) {
 	}
 	screen.KeyPress(unison.KeyEscape, 0)
 }
+
+// A dialog hands out its buttons, so the application enables or presses them
+// without finding them by their words.
+func TestADialogHandsOutItsButtons(t *testing.T) {
+	screen, ui, w := windowSession(t, func(*kvitui.UI) []unison.Paneler { return nil })
+	var d *kvitui.Dialog
+	screen.Do(func() {
+		d = kvitui.NewDialog(ui, "Save changes to the ledger?")
+		d.ConfirmText, d.OtherText = "Save", "Don't save"
+		d.Open(w)
+	})
+	screen.Sync()
+	var buttons []*kvitui.Button
+	var words []string
+	var confirm, other, cancel, apply *kvitui.Button
+	screen.Do(func() {
+		buttons = d.Buttons()
+		words = d.ButtonWords()
+		confirm, other, cancel, apply = d.ConfirmButton(), d.OtherButton(), d.CancelButton(), d.ApplyButton()
+	})
+	if len(buttons) != 3 || len(words) != 3 {
+		t.Fatalf("an asking dialog shows %d buttons named %v", len(buttons), words)
+	}
+	for i, b := range buttons {
+		if b.Words() != words[i] {
+			t.Fatalf("Buttons()[%d] says %q, ButtonWords()[%d] says %q", i, b.Words(), i, words[i])
+		}
+	}
+	if buttons[0] != confirm || buttons[1] != other || buttons[2] != cancel {
+		t.Fatalf("on the Windows form the buttons are not the confirm, other and cancel buttons in order")
+	}
+	if apply != nil {
+		t.Fatalf("an asking dialog has an apply button %q", apply.Words())
+	}
+	// The handle acts on the button: disabling the confirming button through
+	// it disables the Save button the reader sees.
+	screen.Do(func() { confirm.SetEnabled(false) })
+	screen.Sync()
+	disabled := false
+	for _, n := range nodes(screen, w, role.Button) {
+		if isInDialog(screen, w, n) && n.Name == "Save" {
+			disabled = n.Disabled
+		}
+	}
+	if !disabled {
+		t.Error("disabling the confirming button did not disable the Save button")
+	}
+	screen.Do(func() { confirm.SetEnabled(true) })
+
+	screen.Do(func() { ui.SetForm(kvitui.FormMac) })
+	screen.Sync()
+	screen.Do(func() {
+		buttons = d.Buttons()
+		confirm, other, cancel = d.ConfirmButton(), d.OtherButton(), d.CancelButton()
+	})
+	if len(buttons) != 3 || buttons[0] != other || buttons[1] != cancel || buttons[2] != confirm {
+		t.Errorf("on the macOS form the buttons are not the other, cancel and confirm buttons in order")
+	}
+	// The form leaves Apply out on the macOS form, Done takes the action away
+	// and an informing dialog's only button is its confirming one.
+	screen.Do(func() {
+		ui.SetForm(kvitui.FormWindows)
+		p := kvitui.NewDialog(ui, "Checking properties")
+		p.Kind = kvitui.DialogProperties
+		if p.ApplyButton() == nil {
+			t.Error("a properties dialog has no apply button on the Windows form")
+		}
+		ui.SetForm(kvitui.FormMac)
+		if p.ApplyButton() != nil {
+			t.Error("a properties dialog keeps its apply button on the macOS form")
+		}
+		ui.SetForm(kvitui.FormWindows)
+		d.Done()
+		if d.ConfirmButton() != nil || d.OtherButton() != nil || d.CancelButton() == nil {
+			t.Error("once done, an asking dialog keeps no action and only its Close button")
+		}
+		m := kvitui.NewMessage(ui, "Import finished", "212 transactions were added.")
+		ui.SetForm(kvitui.FormMac)
+		if m.ConfirmButton() == nil || m.CancelButton() != nil || len(m.Buttons()) != 1 {
+			t.Error("an informing dialog's only button is not its confirming button")
+		}
+	})
+}

@@ -307,6 +307,61 @@ func (d *Dialog) ButtonWords() []string {
 	return out
 }
 
+// Buttons are the dialog's buttons as they are shown, left to right: the
+// same buttons ButtonWords names, as handles the application can enable,
+// focus or press, rather than finding by their words.
+func (d *Dialog) Buttons() []*Button {
+	d.sync()
+	var out []*Button
+	for _, b := range d.buttons() {
+		out = append(out, b.(*Button))
+	}
+	return out
+}
+
+// ConfirmButton is the dialog's action, "Import" or OK: nil when the dialog
+// shows no action, as an asking dialog does once Done. An informing dialog's
+// only button, Close on the Windows form and OK on the macOS form, is its
+// confirming button.
+func (d *Dialog) ConfirmButton() *Button {
+	d.sync()
+	if d.confirm.Text == "" {
+		return nil
+	}
+	return d.confirm
+}
+
+// CancelButton is the dialog's safe button, Cancel unless set, Close or Done
+// once Done: nil when the dialog shows none, as an informing dialog does.
+func (d *Dialog) CancelButton() *Button {
+	d.sync()
+	if d.cancel.Text == "" {
+		return nil
+	}
+	return d.cancel
+}
+
+// OtherButton is the dialog's optional second answer, such as "Don't save":
+// nil when the dialog shows none.
+func (d *Dialog) OtherButton() *Button {
+	d.sync()
+	if d.other.Text == "" {
+		return nil
+	}
+	return d.other
+}
+
+// ApplyButton is a properties dialog's Apply on the Windows form, which the
+// reader presses once MarkChanged says something changed: nil when the dialog
+// shows none, as every dialog does on the macOS form.
+func (d *Dialog) ApplyButton() *Button {
+	d.sync()
+	if d.apply.Text == "" {
+		return nil
+	}
+	return d.apply
+}
+
 // SafeButton reports whether the dialog has a button that leaves without
 // acting (WIN-3).
 func (d *Dialog) SafeButton() bool {
