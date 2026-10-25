@@ -25,7 +25,9 @@ type Crumb struct {
 // would announce a link that goes nowhere. A long trail is cut from the
 // middle rather than the end, because the first crumb says which part of the
 // application this is and the last says where the reader is, and what a
-// reader can do without is the middle.
+// reader can do without is the middle. The "…" standing for the middle opens
+// a list of the crumbs it folds, so every place on the trail can still be
+// followed (LAY-10).
 type Breadcrumb struct {
 	unison.Panel
 	ui *UI
@@ -52,8 +54,8 @@ func NewBreadcrumb(ui *UI, trail ...Crumb) *Breadcrumb {
 }
 
 // Shown is the crumbs as drawn: the whole trail when it is short enough, and
-// otherwise the first crumb, a crumb reading "…" with no ID that cannot be
-// followed, and the last few.
+// otherwise the first crumb, a crumb reading "…" with no ID that opens a
+// list of the crumbs it stands for, and the last few.
 func (b *Breadcrumb) Shown() []Crumb {
 	most := b.MaximumVisible
 	if most <= 0 {
@@ -62,8 +64,6 @@ func (b *Breadcrumb) Shown() []Crumb {
 	if len(b.Trail) <= most {
 		return b.Trail
 	}
-	// The "…" stands for several places, and picking one of them is what the
-	// sidebar is for, so it is not a link.
 	tail := b.Trail[len(b.Trail)-max(1, most-2):]
 	return append([]Crumb{b.Trail[0], {Label: "…"}}, tail...)
 }
@@ -92,9 +92,23 @@ func (b *Breadcrumb) sync() {
 			here.Weight = text.Bold
 			b.AddChild(here)
 		case elided && i == 1:
-			gap := NewLabel(b.ui, c.Label)
-			gap.Ink = InkTextFaint
-			b.AddChild(gap)
+			// The folded crumbs, listed by a press on the "…".
+			folded := b.Trail[1 : len(b.Trail)-(len(shown)-2)]
+			more := NewLink(b.ui, c.Label)
+			OpensPopup(more)
+			more.Explanation = b.ui.CountPhrase(len(folded), "place", "") + " between"
+			more.OnActivate = func() {
+				var items []MenuItem
+				for _, f := range folded {
+					items = append(items, MenuItem{Text: PlainMenuText(f.Label), Verbatim: true, OnSelect: func() {
+						if b.OnActivate != nil {
+							b.OnActivate(f)
+						}
+					}})
+				}
+				b.ui.ShowMenu(more, "Folded places", items)
+			}
+			b.AddChild(more)
 		default:
 			link := NewLink(b.ui, c.Label)
 			link.OnActivate = func() {

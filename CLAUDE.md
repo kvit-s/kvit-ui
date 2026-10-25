@@ -11,11 +11,11 @@ Kvit desktop app draws with. It is built on the unison toolkit
 | `palette` | Colours and the colour science the design values are checked with: OKLab/OKLCH, perceptual distance, colour-vision simulation, WCAG contrast, chart-ramp rules |
 | `tokens` | `Theme` (four colour tables, overrides, reduced motion, following the desktop), `Interface` (everything derived from the 10–24 px interface size), `Typography` (document text). `tables_gen.go` holds the four colour tables and is edited by hand |
 | `settings` | The settings file (`ui.json`) |
-| `platform` | What the desktop says about dark mode, high contrast and reduced motion; the tray icon, its menu and notifications (`tray.go`, with a backend per system: Shell_NotifyIcon on Windows, StatusNotifierItem and dbusmenu over D-Bus on Linux, NSStatusItem and UNUserNotificationCenter on macOS through purego, compiled but not yet run on a Mac); the file dialog with a title and named filters, which unison's `OpenDialog` cannot be given (`filedialog.go`: IFileOpenDialog on Windows, zenity or kdialog on Linux, NSOpenPanel on macOS, compiled but not yet run on a Mac) |
+| `platform` | What the desktop says about dark mode, high contrast and reduced motion, and about the keyboard (the Mac's full keyboard access, Windows' "Underline access keys"; `keyboard.go`); the dot in a macOS window's close button for unsaved changes (`document.go`, compiled but not yet run on a Mac); the tray icon, its menu and notifications (`tray.go`, with a backend per system: Shell_NotifyIcon on Windows, StatusNotifierItem and dbusmenu over D-Bus on Linux, NSStatusItem and UNUserNotificationCenter on macOS through purego, compiled but not yet run on a Mac); the file dialog with a title and named filters, which unison's `OpenDialog` cannot be given (`filedialog.go`: IFileOpenDialog on Windows, zenity or kdialog on Linux, NSOpenPanel on macOS, compiled but not yet run on a Mac) |
 | `icons` | The embedded Phosphor font and its names. `catalog_gen.go` holds the glyph and meaning tables and is edited by hand |
 | `text` | Font discovery and fallback, shaping, line breaking, caret and hit testing, drawing through unison's canvas, and room kept in a line for something the caller draws over the text, such as a typeset formula (`Style.Box`, placed with `CaretAt` and `Layout.LineBaseline`) |
-| root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison, and the components, one file each (`label.go`, `sidebar.go`, …) |
-| `uitest` | Headless test helpers for the library and the applications: a Kvit window in a chosen theme and interface size (`Open`), a screen reader's view of it, the check that every control has a role and a name (`CheckNamed`), and the checks on a program's source for colour literals and numeric font sizes (`CheckRules`) and for unnamed geometry values (`CheckGeometry`) |
+| root (`kvitui`) | `UI`, which ties the above together and applies the theme to unison; the platform form (`form.go`: the Windows form, also Linux's, or the macOS form); commands, their shortcuts and the window's shortcut registry (`command.go`, `shortcut.go`, `commandkeys.go`); access keys (`accesskey.go`); and the components, one file each (`label.go`, `sidebar.go`, `menubar.go`, …) |
+| `uitest` | Headless test helpers for the library and the applications: a Kvit window in a chosen theme, interface size and form (`Open`), a screen reader's view of it, the check that every control has a role and a name (`CheckNamed`), the interface rules of `docs/ui-guidelines` read from one screen (`Labels`, `Session.CheckLabels`) and from every screen of an app (`Collect`, `CheckApp`), and the checks on a program's source for colour literals, numeric font sizes and forbidden wording (`CheckRules`) and for unnamed geometry values (`CheckGeometry`) |
 | `cmd/kvit-ui-gallery` | The gallery, its screenshot mode, `--catalog`, which writes the skill's component catalogue, and its icon (`icons/kvit-ui-gallery.svg`, with the pictures drawn from it and the Windows resources in `winres/`) |
 | `agent/skills` | The two agent skills, `kvit-ui` (the vocabulary, with the generated `catalog.md`) and `kvit-preview` |
 | `ux` | The drawing layer for proposing a screen as HTML: `tokens.css`, written by `tools/tokens-to-css`, and the hand-written `frame.css`, `render.sh`, `PATTERN.md` and `visual-language.md` |
@@ -79,6 +79,12 @@ kerning, emoji sequences or right-to-left ordering.
   component that holds a control must not take one of those roles.
 - **Text entry is unison's field, by the owner's choice (2026-09-26),** with the Kvit look drawn around it (`field.go`). **Menus are Kvit's** on Windows and Linux, drawn in the window's popup layer, and the system's
   own on macOS (owner's choice, 2026-09-27; `menu.go`).
+- **Read the platform form like a colour,** at layout and draw time
+  (`ui.Form()`), never when the component is built. A label the macOS form
+  writes in title case (a button, a menu line, a tab, a segment, a column
+  heading) goes through `ui.CommandCase`; a control with words has an access
+  key on the Windows form by implementing `accessWords` and `accessPress`
+  (`accesskey.go`). `docs/ui-guidelines/rules.md` says what each form does.
 - **Every component gets a gallery page** in `cmd/kvit-ui-gallery`: a catalogue entry in `catalog.go` and one Go function per specimen in `specimens_<group>.go`, whose source is the page's code sample. Name the test and the screenshot as the evidence.
 
 ## Building and checking

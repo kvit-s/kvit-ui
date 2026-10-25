@@ -328,6 +328,10 @@ func statusMenu(s trayState) objc.ID {
 		item.Send(sel("setTag:"), int64(i))
 		item.Send(sel("setTarget:"), macTarget)
 		item.Send(sel("setEnabled:"), !e.disabled)
+		if e.checked {
+			// NSControlStateValueOn.
+			item.Send(sel("setState:"), int64(1))
+		}
 		menu.Send(sel("addItem:"), item)
 		item.Send(sel("release"))
 	}
@@ -361,10 +365,29 @@ func (t *macTray) notify(n Notification) {
 		content.Send(sel("setBody:"), nsString(n.Message))
 		content.Send(sel("setUserInfo:"), class("NSDictionary").Send(sel("dictionaryWithObject:forKey:"),
 			nsString(n.ID), nsString(activationKey)))
-		id := class("NSUUID").Send(sel("UUID")).Send(sel("UUIDString"))
+		// The request is named by the notification's ID, so Withdraw can
+		// name it, and a second post with the ID takes the first one's
+		// place; one without an ID gets a name of its own.
+		id := nsString(n.ID)
+		if n.ID == "" {
+			id = class("NSUUID").Send(sel("UUID")).Send(sel("UUIDString"))
+		}
 		request := class("UNNotificationRequest").Send(sel("requestWithIdentifier:content:trigger:"), id, content, objc.ID(0))
 		t.center.Send(sel("addNotificationRequest:withCompletionHandler:"), request, objc.ID(0))
 		content.Send(sel("release"))
+	})
+}
+
+// withdraw takes the notification named by its ID out of Notification
+// Centre, and out of the queue if it has not been shown yet.
+func (t *macTray) withdraw(id string) {
+	if t.center == 0 {
+		return
+	}
+	withPool(func() {
+		ids := class("NSArray").Send(sel("arrayWithObject:"), nsString(id))
+		t.center.Send(sel("removeDeliveredNotificationsWithIdentifiers:"), ids)
+		t.center.Send(sel("removePendingNotificationRequestsWithIdentifiers:"), ids)
 	})
 }
 

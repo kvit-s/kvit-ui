@@ -1,7 +1,6 @@
 package kvitui
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/kvit-s/kvit-ui/icons"
@@ -93,14 +92,10 @@ func NewTypeAhead(ui *UI, label string, allowNew bool, source ...Suggestion) *Ty
 		a.update()
 	}
 	a.describe = func() string {
-		switch n := len(a.Matches()); n {
-		case 0:
-			return ""
-		case 1:
-			return "1 suggestion"
-		default:
-			return strconv.Itoa(n) + " suggestions"
+		if n := len(a.Matches()); n > 0 {
+			return ui.CountPhrase(n, "suggestion", "")
 		}
+		return ""
 	}
 	gained, lost := a.edit.GainedFocusCallback, a.edit.LostFocusCallback
 	a.edit.GainedFocusCallback = func() { gained(); a.update() }
@@ -209,6 +204,13 @@ func (a *TypeAhead) keyDown(key unison.KeyCode) bool {
 		a.list.reveal(a.cursor)
 	case unison.KeyReturn, unison.KeyNumPadEnter:
 		a.accept()
+	case unison.KeyEscape:
+		// Escape closes the list and leaves what was typed (KEY-7).
+		if a.hide == nil {
+			return false
+		}
+		a.shut = true
+		a.update()
 	default:
 		return false
 	}

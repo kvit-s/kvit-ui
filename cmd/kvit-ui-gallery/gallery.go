@@ -9,7 +9,6 @@ import (
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/align"
-	"github.com/richardwilkes/unison/enums/mod"
 )
 
 // The gallery's window: 1440 × 960.
@@ -27,12 +26,13 @@ type group struct {
 
 var groups = []group{
 	{"Foundation", []string{"Foundations", "KvitLabel", "KvitIcon", "KvitIconButton", "KvitLink"}},
-	{"Structure", []string{"KvitHeader", "KvitSidebar", "KvitSidebarItem", "KvitBreadcrumb", "KvitRegion", "KvitViewHead", "KvitStatusBar", "KvitWindow"}},
+	{"Structure", []string{"KvitHeader", "KvitSidebar", "KvitSidebarItem", "KvitBreadcrumb", "KvitRegion", "KvitViewHead", "KvitStatusBar", "KvitWindow", "KvitHistory"}},
 	{"Content", []string{"KvitSectionHeading", "KvitRow", "KvitSlimRow", "KvitCard", "KvitPanel", "KvitPane", "KvitDivider", "KvitDisclosure", "KvitEmptyState"}},
 	{"Marks", []string{"KvitChip", "KvitTag", "KvitBadge", "KvitSlug", "KvitDot", "KvitSignal", "KvitPip"}},
 	{"Quantities", []string{"KvitFigure", "KvitBeforeAfter"}},
-	{"Controls", []string{"KvitButton", "KvitChipButton", "KvitStepper", "KvitField", "KvitTextArea", "KvitSearchField", "KvitCheck", "KvitSelect", "KvitTab"}},
-	{"Feedback", []string{"KvitTooltip", "KvitPopover", "KvitHint", "KvitHoverCard", "KvitToast", "KvitNotice", "KvitDialog", "KvitFloatingView"}},
+	{"Controls", []string{"KvitButton", "KvitChipButton", "KvitStepper", "KvitField", "KvitTextArea", "KvitSearchField", "KvitCheck", "KvitSelect", "KvitTab", "KvitFormRow", "KvitSettingRow", "KvitSettingsWindow"}},
+	{"Commands", []string{"KvitCommand", "KvitMenuBar", "KvitToolbar", "KvitMenuButton", "KvitSplitButton", "KvitUndoStack"}},
+	{"Feedback", []string{"KvitTooltip", "KvitPopover", "KvitHint", "KvitHoverCard", "KvitToast", "KvitNotice", "KvitDialog", "KvitTip", "KvitHelpLink", "KvitFloatingView"}},
 	{"Data", []string{"KvitBar", "KvitStackedBar", "KvitSpark", "KvitNetFlow", "KvitTrend", "KvitDistribution", "KvitGauge", "KvitDelta", "KvitStatTile", "KvitFigureBlock", "KvitCell", "KvitTable"}},
 	{"Flow", []string{"KvitScrollBar", "KvitMenu", "KvitMenuItem", "KvitTree", "KvitSwitch", "KvitRadioGroup", "KvitProgress", "KvitSlider", "KvitSplitView", "KvitSegmented", "KvitTypeAhead", "KvitConfirmInPlace", "KvitTimeline", "KvitNumberField", "KvitMoneyField", "KvitDualList", "KvitSpotlight"}},
 }
@@ -74,6 +74,7 @@ type gallery struct {
 	rows     map[string]*kvitui.ListRow
 	search   *kvitui.SearchField
 	theme    *kvitui.Segmented
+	form     *kvitui.Segmented
 	size     *kvitui.Stepper
 	status   *kvitui.StatusBar
 	activity string // what the screenshot run is doing, for the status bar
@@ -83,6 +84,8 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 	if !hasPage(page) {
 		return nil, fmt.Errorf("no page %q; the pages are the ones listed without grey in the sidebar", page)
 	}
+	// The app menu on the macOS form, and Help, are named after it.
+	ui.AppName = "kvit-ui gallery"
 	wnd, err := kvitui.NewWindow(ui, "kvit-ui gallery")
 	if err != nil {
 		return nil, err
@@ -95,12 +98,16 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 	}
 	g.theme = kvitui.NewSegmented(ui, "Theme", options...)
 	g.theme.OnChoose = func(v string) { ui.Theme.SetThemeID(v) }
+	g.form = kvitui.NewSegmented(ui, "Form",
+		kvitui.Option{Value: kvitui.FormWindows.String(), Label: "Windows"},
+		kvitui.Option{Value: kvitui.FormMac.String(), Label: "macOS"})
+	g.form.OnChoose = func(v string) { ui.SetForm(formNamed(v)) }
 	g.size = kvitui.NewStepper(ui, "Interface size", tokens.MinInterfaceSize, tokens.MaxInterfaceSize)
 	g.size.Unit = "px"
 	g.size.Follow = ui.Interface.FontSize
 	g.size.OnChange = ui.Interface.SetFontSize
 	room := kvitui.FullWidth(unison.NewPanel())
-	wnd.SetHeader(kvitui.NewHeader(ui, "kvit-ui", kvitui.FullWidth(kvitui.Row(ui, kvitui.SizeColumnGap, room, g.theme, g.size))))
+	wnd.SetHeader(kvitui.NewHeader(ui, "kvit-ui", kvitui.FullWidth(kvitui.Row(ui, kvitui.SizeColumnGap, room, g.form, g.theme, g.size))))
 
 	g.search = kvitui.NewSearchField(ui)
 	g.search.Placeholder, g.search.MatchedNoun = "Filter components", "component"
@@ -120,7 +127,7 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 
 	g.status = kvitui.NewStatusBar(ui)
 	wnd.SetStatusBar(g.status)
-	wnd.OnKeyDown = g.keyDown
+	wnd.SetMenuBar(g.menuBar())
 
 	ui.OnChanged(g.sync)
 	g.buildList()
@@ -146,9 +153,11 @@ func newGallery(ui *kvitui.UI, page string, firstFrame func()) (*gallery, error)
 func (g *gallery) sync() {
 	ui := g.ui
 	g.theme.Current = ui.Theme.ThemeID()
+	g.form.Current = ui.Form().String()
 	g.status.Activity = g.activity
 	g.status.Facts = []string{
 		fmt.Sprintf("%d components", len(catalog)),
+		ui.Form().String() + " form",
 		tokens.DisplayName(ui.Theme.ResolvedTheme()),
 		fmt.Sprintf("%d px", ui.Interface.FontSize()),
 	}
@@ -223,27 +232,50 @@ func (g *gallery) pageHeight(width float32) float32 {
 	return pref.Height + 2*float32(m.ViewMargin())
 }
 
+// formNamed is the form with a name as Form.String gives it.
+func formNamed(name string) kvitui.Form {
+	if name == kvitui.FormMac.String() {
+		return kvitui.FormMac
+	}
+	return kvitui.FormWindows
+}
+
 var themeLabels = []struct{ id, label string }{
 	{tokens.Light, "Light"}, {tokens.Dark, "Dark"}, {tokens.Sepia, "Sepia"}, {tokens.HighContrast, "Contrast"},
 }
 
-// keyDown: Ctrl+1 to Ctrl+4 choose a theme, Ctrl+plus and Ctrl+minus change
-// the interface size, Ctrl+0 resets it.
-func (g *gallery) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bool {
-	if !mods.CommandDown() {
-		return false
+// menuBar is the gallery's commands: a theme on Ctrl+1 to Ctrl+4, the
+// interface size on the zoom keys, the form, and Find, which goes to the
+// sidebar's filter.
+func (g *gallery) menuBar() *kvitui.MenuBar {
+	ui := g.ui
+	var themes []kvitui.MenuItem
+	for i, tl := range themeLabels {
+		themes = append(themes, kvitui.MenuItem{Radio: true, Command: &kvitui.Command{
+			Name:     tl.label,
+			Shortcut: kvitui.Keys(unison.Key1+unison.KeyCode(i), kvitui.ModPrimary),
+			Checked:  func() bool { return ui.Theme.ThemeID() == tl.id },
+			Run:      func() { ui.Theme.SetThemeID(tl.id) },
+		}})
 	}
-	switch key {
-	case unison.Key1, unison.Key2, unison.Key3, unison.Key4:
-		g.ui.Theme.SetThemeID(themeLabels[int(key-unison.Key1)].id)
-	case unison.KeyEqual, unison.KeyNumPadAdd:
-		g.ui.Interface.SetFontSize(g.ui.Interface.FontSize() + 1)
-	case unison.KeyMinus, unison.KeyNumPadSubtract:
-		g.ui.Interface.SetFontSize(g.ui.Interface.FontSize() - 1)
-	case unison.Key0:
-		g.ui.Interface.SetFontSize(tokens.DefaultInterfaceSize)
-	default:
-		return false
+	var forms []kvitui.MenuItem
+	for _, f := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		forms = append(forms, kvitui.MenuItem{Radio: true, Command: &kvitui.Command{
+			Name:    f.String() + " form",
+			Checked: func() bool { return ui.Form() == f },
+			Run:     func() { ui.SetForm(f) },
+		}})
 	}
-	return true
+	size := ui.Interface
+	return kvitui.NewMenuBar(ui).
+		Add(&kvitui.Command{Std: kvitui.StdQuit, Run: func() { unison.AttemptQuit() }},
+			&kvitui.Command{Std: kvitui.StdFind, Run: func() { g.search.Focus() }},
+			&kvitui.Command{Std: kvitui.StdZoomIn, Run: func() { size.SetFontSize(size.FontSize() + 1) },
+				Enabled: func() bool { return size.FontSize() < tokens.MaxInterfaceSize }},
+			&kvitui.Command{Std: kvitui.StdZoomOut, Run: func() { size.SetFontSize(size.FontSize() - 1) },
+				Enabled: func() bool { return size.FontSize() > tokens.MinInterfaceSize }},
+			&kvitui.Command{Std: kvitui.StdActualSize, Run: func() { size.SetFontSize(tokens.DefaultInterfaceSize) }}).
+		AddTo(kvitui.MenuView,
+			kvitui.MenuItem{Text: "&Theme", Items: themes},
+			kvitui.MenuItem{Text: "&Form", Items: forms})
 }

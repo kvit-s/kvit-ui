@@ -87,8 +87,9 @@ func regionScrolling(ui *kvitui.UI) unison.Paneler {
 }
 
 func viewHeadWithControls(ui *kvitui.UI) unison.Paneler {
-	head := kvitui.NewViewHead(ui, "Transactions",
-		kvitui.Width(ui, kvitui.Px(180), kvitui.NewSearchField(ui)), kvitui.NewButton(ui, "Export"))
+	search := kvitui.NewSearchField(ui)
+	search.Placeholder = "Search transactions"
+	head := kvitui.NewViewHead(ui, "Transactions", kvitui.Width(ui, kvitui.Px(180), search), kvitui.NewButton(ui, "Export"))
 	head.Count, head.Counted = 1284, "transaction"
 	head.Subtitle = "Everything since the account was opened"
 	return kvitui.FullWidth(head)

@@ -28,9 +28,10 @@ type Popup struct {
 	// the focus, so Escape passes it by and goes to the popup under it, or to
 	// the window when there is none.
 	Passive bool
-	// OnPressOutside runs when the pointer is pressed outside it; the press
-	// still reaches whatever is under the pointer unless the popup is modal,
-	// or it lands in OpenedFrom.
+	// OnPressOutside runs when the pointer is pressed outside it. The press
+	// closes the popup and goes no further, so it never presses a button
+	// behind it, except on a control that opens a popup of its own, which
+	// opens in the same press (PTR-13, decided Q-43; see OpensPopup).
 	OnPressOutside func()
 	// OpenedFrom, when set, is the part of the window the popup was opened
 	// from, such as a menu's button, in the window's content coordinates. A
@@ -40,6 +41,15 @@ type Popup struct {
 	// Anchor, when set, is what the popup belongs to: once it is no longer in
 	// the window, as when the page holding it is replaced, the popup goes too.
 	Anchor unison.Paneler
+	// Ambient is a popup that takes nothing from the window, as a teaching
+	// tip does: the window's keys, Escape and Tab go on working around it, a
+	// press outside it leaves it where it is, and a press inside it reaches
+	// its controls.
+	Ambient bool
+	// HoldsKeyboard keeps Tab and Shift+Tab among the popup's own controls
+	// while it is the topmost, as a popover does until it closes (KEY-8); a
+	// modal popup always does.
+	HoldsKeyboard bool
 }
 
 // windowOf is the Kvit window a panel is shown in, or nil.
@@ -143,17 +153,19 @@ func (w *Window) layoutPopups(r geom.Rect) {
 	}
 }
 
-// popupKeys closes the topmost popup on Escape, before any control sees the
-// key. Passive popups are passed by. A popup that is not passive and has no
-// OnEscape leaves the key to the focused control, as the typeahead's list
-// does for its field, which closes the list.
-func (w *Window) popupKeys(key unison.KeyCode) bool {
-	if key != unison.KeyEscape {
+// popupKeys closes the topmost popup on Escape, and on Command-period on
+// the macOS form (KEY-7), before any control sees the key. Passive popups
+// are passed by. A popup that is not passive and has no OnEscape leaves the
+// key to the focused control, as the typeahead's list does for its field,
+// which closes the list.
+func (w *Window) popupKeys(key unison.KeyCode, mods mod.Modifiers) bool {
+	cmdPeriod := w.ui.form == FormMac && key == unison.KeyPeriod && mods&mod.NonSticky == mod.Command
+	if key != unison.KeyEscape && !cmdPeriod {
 		return false
 	}
 	for i := len(w.popups) - 1; i >= 0; i-- {
 		p := w.popups[i]
-		if p.Passive {
+		if p.Passive || p.Ambient {
 			continue
 		}
 		if p.OnEscape != nil {
@@ -163,6 +175,54 @@ func (w *Window) popupKeys(key unison.KeyCode) bool {
 		return false
 	}
 	return false
+}
+
+// popupTab moves the keyboard to the next or previous control inside the
+// topmost popup that holds the keyboard, going round at the ends, so Tab
+// never leaves an open dialog or popover for what is behind it.
+func (w *Window) popupTab(key unison.KeyCode, mods mod.Modifiers) bool {
+	if key != unison.KeyTab || mods&mod.NonSticky&^mod.Shift != 0 {
+		return false
+	}
+	var top *Popup
+	for i := len(w.popups) - 1; i >= 0; i-- {
+		if !w.popups[i].Passive && !w.popups[i].Ambient {
+			top = w.popups[i]
+			break
+		}
+	}
+	if top == nil || !(top.Modal || top.HoldsKeyboard) {
+		return false
+	}
+	var stops []*unison.Panel
+	var walk func(p *unison.Panel)
+	walk = func(p *unison.Panel) {
+		if p.Hidden || !p.Enabled() {
+			return
+		}
+		if p.Focusable() {
+			stops = append(stops, p)
+		}
+		for _, c := range p.Children() {
+			walk(c)
+		}
+	}
+	walk(top.Panel.AsPanel())
+	if len(stops) == 0 {
+		return true
+	}
+	at := slices.Index(stops, w.CurrentFocus())
+	next := 0
+	switch {
+	case at < 0 && mods.ShiftDown():
+		next = len(stops) - 1
+	case at >= 0 && mods.ShiftDown():
+		next = (at - 1 + len(stops)) % len(stops)
+	case at >= 0:
+		next = (at + 1) % len(stops)
+	}
+	stops[next].RequestFocus()
+	return true
 }
 
 // popupPress tells the popups a press landed outside them. It returns true to
@@ -181,7 +241,12 @@ func (w *Window) popupPress(where geom.Point) bool {
 			w.rebuild()
 		}
 	}
+	closed := false
 	for i := len(w.popups) - 1; i >= 0; i-- {
+		if i >= len(w.popups) {
+			// Closing one popup took others with it.
+			continue
+		}
 		p := w.popups[i]
 		inside := where.In(p.Panel.AsPanel().FrameRect())
 		if inside {
@@ -190,13 +255,37 @@ func (w *Window) popupPress(where geom.Point) bool {
 		if p.OnPressOutside != nil {
 			// Measured before the popup closes, since closing lays the window out again.
 			onOpener := p.OpenedFrom != nil && where.In(p.OpenedFrom())
+			opens := w.opensPopupAt(where)
 			p.OnPressOutside()
 			if onOpener {
 				return true
 			}
+			closed = closed || !opens
 		}
 		if p.Modal {
 			return false // the scrim takes it
+		}
+	}
+	return closed
+}
+
+// opensPopupKey is the client-data key that marks a control that opens a
+// popup of its own.
+const opensPopupKey = "kvitui.opensPopup"
+
+// OpensPopup marks a control that opens a popover or a menu of its own: a
+// press on it while another popup is open closes that one and still reaches
+// the control, so its own popup opens in the same press (PTR-13). The
+// library's own openers, a select, a menu button, a hint, are marked
+// already.
+func OpensPopup(p unison.Paneler) { p.AsPanel().ClientData()[opensPopupKey] = true }
+
+// opensPopupAt reports whether a press at a point in the window's content
+// lands on a control that opens a popup of its own.
+func (w *Window) opensPopupAt(where geom.Point) bool {
+	for p := w.Content().PanelAt(where); p != nil; p = p.Parent() {
+		if p.ClientData()[opensPopupKey] == true {
+			return true
 		}
 	}
 	return false

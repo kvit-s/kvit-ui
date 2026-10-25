@@ -5,11 +5,13 @@
 //	kvit-ui-gallery                                   browse
 //	kvit-ui-gallery --page Foundations --theme dark   one page, one theme
 //	kvit-ui-gallery --interface-size 16               at a chosen size
+//	kvit-ui-gallery --form mac                        in the macOS form on any system
 //	kvit-ui-gallery --shots DIR                       write the screenshot set and exit
 //	kvit-ui-gallery --smoke 3s                        close after 3 s, printing when the first frame was drawn
 //
-// In the window, Ctrl+1 to Ctrl+4 choose a theme and Ctrl+plus, Ctrl+minus
-// and Ctrl+0 change the interface size.
+// In the window, Ctrl+1 to Ctrl+4 (Cmd on a Mac) choose a theme, Ctrl+Plus,
+// Ctrl+Minus and Ctrl+0 change the interface size, and Ctrl+F goes to the
+// sidebar's filter; the View menu has the same and the form.
 package main
 
 import (
@@ -32,6 +34,7 @@ func main() {
 	page := flag.String("page", "Foundations", "the page to open")
 	theme := flag.String("theme", "", "light, dark, sepia, highContrast or system (default: the saved choice)")
 	size := flag.Int("interface-size", 0, "the interface size in pixels, 10 to 24 (default: the saved choice)")
+	form := flag.String("form", "", "windows or mac: whose conventions to follow (default: the system's; Linux takes windows)")
 	shots := flag.String("shots", "", "write the screenshot set into this directory and exit")
 	smoke := flag.Duration("smoke", 0, "close the window after this long, printing when its first frame was drawn")
 	heapProfile := flag.String("heap-profile", "", "with --smoke: write a heap profile to this file halfway through")
@@ -70,6 +73,16 @@ func main() {
 	}
 	if *size != 0 {
 		ui.Interface.SetFontSize(*size)
+	}
+	switch *form {
+	case "":
+	case "windows":
+		ui.SetForm(kvitui.FormWindows)
+	case "mac", "macos":
+		ui.SetForm(kvitui.FormMac)
+	default:
+		fmt.Fprintf(os.Stderr, "unknown form %q: windows or mac\n", *form)
+		os.Exit(2)
 	}
 	unison.Start(
 		unison.ThemeChangedCallback(ui.Appearance.Refresh),

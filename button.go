@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"log/slog"
+
 	"github.com/kvit-s/kvit-ui/icons"
 	"github.com/kvit-s/kvit-ui/palette"
 	"github.com/kvit-s/kvit-ui/text"
@@ -40,8 +42,16 @@ const (
 // its own fill, so a filled danger button stays readable.
 type Button struct {
 	control
-	// Text is what the button says.
+	// Command, when set, is what the button runs: its words, symbol,
+	// explanation, whether it can act and whether it is on all come from
+	// the command, read each time the button is drawn.
+	Command *Command
+	// Text is what the button says, in sentence case: kvit-ui writes it in
+	// title case on the macOS form (WRD-6).
 	Text string
+	// Asks marks a button that asks for more before acting, such as one
+	// opening a dialog: "…" is added to its words (WRD-4).
+	Asks bool
 	// Form is ordinary, primary or quiet.
 	Form ButtonForm
 	// Danger draws the button in the danger colour.
@@ -52,7 +62,9 @@ type Button struct {
 	// can say what, and the words change to BusyText rather than a spinner
 	// appearing, since a spinner says "wait" without saying for what.
 	Busy bool
-	// BusyText is what a busy button says; "Working…" unless set.
+	// BusyText is what a busy button says: an -ing phrase naming the work,
+	// "Importing statement…", never "Working…" (WRD-25). A busy button
+	// without one keeps its words and is warned about once.
 	BusyText string
 	// Explanation is one sentence the words cannot say: why the button is
 	// disabled, or what pressing it opens. It is the tooltip and the
@@ -66,20 +78,44 @@ type Button struct {
 	Checked bool
 	// OnClick runs when the button is pressed.
 	OnClick func()
+
+	// trailing is a symbol drawn after the words, as a menu button's
+	// down-arrow is.
+	trailing string
+	// warnedBusy is set once a busy button without BusyText was warned about.
+	warnedBusy bool
 }
 
 // NewButton returns an ordinary button.
 func NewButton(ui *UI, label string) *Button {
-	b := &Button{Text: label, BusyText: "Working…"}
+	b := &Button{Text: label}
 	b.Self = b
 	b.initControl(ui, b.click, unison.KeySpace)
+	b.pressKeys = buttonKeys
 	b.SetSizer(b.sizes)
 	b.DrawCallback = b.draw
-	b.tip = func() string { return b.Explanation }
+	b.tip = func() string {
+		if b.Command != nil {
+			b.sync()
+			return b.Command.tooltip(ui, plainWords(b.label()))
+		}
+		return b.Explanation
+	}
+	return b
+}
+
+// NewCommandButton returns an ordinary button that runs a command.
+func NewCommandButton(ui *UI, c *Command) *Button {
+	b := NewButton(ui, "")
+	b.Command = c
 	return b
 }
 
 func (b *Button) click() {
+	if c := b.Command; c != nil {
+		c.Do()
+		return
+	}
 	if b.Checkable {
 		b.Checked = !b.Checked
 		b.MarkForRedraw()
@@ -89,12 +125,65 @@ func (b *Button) click() {
 	}
 }
 
-// words is what the button says now.
-func (b *Button) words() string {
-	if b.Busy {
-		return b.BusyText
+// sync reads the command's state: whether it can act and whether it is on.
+func (b *Button) sync() {
+	if c := b.Command; c != nil {
+		b.SetEnabled(c.CanRun())
+		b.Checked = c.IsChecked()
 	}
-	return b.Text
+}
+
+// label is the button's words at rest, in the form's case, with the
+// ellipsis of a button that asks, and the access-key marker where the app
+// wrote one.
+func (b *Button) label() string {
+	if c := b.Command; c != nil {
+		return c.Label(b.ui)
+	}
+	t := b.Text
+	if b.Asks {
+		t += "…"
+	}
+	return b.ui.CommandCase(t)
+}
+
+// Words are what the button says now: its words in the form's case with the
+// ellipsis of a button that asks, or its busy words.
+func (b *Button) Words() string {
+	if b.Busy {
+		if b.BusyText != "" {
+			return b.BusyText
+		}
+		if !b.warnedBusy {
+			b.warnedBusy = true
+			slog.Warn("kvitui: a busy button has no BusyText saying what it is doing", "button", b.Text)
+		}
+	}
+	return plainWords(b.label())
+}
+
+// accessWords are the button's words for its access key: none while busy,
+// or for OK, Cancel and Close, which Enter and Escape press.
+func (b *Button) accessWords() string {
+	if b.Busy || noAccessKey[plainWords(b.label())] {
+		return ""
+	}
+	return b.label()
+}
+
+// accessPress presses the button, as its access key does.
+func (b *Button) accessPress() {
+	if b.Enabled() {
+		b.fire()
+	}
+}
+
+// symbol is the meaning name of the symbol before the words, or "".
+func (b *Button) symbol() string {
+	if b.Symbol == "" && b.Command != nil {
+		return b.Command.SymbolName()
+	}
+	return b.Symbol
 }
 
 func (b *Button) fill(t tokens.Tokens) palette.Color {
@@ -116,22 +205,26 @@ func (b *Button) foreground(t tokens.Tokens) palette.Color {
 	return t.TextPrimary
 }
 
-func (b *Button) label() *text.Layout {
+func (b *Button) layout() *text.Layout {
 	ui := b.ui
 	st := ui.Chrome(ui.Size(RoleBody), text.Regular, b.foreground(ui.Theme.Tokens()))
-	return ui.Fonts.Layout([]text.Span{{Text: b.words(), Style: st}}, text.Options{})
+	return ui.Fonts.Layout(ui.accessSpans(b.AsPanel(), b.Words(), st), text.Options{})
 }
 
 // content is the width and height of the symbol and the words, a near space
 // apart.
 func (b *Button) content() (width, height float32, l *text.Layout) {
 	m := b.ui.Interface
-	l = b.label()
+	b.sync()
+	l = b.layout()
 	width, height = l.Size()
-	if b.Symbol != "" {
+	if b.symbol() != "" {
 		s := float32(m.IconSizeSmall())
 		width += s + float32(m.SpaceNear())
 		height = max(height, s)
+	}
+	if b.trailing != "" {
+		width += float32(m.IconSizeSmall() + m.SpaceNear())
 	}
 	return width, height, l
 }
@@ -144,6 +237,7 @@ func (b *Button) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 }
 
 func (b *Button) draw(gc *unison.Canvas, _ geom.Rect) {
+	b.sync()
 	ui, t, m := b.ui, b.ui.Theme.Tokens(), b.ui.Interface
 	p := painterFor(gc, ui)
 	r := b.ContentRect(false)
@@ -186,15 +280,21 @@ func (b *Button) draw(gc *unison.Canvas, _ geom.Rect) {
 	}
 	w, _, l := b.content()
 	x := r.X + (r.Width-w)/2
-	if b.Symbol != "" {
+	if symbol := b.symbol(); symbol != "" {
 		s := float32(m.IconSizeSmall())
-		if g, ok := icons.Glyph(b.Symbol); ok {
+		if g, ok := icons.Glyph(symbol); ok {
 			drawGlyph(gc, ui, g, s, b.foreground(t), geom.NewRect(x, r.Y+(r.Height-s)/2, s, s))
 		}
 		x += s + float32(m.SpaceNear())
 	}
-	_, h := l.Size()
+	lw, h := l.Size()
 	l.Draw(gc, x, r.Y+(r.Height-h)/2)
+	if b.trailing != "" {
+		s := float32(m.IconSizeSmall())
+		if g, ok := icons.Glyph(b.trailing); ok {
+			drawGlyph(gc, ui, g, s, b.foreground(t), geom.NewRect(x+lw+float32(m.SpaceNear()), r.Y+(r.Height-s)/2, s, s))
+		}
+	}
 }
 
 // ProvideAccessibility describes the button by its words, what it is doing
@@ -204,9 +304,13 @@ func (b *Button) ProvideAccessibility(bl *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.Button
 	}
-	n.Name = b.words()
+	b.sync()
+	n.Name = b.Words()
 	n.Description = b.Explanation
-	if b.Checkable || b.Checked {
+	if b.Command != nil && b.Explanation == "" {
+		n.Description = b.Command.Explanation
+	}
+	if b.Checkable || b.Checked || (b.Command != nil && b.Command.Checked != nil) {
 		n.HasCheck = true
 		n.Checked = check.Off
 		if b.Checked {

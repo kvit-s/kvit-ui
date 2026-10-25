@@ -22,6 +22,9 @@ type Switch struct {
 	control
 	// Text is what the switch turns on.
 	Text string
+	// Name names the switch for a screen reader where it has no Text, as in
+	// a SettingRow, which sets it.
+	Name string
 	// Checked is whether it is on.
 	Checked bool
 	// OnChange runs after a press, with the new state.
@@ -105,7 +108,24 @@ func (s *Switch) label() *text.Layout {
 	if !s.Enabled() {
 		ink = t.TextDisabled
 	}
-	return ui.Fonts.Layout([]text.Span{{Text: s.Text, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}}, text.Options{})
+	spans := ui.accessSpans(s.AsPanel(), plainWords(s.Text), ui.Chrome(ui.Size(RoleBody), text.Regular, ink))
+	if ui.form == FormWindows {
+		// The Windows form says the state beside the switch (CTL-6, decided
+		// Q-44), after its words.
+		state := "Off"
+		if s.Checked {
+			state = "On"
+		}
+		if s.Text != "" {
+			state = "  " + state
+		}
+		muted := t.TextMuted
+		if !s.Enabled() {
+			muted = t.TextDisabled
+		}
+		spans = append(spans, text.Span{Text: state, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, muted)})
+	}
+	return ui.Fonts.Layout(spans, text.Options{})
 }
 
 type switchLayout struct{ s *Switch }
@@ -162,7 +182,10 @@ func (s *Switch) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.CheckBox
 	}
-	n.Name = s.Text
+	n.Name = plainWords(s.Text)
+	if n.Name == "" {
+		n.Name = s.Name
+	}
 	n.HasCheck = true
 	n.Checked = check.Off
 	if s.Checked {
@@ -180,4 +203,14 @@ func (s *Switch) PerformAccessibilityAction(req accessibility.ActionRequest) boo
 	}
 	s.fire()
 	return true
+}
+
+// accessWords are the switch's words for its access key.
+func (s *Switch) accessWords() string { return s.Text }
+
+// accessPress turns the switch over, as its access key does.
+func (s *Switch) accessPress() {
+	if s.Enabled() {
+		s.fire()
+	}
 }

@@ -2,6 +2,7 @@ package kvitui
 
 import (
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -18,13 +19,30 @@ import (
 
 // MenuItem is one line of a menu opened with ShowMenu.
 type MenuItem struct {
-	// Text is what the line says. An "&" before a letter makes it the line's
-	// access key: "Open &Folder…" is drawn with the F underlined and chosen
-	// by typing F while the menu is open. "&&" is an ampersand. macOS, which
-	// has no access keys, draws the words without the marker.
+	// Command is what the line runs: its words, symbol, shortcut,
+	// explanation, tick and whether it can act now all come from the
+	// command, read as the menu opens, unless the fields below are set.
+	Command *Command
+	// Text is what the line says, in sentence case: kvit-ui writes it in
+	// title case on the macOS form (WRD-6). An "&" before a letter makes it
+	// the line's access key: "Open &folder…" is drawn with the f underlined
+	// and chosen by typing F while the menu is open. "&&" is an ampersand.
+	// The macOS form, which has no access keys, draws the words without the
+	// marker.
 	Text string
-	// Key is the shortcut shown at the right of the line, which is how a menu
-	// teaches that there is a faster way; the zero value shows none.
+	// Verbatim leaves Text as written on both forms, for a line naming the
+	// reader's own thing, such as a recent file; pass such words through
+	// PlainMenuText too.
+	Verbatim bool
+	// Asks marks a line that asks for more before acting: "…" is added to
+	// its words (WRD-4).
+	Asks bool
+	// Shortcut is the key shown at the right of the line, which is how a
+	// menu teaches that there is a faster way; the zero value shows none. A
+	// context menu on the macOS form shows none (CMD-11).
+	Shortcut Shortcut
+	// Key is a shortcut given as unison's key binding, shown as unison
+	// writes it; Shortcut is the form-aware way.
 	Key unison.KeyBinding
 	// Symbol is an optional meaning name drawn before the words.
 	Symbol string
@@ -32,18 +50,33 @@ type MenuItem struct {
 	// line whose words cannot say it: shown as its tooltip and told to a
 	// screen reader, never in place of the words.
 	Explanation string
-	// Danger draws a destructive line in the danger colour. It is separated
-	// by more than colour: the caller puts a Separator before it, since a red
-	// line among black ones is the commonest colour-only distinction there is
-	// and misreading it costs the most.
+	// Danger draws a destructive line in the danger colour. A destructive
+	// line goes last, and the menu puts a separator before it (CMD-23), since
+	// a red line among black ones is the commonest colour-only distinction
+	// there is and misreading it costs the most.
 	Danger bool
-	// Checked marks the entry in use, with a tick in place of its symbol and
-	// its words in bold, so it still stands out in grey.
+	// Checked marks an option that is on with a tick in place of its symbol.
 	Checked bool
-	// Disabled draws the line and does nothing when chosen.
+	// Radio marks the line as one of a set of options of which one is chosen:
+	// the chosen one, Checked, has a bullet on the Windows form and a tick on
+	// the macOS form (CMD-15).
+	Radio bool
+	// Mixed marks an option that is on for only part of the selection: no
+	// mark on the Windows form, a dash on the macOS form (CMD-15).
+	Mixed bool
+	// TurnOn and TurnOff are an on-and-off line's words on the macOS form,
+	// where the line says what choosing it does: TurnOn while it is off,
+	// TurnOff while it is on, with no tick. The Windows form keeps Text and
+	// ticks it while Checked (WRD-12).
+	TurnOn, TurnOff string
+	// Default marks what double-clicking or Return on the item does, drawn
+	// in bold in a context menu on the Windows form (CMD-10, Q-33).
+	Default bool
+	// Disabled draws the line and does nothing when chosen. A context menu
+	// leaves a line that cannot act out instead (CMD-10), except Cut, Copy and
+	// Paste on the macOS form.
 	Disabled bool
-	// Separator makes the line a divider instead, as goes before a
-	// destructive entry at the bottom of a menu.
+	// Separator makes the line a divider between groups instead.
 	Separator bool
 	// OnSelect runs when the line is chosen.
 	OnSelect func()
@@ -54,8 +87,8 @@ type MenuItem struct {
 	Items []MenuItem
 }
 
-// AccessText splits a menu line's words at the access key: "Open &Folder…"
-// is "Open Folder…" with the key F at rune 5. key is 0 and at -1 for words
+// AccessText splits a menu line's words at the access key: "Open &folder…"
+// is "Open folder…" with the key f at rune 5. key is 0 and at -1 for words
 // without one.
 func AccessText(s string) (plain string, key rune, at int) {
 	at = -1
@@ -71,6 +104,38 @@ func AccessText(s string) (plain string, key rune, at int) {
 		b = append(b, rs[i])
 	}
 	return string(b), key, at
+}
+
+// menuAccessKeys gives every line of a menu an access key, unique in the
+// menu, on the Windows form (KEY-15): the one the app chose with "&", and
+// for the rest the first free letter of their words. A line naming the
+// reader's own thing keeps its words as they are.
+func menuAccessKeys(items []MenuItem) []MenuItem {
+	out := slices.Clone(items)
+	used := map[rune]bool{}
+	for _, it := range out {
+		if _, k, _ := AccessText(it.Text); k != 0 {
+			used[k] = true
+		}
+	}
+	for i, it := range out {
+		if it.Separator || it.Verbatim || it.Text == "" {
+			continue
+		}
+		plain, k, _ := AccessText(it.Text)
+		if k != 0 {
+			continue
+		}
+		if r, at := unusedLetter(plain, used); r != 0 {
+			used[r] = true
+			rs := []rune(PlainMenuText(plain))
+			// The plain words with their ampersands doubled, and the marker
+			// before the chosen letter, counted in the doubled words.
+			doubled := len([]rune(PlainMenuText(string([]rune(plain)[:at]))))
+			out[i].Text = string(rs[:doubled]) + "&" + string(rs[doubled:])
+		}
+	}
+	return out
 }
 
 // PlainMenuText escapes the ampersands of words that are not a menu line's
@@ -97,54 +162,228 @@ func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) (cl
 // returns the function that closes it. A menu with no room below opens
 // above, and one with no room to the right is pulled back inside the window.
 func (u *UI) ShowMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) (closeMenu func()) {
-	if runtime.GOOS == "darwin" || u.windowOf(owner) == nil {
-		return u.nativeMenuAt(owner, part, title, items)
+	return u.showMenuAt(owner, part, title, items, false)
+}
+
+// showMenuAt opens a menu, a context menu when context is set.
+func (u *UI) showMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem, context bool) func() {
+	var focus *unison.Panel
+	if w := owner.AsPanel().Window(); w != nil {
+		focus = w.CurrentFocus()
 	}
-	m := newMenu(u, title, items)
+	items = u.menuLines(items, context, focus)
+	if runtime.GOOS == "darwin" || u.windowOf(owner) == nil {
+		return u.nativeMenuAt(owner, part, u.CommandCase(title), items)
+	}
+	m := newMenu(u, u.CommandCase(title), items)
+	m.context = context
 	m.open(owner, part)
 	return m.close
+}
+
+// MenuLines are a menu's lines as they would be shown now in the app's form,
+// as a context menu when context is set; see menuLines. The checks in uitest
+// read menus through it.
+func (u *UI) MenuLines(items []MenuItem, context bool) []MenuItem {
+	return u.menuLines(items, context, nil)
+}
+
+// menuLines are a menu's lines as they are shown now in the app's form:
+// each command's words, key and state read as the menu opens, the form's
+// case, the ellipsis of a line that asks, the macOS form's words for a
+// switch; in a context menu no line that cannot act (but Cut, Copy and Paste
+// on the macOS form) and no shortcut on the macOS form; and a separator
+// before a destructive line at the end. focus is what held the keyboard
+// before the menu opened, which carries out a standard command such as
+// Copy itself.
+func (u *UI) menuLines(items []MenuItem, context bool, focus *unison.Panel) []MenuItem {
+	var out []MenuItem
+	for _, it := range items {
+		if it.Separator {
+			out = append(out, it)
+			continue
+		}
+		it = u.menuLine(it, context, focus)
+		if context && it.Disabled && len(it.Items) == 0 && !(u.Mac() && isClipboardLine(it)) {
+			continue
+		}
+		if len(it.Items) > 0 {
+			it.Items = u.menuLines(it.Items, context, focus)
+		}
+		out = append(out, it)
+	}
+	return tidySeparators(out)
+}
+
+// menuLine is one line as it is shown now; see menuLines.
+func (u *UI) menuLine(it MenuItem, context bool, focus *unison.Panel) MenuItem {
+	if c := it.Command; c != nil {
+		if it.Text == "" {
+			it.Text = c.name(u)
+		} else if it.Asks || c.asks(u.form) {
+			it.Text += "…"
+		}
+		if it.Symbol == "" {
+			it.Symbol = c.SymbolName()
+		}
+		if it.Explanation == "" {
+			it.Explanation = c.Explanation
+		}
+		if it.Shortcut.IsZero() && it.Key.KeyCode == 0 {
+			it.Shortcut = c.FirstShortcut(u.form)
+		}
+		if !it.Disabled {
+			it.Disabled = !c.CanRun() && !focusedCan(c, focus, u)
+		}
+		if c.Checked != nil && !(u.Mac() && c.TurnOn != "" && c.TurnOff != "") {
+			it.Checked = c.IsChecked()
+		}
+		if it.OnSelect == nil {
+			it.OnSelect = func() { u.runCommand(c) }
+		}
+	} else {
+		if u.Mac() && it.TurnOn != "" && it.TurnOff != "" {
+			it.Text = it.TurnOn
+			if it.Checked {
+				it.Text = it.TurnOff
+			}
+			it.Checked = false
+		}
+		if it.Asks && len(it.Items) == 0 {
+			it.Text += "…"
+		}
+	}
+	if !it.Verbatim {
+		it.Text = u.CommandCase(it.Text)
+	}
+	if context && u.Mac() {
+		it.Shortcut, it.Key = Shortcut{}, unison.KeyBinding{}
+	}
+	return it
+}
+
+// runCommand runs a command chosen from a menu: in the control holding the
+// focus when it carries the command out itself, as a text field copies,
+// and otherwise the command's own.
+func (u *UI) runCommand(c *Command) {
+	var focus *unison.Panel
+	if w := unison.ActiveWindow(); w != nil {
+		focus = w.CurrentFocus()
+	}
+	if !runFocused(c, focus, u) {
+		c.Do()
+	}
+}
+
+// isClipboardLine reports whether a line is Cut, Copy or Paste.
+func isClipboardLine(it MenuItem) bool {
+	if it.Command == nil {
+		return false
+	}
+	switch it.Command.Std {
+	case StdCut, StdCopy, StdPaste:
+		return true
+	}
+	return false
+}
+
+// tidySeparators drops separators at the ends and doubled ones, and puts
+// one before a destructive line at the end that has none (CMD-23).
+func tidySeparators(items []MenuItem) []MenuItem {
+	var out []MenuItem
+	for _, it := range items {
+		if it.Separator && (len(out) == 0 || out[len(out)-1].Separator) {
+			continue
+		}
+		out = append(out, it)
+	}
+	for len(out) > 0 && out[len(out)-1].Separator {
+		out = out[:len(out)-1]
+	}
+	n := len(out)
+	if n > 1 && out[n-1].Danger && !out[n-2].Separator && !out[n-2].Danger {
+		// Before the run of destructive lines at the end.
+		at := n - 1
+		for at > 0 && out[at-1].Danger {
+			at--
+		}
+		if at > 0 && !out[at-1].Separator {
+			out = append(out[:at], append([]MenuItem{{Separator: true}}, out[at:]...)...)
+		}
+	}
+	return out
 }
 
 // nativeMenuAt opens unison's menu: the system's own on macOS, and drawn by
 // unison outside a Kvit window elsewhere.
 func (u *UI) nativeMenuAt(owner unison.Paneler, part geom.Rect, title string, items []MenuItem) func() {
 	f := unison.DefaultMenuFactory()
-	m := nativeMenu(f, title, items)
+	m := nativeMenu(f, u.form, title, items)
 	// No line is lit when the menu opens, until the pointer or an arrow key
 	// reaches one.
 	m.Popup(owner.AsPanel().RectToRoot(part), -1)
 	return m.Dispose
 }
 
-// nativeMenu builds unison's menu of items, a submenu for a line with items.
-func nativeMenu(f unison.MenuFactory, title string, items []MenuItem) unison.Menu {
+// nativeMenu builds unison's menu of items, a submenu for a line with items,
+// with their keys as a form writes them.
+func nativeMenu(f unison.MenuFactory, form Form, title string, items []MenuItem) unison.Menu {
 	menuIDs++
 	m := f.NewMenu(menuIDs, title, nil)
+	fillNative(m, form, items)
+	return m
+}
+
+// nativeMenuOf builds unison's menu whose lines are read again each time it
+// opens, as a menu of the system's menu bar is, so a command's words, tick
+// and state are current.
+func nativeMenuOf(f unison.MenuFactory, form Form, title string, lines func() []MenuItem) unison.Menu {
+	menuIDs++
+	return f.NewMenu(menuIDs, title, func(m unison.Menu) {
+		m.RemoveAll()
+		fillNative(m, form, lines())
+	})
+}
+
+// fillNative adds lines to one of unison's menus.
+func fillNative(m unison.Menu, form Form, items []MenuItem) {
+	f := m.Factory()
 	for _, it := range items {
 		if it.Separator {
 			m.InsertSeparator(-1, true)
 			continue
 		}
-		words, _, _ := AccessText(it.Text)
 		if len(it.Items) > 0 {
-			m.InsertMenu(-1, nativeMenu(f, words, it.Items))
+			words, _, _ := AccessText(it.Text)
+			m.InsertMenu(-1, nativeMenu(f, form, words, it.Items))
 			continue
 		}
-		menuIDs++
-		it := it
-		mi := f.NewItem(menuIDs, words, it.Key,
-			func(unison.MenuItem) bool { return !it.Disabled },
-			func(unison.MenuItem) {
-				if it.OnSelect != nil {
-					it.OnSelect()
-				}
-			})
-		if it.Checked {
-			mi.SetCheckState(check.On)
-		}
-		m.InsertItem(-1, mi)
+		m.InsertItem(-1, nativeItem(f, form, it))
 	}
-	return m
+}
+
+// nativeItem is one line as unison's menu item.
+func nativeItem(f unison.MenuFactory, form Form, it MenuItem) unison.MenuItem {
+	menuIDs++
+	words, _, _ := AccessText(it.Text)
+	key := it.Key
+	if !it.Shortcut.IsZero() {
+		key = it.Shortcut.Binding(form)
+	}
+	mi := f.NewItem(menuIDs, words, key,
+		func(unison.MenuItem) bool { return !it.Disabled },
+		func(unison.MenuItem) {
+			if it.OnSelect != nil {
+				it.OnSelect()
+			}
+		})
+	switch {
+	case it.Checked:
+		mi.SetCheckState(check.On)
+	case it.Mixed:
+		mi.SetCheckState(check.Mixed)
+	}
+	return mi
 }
 
 // menu is the Kvit menu: a list of commands in the window's popup layer. It
@@ -160,12 +399,22 @@ type menu struct {
 	previous *unison.Panel
 	tip      partTip
 	parent   *menu // the menu this one opened from, for a submenu
+	context  bool  // a context menu, which marks its default line
+	// onSide, when set, is asked to open the menu beside this one, -1 for
+	// the one before and 1 for the one after, on Left at the top level and
+	// Right on a line without a submenu, as a menu bar's menus do.
+	onSide func(dir int)
+	// onClose, when set, runs once the menu has closed.
+	onClose  func()
 	sub      *menu // the submenu open beside a line, or nil
 	subLine  int   // the line the submenu belongs to
 	hoverGen int   // counts pointer moves, so a late submenu opening can tell it is stale
 }
 
 func newMenu(ui *UI, title string, items []MenuItem) *menu {
+	if ui.form == FormWindows {
+		items = menuAccessKeys(items)
+	}
 	m := &menu{ui: ui, title: title, items: items, lit: -1}
 	m.Self = m
 	m.tip = partTip{ui: ui, owner: m}
@@ -234,11 +483,14 @@ func (m *menu) words(it MenuItem, width float32) *text.Layout {
 		ink = t.Danger
 	}
 	weight := text.Regular
-	if it.Checked {
+	if it.Default && !ui.Mac() {
 		weight = text.Bold
 	}
 	st := ui.Chrome(ui.Size(RoleBody), weight, ink)
 	words, _, at := AccessText(it.Text)
+	if ui.Mac() {
+		at = -1
+	}
 	spans := []text.Span{{Text: words, Style: st}}
 	if at >= 0 {
 		rs := []rune(words)
@@ -250,11 +502,12 @@ func (m *menu) words(it MenuItem, width float32) *text.Layout {
 }
 
 func (m *menu) shortcut(it MenuItem) *text.Layout {
-	if it.Key.KeyCode == 0 {
+	words := m.ui.shortcutWords(it)
+	if words == "" {
 		return nil
 	}
 	ui := m.ui
-	return ui.Fonts.Layout([]text.Span{{Text: it.Key.String(), Style: ui.Chrome(ui.Size(RoleSmall), text.Regular, ui.Theme.Tokens().TextFaint)}}, text.Options{})
+	return ui.Fonts.Layout([]text.Span{{Text: words, Style: ui.Chrome(ui.Size(RoleSmall), text.Regular, ui.Theme.Tokens().TextFaint)}}, text.Options{})
 }
 
 // sizes: 200 design pixels wide, or wider for a long line, and as tall as its
@@ -388,6 +641,27 @@ func (m *menu) openSub(i int, first bool) {
 	m.MarkForRedraw()
 }
 
+// ShownMenu is a menu open in a window, as ShownMenus gives it.
+type ShownMenu struct {
+	// Title names the menu.
+	Title string
+	// Items are its lines as shown.
+	Items []MenuItem
+	// Context says it is a context menu.
+	Context bool
+}
+
+// ShownMenus are the Kvit menus open in the window now, the topmost last.
+func (w *Window) ShownMenus() []ShownMenu {
+	var out []ShownMenu
+	for _, p := range w.popups {
+		if m, ok := p.Panel.(*menu); ok {
+			out = append(out, ShownMenu{Title: m.title, Items: m.items, Context: m.root().context})
+		}
+	}
+	return out
+}
+
 // root is the menu a chain of submenus opened from.
 func (m *menu) root() *menu {
 	for m.parent != nil {
@@ -411,7 +685,9 @@ func (m *menu) open(owner unison.Paneler, part geom.Rect) {
 	if w == nil {
 		return
 	}
-	m.previous = w.CurrentFocus()
+	if m.previous == nil {
+		m.previous = w.CurrentFocus()
+	}
 	below := func() geom.Rect { return partIn(owner, part) }
 	// A press on the part the menu hangs from, such as a select's chevron,
 	// closes it and does not open it again.
@@ -453,6 +729,9 @@ func (m *menu) close() {
 	}
 	if focused && m.previous != nil && m.previous.Window() != nil {
 		m.previous.RequestFocus()
+	}
+	if m.onClose != nil {
+		m.onClose()
 	}
 }
 
@@ -506,11 +785,19 @@ func (m *menu) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 		}
 	case unison.KeyRight:
 		if m.lit < 0 || len(m.items[m.lit].Items) == 0 {
+			if r := m.root(); r.onSide != nil {
+				r.onSide(1)
+				return true
+			}
 			return false
 		}
 		m.openSub(m.lit, true)
 	case unison.KeyLeft:
 		if m.parent == nil {
+			if m.onSide != nil {
+				m.onSide(-1)
+				return true
+			}
 			return false
 		}
 		m.close()
@@ -582,10 +869,18 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 		}
 		symbol, ink := it.Symbol, t.TextMuted
 		switch {
+		case it.Checked && it.Radio && !ui.Mac():
+			// The chosen one of a set of options has a bullet on the Windows
+			// form, a tick on the macOS form.
+			symbol, ink = "dot", t.Accent
 		case it.Checked:
 			// The entry in use is marked as such whatever else it would show,
 			// since the state is what the reader is scanning for.
 			symbol, ink = "check", t.Accent
+		case it.Mixed && ui.Mac():
+			symbol, ink = "minus", t.Accent
+		case it.Mixed || it.Radio:
+			symbol = ""
 		case it.Danger:
 			ink = t.Danger
 		}
@@ -628,12 +923,17 @@ func (m *menu) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 		id := b.AddVirtualChild(i, func(v *accessibility.Node) {
 			v.Role = role.MenuItem
 			v.Name, _, _ = AccessText(it.Text)
-			v.Description = joinWords(it.Explanation, shortcutWords(it.Key))
+			v.Description = joinWords(it.Explanation, m.ui.shortcutWords(it))
 			v.Bounds = box
 			v.Disabled = it.Disabled
 			v.Focusable = !it.Disabled
-			if it.Checked {
+			switch {
+			case it.Checked:
 				v.HasCheck, v.Checked = true, check.On
+			case it.Mixed:
+				v.HasCheck, v.Checked = true, check.Mixed
+			case it.Radio:
+				v.HasCheck, v.Checked = true, check.Off
 			}
 			if !it.Disabled {
 				v.Actions = v.Actions.With(accessibility.Press, accessibility.Focus)
@@ -651,11 +951,15 @@ func (m *menu) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	}
 }
 
-func shortcutWords(k unison.KeyBinding) string {
-	if k.KeyCode == 0 {
+// shortcutWords is a line's shortcut as the form writes it, or "".
+func (u *UI) shortcutWords(it MenuItem) string {
+	if !it.Shortcut.IsZero() {
+		return u.ShortcutText(it.Shortcut)
+	}
+	if it.Key.KeyCode == 0 {
 		return ""
 	}
-	return k.String()
+	return it.Key.String()
 }
 
 // PerformAccessibilityAction chooses a line, or lights it, for a screen
@@ -700,7 +1004,7 @@ func (u *UI) SetContextMenu(p unison.Paneler, menu func(where geom.Point) (title
 		if len(items) == 0 {
 			return false
 		}
-		u.ShowMenuAt(panel, geom.NewRect(where.X, where.Y, 0, 0), title, items)
+		u.showMenuAt(panel, geom.NewRect(where.X, where.Y, 0, 0), title, items, true)
 		return true
 	})
 }
@@ -724,12 +1028,17 @@ func isContextMenuKey(key unison.KeyCode, mods mod.Modifiers) bool {
 }
 
 // openContextMenu opens the context menu of p, or of the nearest panel above
-// it that has one, for a point in p's coordinates. A panel with unison's own
-// context menu, and nothing Kvit above it, is left to unison.
+// it that has one, for a point in p's coordinates; a panel whose menu has
+// nothing to offer now, such as a label that is not selectable, passes the
+// request up. A panel with unison's own context menu, and nothing Kvit above
+// it, is left to unison.
 func openContextMenu(p *unison.Panel, where geom.Point) bool {
 	for q := p; q != nil; q = q.Parent() {
 		if open, ok := q.ClientData()[contextMenuKey].(contextOpener); ok {
-			return open(q.PointFromRoot(p.PointToRoot(where)))
+			if open(q.PointFromRoot(p.PointToRoot(where))) {
+				return true
+			}
+			continue
 		}
 		if q.ContextMenuCallback != nil {
 			return false

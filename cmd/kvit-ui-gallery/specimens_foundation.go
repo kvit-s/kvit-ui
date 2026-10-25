@@ -53,7 +53,8 @@ func iconButtonForms(ui *kvitui.UI) unison.Paneler {
 	remove.Form = kvitui.Ordinary
 	pin := kvitui.NewIconButton(ui, "pin", "Pin")
 	pin.Checked = true
-	duplicate := kvitui.NewIconButton(ui, "copy", "Copy")
+	duplicate := kvitui.NewIconButton(ui, "copy", "Duplicate")
+	duplicate.Explanation = "Only a saved report can be duplicated."
 	duplicate.SetEnabled(false)
 	settings := kvitui.NewIconButton(ui, "settings", "Settings")
 	settings.Focus()
@@ -69,7 +70,7 @@ func iconButtonSizes(ui *kvitui.UI) unison.Paneler {
 	strip := func(dense bool) *unison.Panel {
 		search := kvitui.NewIconButton(ui, "search", "Search")
 		add := kvitui.NewIconButton(ui, "plus", "New track")
-		branch := kvitui.NewIconButton(ui, "git", "Branch")
+		branch := kvitui.NewIconButton(ui, "git", "Switch branch")
 		search.Dense, add.Dense, branch.Dense = dense, dense, dense
 		return kvitui.Row(ui, kvitui.SizeSpace, search, add, branch)
 	}

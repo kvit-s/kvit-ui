@@ -53,6 +53,9 @@ func NewDisclosure(ui *UI, title string, content ...unison.Paneler) *Disclosure 
 	t := &disclosureTrigger{d: d}
 	t.Self = t
 	t.initControl(ui, func() { d.SetExpanded(!d.expanded) }, unison.KeySpace, unison.KeyReturn, unison.KeyNumPadEnter)
+	// On the Windows form Enter belongs to a dialog's focused or default
+	// button, so Space alone opens and closes the section (KEY-6).
+	t.pressKeys = spaceOnWindows
 	t.ringRadius = func() float32 { return 0 }
 	t.DrawCallback = t.draw
 	d.trigger = t
@@ -201,7 +204,7 @@ func (t *disclosureTrigger) draw(gc *unison.Canvas, _ geom.Rect) {
 	if d.expanded {
 		weight = text.Bold
 	}
-	title := ui.Fonts.Layout([]text.Span{{Text: d.Title, Style: ui.Chrome(ui.Size(RoleBody), weight, tk.TextPrimary)}}, text.Options{})
+	title := ui.Fonts.Layout(ui.accessSpans(t.AsPanel(), plainWords(d.Title), ui.Chrome(ui.Size(RoleBody), weight, tk.TextPrimary)), text.Options{})
 	tw, th := title.Size()
 	title.Draw(gc, x, b.Y+(b.Height-th)/2)
 	if d.Count >= 0 {
@@ -220,7 +223,7 @@ func (t *disclosureTrigger) ProvideAccessibility(b *unison.AccessibilityBuilder)
 	if n.Role == role.Auto {
 		n.Role = role.Button
 	}
-	n.Name = t.d.Title
+	n.Name = plainWords(t.d.Title)
 	n.Expandable, n.Expanded = true, t.d.expanded
 	n.Description = "Collapsed"
 	if t.d.expanded {
@@ -238,4 +241,14 @@ func (t *disclosureTrigger) PerformAccessibilityAction(req accessibility.ActionR
 	}
 	t.fire()
 	return true
+}
+
+// accessWords are the section's title for its access key.
+func (t *disclosureTrigger) accessWords() string { return t.d.Title }
+
+// accessPress opens or closes the section, as its access key does.
+func (t *disclosureTrigger) accessPress() {
+	if t.Enabled() {
+		t.fire()
+	}
 }

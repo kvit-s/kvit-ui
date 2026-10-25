@@ -87,6 +87,7 @@ type Tree struct {
 	stale    bool      // the rows have to be worked out again
 	current  string    // the key of the node the reader is on
 	hovered  int
+	jump     typeSelect // jumping to a row by typing its name
 	scrollY  float32
 	ease     wheelScroll
 }
@@ -115,6 +116,17 @@ func NewTree(ui *UI, label string, nodes ...TreeNode) *Tree {
 	})
 	t.DrawCallback = t.draw
 	t.KeyDownCallback = t.keyDown
+	t.RuneTypedCallback = func(ch rune) bool {
+		if !t.jump.typing(ch) {
+			return false
+		}
+		rows := t.visible()
+		if i := t.jump.next(ch, t.index(t.current), len(rows), func(i int) string { return rows[i].label }); i >= 0 {
+			t.choose(i)
+			t.MarkForRedraw()
+		}
+		return true
+	}
 	t.MouseDownCallback = t.mouseDown
 	t.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool { t.hover(t.rowAt(where)); return false }
 	t.MouseEnterCallback = t.MouseMoveCallback

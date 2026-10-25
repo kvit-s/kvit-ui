@@ -380,7 +380,14 @@ func (t *sniTray) notify(n Notification) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), busTimeout)
 		defer cancel()
-		hints := map[string]dbus.Variant{"desktop-entry": dbus.MakeVariant(t.id)}
+		// The urgency of the notification's kind: low for information and
+		// success, normal for the rest; nothing is critical (MSG-12).
+		urgency := byte(1)
+		if n.Kind == NotifyInformation || n.Kind == NotifySuccess {
+			urgency = 0
+		}
+		hints := map[string]dbus.Variant{"desktop-entry": dbus.MakeVariant(t.id), "urgency": dbus.MakeVariant(urgency),
+			"suppress-sound": dbus.MakeVariant(true)}
 		var id uint32
 		err := t.conn.Object(notifyName, notifyPath).CallWithContext(ctx, notifyName+".Notify", 0,
 			app, uint32(0), "", n.Title, n.Message, []string{"default", "Open"}, hints, int32(-1)).Store(&id)
@@ -388,6 +395,31 @@ func (t *sniTray) notify(n Notification) {
 			t.mu.Lock()
 			t.posted[id] = n.ID
 			t.mu.Unlock()
+		}
+	}()
+}
+
+// withdraw closes every notification still open that was posted with the
+// ID, with org.freedesktop.Notifications' CloseNotification, off the UI
+// thread as notify is. The server answers with NotificationClosed, which
+// listen takes them out of posted for.
+func (t *sniTray) withdraw(id string) {
+	t.mu.Lock()
+	var open []uint32
+	for n, appID := range t.posted {
+		if appID == id {
+			open = append(open, n)
+		}
+	}
+	t.mu.Unlock()
+	if len(open) == 0 {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), busTimeout)
+		defer cancel()
+		for _, n := range open {
+			_ = t.conn.Object(notifyName, notifyPath).CallWithContext(ctx, notifyName+".CloseNotification", 0, n).Err
 		}
 	}()
 }
@@ -453,6 +485,10 @@ func entryProps(e *trayEntry, names []string) map[string]dbus.Variant {
 		} else {
 			all["label"] = dbus.MakeVariant(strings.ReplaceAll(e.text, "_", "__"))
 			all["enabled"] = dbus.MakeVariant(!e.disabled)
+			if e.checked {
+				all["toggle-type"] = dbus.MakeVariant("checkmark")
+				all["toggle-state"] = dbus.MakeVariant(int32(1))
+			}
 		}
 	}
 	if len(names) == 0 {

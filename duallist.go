@@ -51,10 +51,10 @@ func NewDualList(ui *UI, available, chosen []Option) *DualList {
 		b.OnClick = act
 		return b
 	}
-	d.show = button("arrow-right", "Show the selected column", func() { d.moveAcross(false, d.left.cursor) })
-	d.hide = button("arrow-left", "Hide the selected column", func() { d.moveAcross(true, d.right.cursor) })
-	d.earlier = button("arrow-up", "Move the selected column earlier", func() { d.reorder(-1) })
-	d.later = button("arrow-down", "Move the selected column later", func() { d.reorder(1) })
+	d.show = button("arrow-right", "Show", func() { d.moveAcross(false, d.left.cursor) })
+	d.hide = button("arrow-left", "Hide", func() { d.moveAcross(true, d.right.cursor) })
+	d.earlier = button("arrow-up", "Move up", func() { d.reorder(-1) })
+	d.later = button("arrow-down", "Move down", func() { d.reorder(1) })
 	d.leftHead, d.rightHead = NewLabel(ui, ""), NewLabel(ui, "")
 	for _, l := range []*Label{d.leftHead, d.rightHead} {
 		l.Role, l.Ink = RoleSmall, InkTextMuted
@@ -133,6 +133,7 @@ type dualSide struct {
 	hovered int
 	scrollY float32
 	ease    wheelScroll
+	jump    typeSelect // jumping to a row by typing its name
 }
 
 func newDualSide(d *DualList, chosen bool) *dualSide {
@@ -169,6 +170,17 @@ func newDualSide(d *DualList, chosen bool) *dualSide {
 	}
 	s.MouseWheelCallback = func(_, delta geom.Point, _ mod.Modifiers) bool { return s.ease.wheel(delta) }
 	s.KeyDownCallback = s.keyDown
+	s.RuneTypedCallback = func(ch rune) bool {
+		if !s.jump.typing(ch) {
+			return false
+		}
+		items := s.items()
+		if i := s.jump.next(ch, s.cursor, len(items), func(i int) string { return items[i].Label }); i >= 0 {
+			s.cursor = i
+			s.revealCursor()
+		}
+		return true
+	}
 	s.GainedFocusCallback = s.MarkForRedraw
 	s.LostFocusCallback = s.MarkForRedraw
 	return s
@@ -243,6 +255,12 @@ func (s *dualSide) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 	default:
 		return false
 	}
+	s.revealCursor()
+	return true
+}
+
+// revealCursor scrolls the cursor's row into view and draws it.
+func (s *dualSide) revealCursor() {
 	top := float32(s.cursor) * s.rowHeight()
 	view := s.ContentRect(false).Height
 	switch {
@@ -253,7 +271,6 @@ func (s *dualSide) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 	}
 	s.d.MarkForLayoutAndRedraw()
 	s.MarkForRedraw()
-	return true
 }
 
 func (s *dualSide) draw(gc *unison.Canvas, _ geom.Rect) {

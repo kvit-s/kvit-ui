@@ -35,6 +35,7 @@ func buttonForms(ui *kvitui.UI) unison.Paneler {
 		for _, form := range []kvitui.ButtonForm{kvitui.ButtonPrimary, kvitui.ButtonOrdinary, kvitui.ButtonQuiet} {
 			b := kvitui.NewButton(ui, label)
 			b.Form, b.Symbol, b.Busy = form, symbol, busy
+			b.BusyText = "Saving…"
 			buttons = append(buttons, b)
 		}
 		return kvitui.Row(ui, kvitui.SizeSpace, buttons...)
@@ -47,7 +48,8 @@ func buttonDanger(ui *kvitui.UI) unison.Paneler {
 	primary.Form, primary.Danger = kvitui.ButtonPrimary, true
 	ordinary := kvitui.NewButton(ui, "Delete")
 	ordinary.Danger, ordinary.Symbol = true, "trash"
-	disabled := kvitui.NewButton(ui, "Disabled")
+	disabled := kvitui.NewButton(ui, "Archive")
+	disabled.Explanation = "Only a closed account can be archived."
 	disabled.SetEnabled(false)
 	return kvitui.Row(ui, kvitui.SizeSpace, primary, ordinary, disabled)
 }
@@ -96,16 +98,20 @@ func fieldStates(ui *kvitui.UI) unison.Paneler {
 }
 
 func searchFieldStates(ui *kvitui.UI) unison.Paneler {
+	empty := kvitui.NewSearchField(ui)
+	empty.Placeholder = "Search transactions"
 	filtering := kvitui.NewSearchField(ui)
+	filtering.Placeholder = "Search transactions"
 	filtering.SetText("harlow")
 	filtering.Matches, filtering.MatchedNoun = 47, "transaction"
 	// What a screen reader is told is a sentence: the digits grouped by the
 	// reader's locale and the plural a word, so "250,000 entries" rather than
 	// "250000 entry(s)". A noun that does not take an s says its own plural.
 	year := kvitui.NewSearchField(ui)
+	year.Placeholder = "Search entries"
 	year.SetText("2026")
 	year.Matches, year.MatchedNoun, year.MatchedNounPlural = 250000, "entry", "entries"
-	return kvitui.Width(ui, kvitui.Px(220), kvitui.Column(ui, kvitui.SizeSpaceLoose, kvitui.NewSearchField(ui), filtering, year))
+	return kvitui.Width(ui, kvitui.Px(220), kvitui.Column(ui, kvitui.SizeSpaceLoose, empty, filtering, year))
 }
 
 func stepperInterfaceSize(ui *kvitui.UI) unison.Paneler {
@@ -207,7 +213,7 @@ func textAreaStates(ui *kvitui.UI) unison.Paneler {
 	source.SetText("# Notes\n\nThe file as it stands.")
 	summary := kvitui.NewTextArea(ui)
 	summary.Label, summary.Error = "Summary", "Say what changed"
-	summary.SetText("...")
+	summary.SetText("Fixed")
 	return kvitui.Width(ui, kvitui.Px(280), kvitui.Column(ui, kvitui.SizeSpaceLoose, message, source, summary))
 }
 

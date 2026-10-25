@@ -25,6 +25,7 @@ type tableBody struct {
 	// A press, and the drag that may follow it.
 	pressRow    int
 	pressClicks int
+	jump        typeSelect // jumping to a row by typing its name
 }
 
 // A cell part's key, for the surface shown for it.
@@ -37,6 +38,18 @@ func newTableBody(t *Table) *tableBody {
 	b.card = partTip{ui: t.ui, owner: b}
 	b.SetFocusable(true)
 	b.DrawCallback = b.draw
+	b.RuneTypedCallback = b.typed
+	// Copy and Select all in the Edit menu, and their keys, act on the rows
+	// while the table holds the keyboard.
+	b.InstallCmdHandlers(unison.CopyItemID, func(any) bool { return t.CopySelection() != "" }, func(any) {
+		unison.ClipboardSetText(t.CopySelection())
+	})
+	b.InstallCmdHandlers(unison.SelectAllItemID, func(any) bool { return t.RowCount() > 0 }, func(any) {
+		for r := range t.RowCount() {
+			t.selected[r] = true
+		}
+		b.MarkForRedraw()
+	})
 	b.GainedFocusCallback = func() {
 		b.look.asked = b.asked
 		b.asked = false
@@ -413,6 +426,21 @@ func (b *tableBody) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bool
 		}
 		return true
 	case unison.KeySpace:
+		if t.ui.form == FormWindows && mods&mod.Control != 0 {
+			// Ctrl+Space adds the keyboard's row to the selection, or takes
+			// it out, as a Ctrl-click does (KEY-9, PTR-15).
+			if t.curRow < 0 {
+				return false
+			}
+			t.selected[t.curRow] = !t.selected[t.curRow]
+			if !t.selected[t.curRow] {
+				delete(t.selected, t.curRow)
+			}
+			t.anchor = t.curRow
+			b.look.keyboard = true
+			b.MarkForRedraw()
+			return true
+		}
 		box := t.checkColumn()
 		if t.curRow < 0 || box < 0 {
 			return false
@@ -432,9 +460,13 @@ func (b *tableBody) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bool
 		t.curCol = t.step(-1, 1)
 	}
 	t.curRow = row
-	if mods.ShiftDown() && t.anchor >= 0 {
+	switch {
+	case mods.ShiftDown() && t.anchor >= 0:
 		t.selectRange(row)
-	} else {
+	case t.ui.form == FormWindows && mods&mod.Control != 0:
+		// Ctrl and an arrow move the keyboard without changing the
+		// selection, so Ctrl+Space can pick rows apart (KEY-9).
+	default:
 		t.selectOnly(row)
 		t.anchor = row
 	}
@@ -514,7 +546,7 @@ func (b *tableBody) ProvideAccessibility(bl *unison.AccessibilityBuilder) {
 					// A box says it is a box and whether it is ticked; a
 					// name on a cell around it would be said twice.
 					v.Role = role.CheckBox
-					v.Name = "Select this row"
+					v.Name = "Select row"
 					v.Description = name
 					v.HasCheck = true
 					v.Checked = check.Off
@@ -619,5 +651,37 @@ func (b *tableBody) PerformAccessibilityAction(req accessibility.ActionRequest) 
 		return false
 	}
 	b.MarkForRedraw()
+	return true
+}
+
+// typed moves to the row whose name starts with what is typed: its words in
+// the column the keyboard is in, or the first column shown (KEY-9).
+func (b *tableBody) typed(ch rune) bool {
+	t := b.t
+	if !b.jump.typing(ch) {
+		return false
+	}
+	col := t.curCol
+	if _, ok := t.placeOf(col); !ok || t.columns()[col].Kind == CellCheck {
+		col = -1
+		for _, p := range t.places() {
+			if t.columns()[p.column].Kind != CellCheck {
+				col = p.column
+				break
+			}
+		}
+	}
+	if col < 0 {
+		return false
+	}
+	if row := b.jump.next(ch, t.curRow, t.RowCount(), func(i int) string { return t.Model.Cell(i, col).shown() }); row >= 0 {
+		t.curRow = row
+		t.selectOnly(row)
+		t.anchor = row
+		b.look.keyboard = true
+		t.reveal(row, -1)
+		b.MarkForRedraw()
+		b.disclose()
+	}
 	return true
 }

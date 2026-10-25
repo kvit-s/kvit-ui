@@ -1,6 +1,7 @@
 package kvitui
 
 import (
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -594,15 +595,15 @@ func (t *Table) columnMenu(column int) {
 	items := []MenuItem{
 		{Text: "Sort ascending", Disabled: !sortable, OnSelect: func() { t.SortBy(column, true) }},
 		{Text: "Sort descending", Disabled: !sortable, OnSelect: func() { t.SortBy(column, false) }},
-		{Text: "Clear the sort", Disabled: t.SortColumn < 0, OnSelect: func() { t.SortBy(-1, true) }},
+		{Text: "Clear sort", Disabled: t.SortColumn < 0, OnSelect: func() { t.SortBy(-1, true) }},
 		{Separator: true},
-		{Text: "Move this column left", Disabled: t.neighbour(column, -1) < 0, OnSelect: func() { t.MoveColumnBy(column, -1) }},
-		{Text: "Move this column right", Disabled: t.neighbour(column, 1) < 0, OnSelect: func() { t.MoveColumnBy(column, 1) }},
-		{Text: "Widen this column", OnSelect: func() { t.ResizeColumnBy(column, float32(m.Px(32))) }},
-		{Text: "Narrow this column", OnSelect: func() { t.ResizeColumnBy(column, -float32(m.Px(32))) }},
+		{Text: "Move left", Disabled: t.neighbour(column, -1) < 0, OnSelect: func() { t.MoveColumnBy(column, -1) }},
+		{Text: "Move right", Disabled: t.neighbour(column, 1) < 0, OnSelect: func() { t.MoveColumnBy(column, 1) }},
+		{Text: "Widen", OnSelect: func() { t.ResizeColumnBy(column, float32(m.Px(32))) }},
+		{Text: "Narrow", OnSelect: func() { t.ResizeColumnBy(column, -float32(m.Px(32))) }},
 		{Separator: true},
-		{Text: "Hide this column", OnSelect: func() { t.HideColumn(column) }},
-		{Text: "Show every column", Disabled: len(t.HiddenColumns) == 0, OnSelect: func() {
+		{Text: "Hide column", OnSelect: func() { t.HideColumn(column) }},
+		{Text: "Show all columns", Disabled: len(t.HiddenColumns) == 0, OnSelect: func() {
 			t.HiddenColumns = nil
 			t.Refresh()
 		}},
@@ -611,7 +612,9 @@ func (t *Table) columnMenu(column int) {
 	if p, ok := t.placeOf(column); ok {
 		box.X = max(0, min(t.header.FrameRect().Width-box.Width, p.x-t.scrollX))
 	}
-	t.ui.ShowMenuAt(t.header, box, cols[column].Title, items)
+	// It is the column header's context menu, so it leaves out what cannot
+	// act (CMD-10).
+	t.ui.showMenuAt(t.header, box, cols[column].Title, items, true)
 }
 
 // focusLook tells focus given by the keyboard from focus given any other way,
@@ -807,7 +810,7 @@ func (h *tableHeader) draw(gc *unison.Canvas, _ geom.Rect) {
 				ink = tk.TextPrimary
 			}
 			x := b.X + float32(m.SpaceNear())
-			l := ui.Fonts.Layout([]text.Span{{Text: col.Title, Style: ui.Chrome(ui.Size(RoleSmall), text.Regular, ink)}},
+			l := ui.Fonts.Layout([]text.Span{{Text: ui.CommandCase(col.Title), Style: ui.Chrome(ui.Size(RoleSmall), text.Regular, ink)}},
 				text.Options{MaxWidth: max(1, right-float32(m.SpaceTight())-x), Elide: true})
 			_, lh := l.Size()
 			l.Draw(gc, x, b.Y+(b.Height-lh)/2)
@@ -840,7 +843,7 @@ func (h *tableHeader) pointerAt(where geom.Point) {
 	case !ok:
 		h.tip.clear()
 	case cols[col].Kind == CellCheck && where.In(h.checkBox(p)):
-		h.tip.tooltip([2]int{col, 0}, "Select every row the current filter shows", func() geom.Rect { return h.checkBox(p) })
+		h.tip.tooltip([2]int{col, 0}, "Select shown rows", func() geom.Rect { return h.checkBox(p) })
 	case cols[col].Kind != CellCheck && where.In(h.buttonBox(p)):
 		h.tip.tooltip([2]int{col, 1}, "Column options", func() geom.Rect { return h.buttonBox(p) })
 	default:
@@ -857,6 +860,12 @@ func (h *tableHeader) mouseDown(where geom.Point, button, _ int, _ mod.Modifiers
 	}
 	if e := h.edgeAt(where); e >= 0 {
 		h.resizing, h.pressX, h.startWidth = e, where.X, t.width(e)
+		widths := maps.Clone(t.Widths)
+		h.startDrag(func() {
+			h.resizing = -1
+			t.Widths = widths
+			t.Refresh()
+		})
 		return true
 	}
 	if p, ok := t.placeOf(col); ok && t.columns()[col].Kind != CellCheck && h.showsButton(col) && where.In(h.buttonBox(p)) {
@@ -864,7 +873,21 @@ func (h *tableHeader) mouseDown(where geom.Point, button, _ int, _ mod.Modifiers
 		return true
 	}
 	h.pressCol, h.pressX, h.moved = col, where.X, false
+	order := slices.Clone(t.Order)
+	h.startDrag(func() {
+		h.pressCol, h.moved = -1, false
+		t.Order = order
+		t.Refresh()
+	})
 	return true
+}
+
+// startDrag tells the window a drag of the header is under way, which Escape
+// abandons, putting back what undo puts back (KEY-7).
+func (h *tableHeader) startDrag(undo func()) {
+	if w := h.t.ui.windowOf(h); w != nil {
+		w.startDrag(undo)
+	}
 }
 
 func (h *tableHeader) mouseDrag(where geom.Point, _ int, _ mod.Modifiers) bool {
@@ -900,6 +923,9 @@ func (h *tableHeader) mouseDrag(where geom.Point, _ int, _ mod.Modifiers) bool {
 
 func (h *tableHeader) mouseUp(where geom.Point, _ int, _ mod.Modifiers) bool {
 	t := h.t
+	if w := t.ui.windowOf(h); w != nil {
+		w.endDrag()
+	}
 	if h.resizing >= 0 {
 		h.resizing = -1
 		return true
@@ -962,7 +988,7 @@ func (h *tableHeader) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bo
 
 // selectShownName is the name of the box in a Check column's header, which
 // selects every row shown.
-const selectShownName = "Select the rows shown"
+const selectShownName = "Select shown rows"
 
 // headerName is what a screen reader says about a column's header: its
 // title, and the order it is holding the rows in. A Check column's header is
@@ -970,7 +996,7 @@ const selectShownName = "Select the rows shown"
 // what the box does (selectShownName); a Check column with no title is named
 // by its box, since a header the keyboard stops on needs a name.
 func (t *Table) headerName(column int) string {
-	title := t.columns()[column].Title
+	title := t.ui.CommandCase(t.columns()[column].Title)
 	switch {
 	case t.columns()[column].Kind == CellCheck && title == "":
 		return selectShownName

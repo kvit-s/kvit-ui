@@ -15,7 +15,9 @@ import (
 // CheckRules fails the test for every place in the Go files under dir that
 // writes a colour as a literal or a font size as a number. A literal colour
 // is right in the theme it was picked in and wrong in the other three, and a
-// numeric size stands still when the reader changes the interface size.
+// numeric size stands still when the reader changes the interface size. It
+// also fails the wording the interface rules forbid in the source
+// (WordingViolations).
 // exempt names top-level directories under dir whose job is to hold or apply
 // design values; tests, files whose names end in _gen.go, hidden directories
 // and build output are not read. It
@@ -40,6 +42,9 @@ func CheckRules(t testing.TB, dir string, exempt ...string) int {
 			t.Fatal(err)
 		}
 		for _, v := range Violations(fset, f) {
+			t.Error(v)
+		}
+		for _, v := range WordingViolations(fset, f) {
 			t.Error(v)
 		}
 	}

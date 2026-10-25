@@ -6,13 +6,16 @@ import (
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
+	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
 // Label is a run of chrome text at one of the seven type roles. Every other
 // component uses it, which keeps the chrome family, the colour and the
 // eliding rule in one place. A label wider than its column is cut short with
-// "…", because one that grows pushes whatever is beside it off the screen.
+// "…", because one that grows pushes whatever is beside it off the screen,
+// and then shows its whole text as a tooltip while the pointer rests on it
+// (PTR-12).
 type Label struct {
 	unison.Panel
 	ui *UI
@@ -35,6 +38,11 @@ type Label struct {
 	// LineHeight multiplies the lines' height, for a paragraph read in a
 	// popover; 0 is 1.
 	LineHeight float32
+	// Selectable lets content text the reader may want again, a message, an
+	// address, an identifier, be selected whole and copied: a press selects
+	// it, and Copy, Ctrl+C or the context menu copies it (CTL-18). A
+	// control's label is never selectable.
+	Selectable bool
 }
 
 // NewLabel returns a label in the body role.
@@ -43,7 +51,52 @@ func NewLabel(ui *UI, s string) *Label {
 	l.Self = l
 	l.SetSizer(l.sizes)
 	l.DrawCallback = l.draw
+	l.MouseDownCallback = func(geom.Point, int, int, mod.Modifiers) bool {
+		if !l.Selectable {
+			return false
+		}
+		l.SetFocusable(true)
+		l.RequestFocus()
+		return true
+	}
+	l.GainedFocusCallback = l.MarkForRedraw
+	l.LostFocusCallback = func() {
+		l.SetFocusable(false)
+		l.MarkForRedraw()
+	}
+	l.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, _ bool) bool {
+		if l.Selectable && l.Focused() && Keys(unison.KeyC, ModPrimary).Matches(ui.form, key, mods) {
+			unison.ClipboardSetText(l.Text)
+			return true
+		}
+		return false
+	}
+	// Copy in the Edit menu copies a selected label, as it copies a field.
+	l.InstallCmdHandlers(unison.CopyItemID, func(any) bool { return l.Selectable && l.Focused() },
+		func(any) { unison.ClipboardSetText(l.Text) })
+	ui.SetContextMenu(l, func(geom.Point) (string, []MenuItem) {
+		if !l.Selectable {
+			return "", nil
+		}
+		return "", []MenuItem{{Command: &Command{Std: StdCopy, Run: func() { unison.ClipboardSetText(l.Text) }}}}
+	})
+	l.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
+		l.Tooltip = nil
+		if l.Elided() {
+			l.Tooltip = newTooltip(ui, l.Text, "")
+		}
+		return l.RectToRoot(l.ContentRect(true))
+	}
 	return l
+}
+
+// Elided reports whether the label is cut short where it is laid out now.
+func (l *Label) Elided() bool {
+	if l.Wrap || l.Text == "" {
+		return false
+	}
+	w, _ := l.layout(0).Size()
+	return w > l.ContentRect(false).Width+1
 }
 
 func (l *Label) style() text.Style {
@@ -96,7 +149,11 @@ func (l *Label) sizes(hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
 func (l *Label) draw(gc *unison.Canvas, _ geom.Rect) {
 	b := l.ContentRect(false)
 	lay := l.layout(b.Width)
-	_, h := lay.Size()
+	w, h := lay.Size()
+	if l.Selectable && l.Focused() {
+		// Selected whole, in the colour of selected text.
+		painterFor(gc, l.ui).fill(geom.NewRect(b.X, b.Y+(b.Height-h)/2, min(w, b.Width), h), l.ui.Theme.Tokens().SelectionActiveTint)
+	}
 	lay.Draw(gc, b.X, b.Y+(b.Height-h)/2) // vertically centred
 }
 

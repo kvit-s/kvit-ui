@@ -29,8 +29,24 @@ type UI struct {
 	Appearance *platform.Appearance // what the desktop says
 	// Locale is the language and region numbers are written for; see
 	// Number. language.Und groups no digits, as the C locale does.
-	Locale   language.Tag
-	onChange []changeHook
+	Locale language.Tag
+	// AppName is the app's short name, as About, Help and the macOS form's
+	// Quit name it: "Kvit Notes". "" leaves the name out.
+	AppName string
+	// HelpRoot is the folder holding the app's help pages, the HTML files
+	// HelpLink opens.
+	HelpRoot string
+	// FullKeyboardAccess says Tab reaches every control on the macOS form;
+	// false keeps it to text fields and lists, as the Mac does with its
+	// Keyboard navigation setting off (KEY-10, decided Q-16). It is read
+	// from the Mac, and true elsewhere and with IgnoreDesktop.
+	FullKeyboardAccess bool
+	// UnderlineAccessKeys underlines the access keys on the Windows form at
+	// all times, rather than only while Alt is held, as Windows does with
+	// its "Underline access keys" setting on (KEY-15). It is read from
+	// Windows, and false elsewhere and with IgnoreDesktop.
+	UnderlineAccessKeys bool
+	onChange            []changeHook
 	// checkHooksAt is how many hooks there are when the next one added
 	// first drops those whose owner has gone (addChangeHook).
 	checkHooksAt int
@@ -39,6 +55,10 @@ type UI struct {
 	// keyTurn is set while a window is handling a key press, so focus that
 	// moves then came from the keyboard.
 	keyTurn bool
+	// form is the system whose conventions the windows follow; see Form.
+	form Form
+	// tipsSeen are the tips closed this run, without a settings file.
+	tipsSeen map[string]bool
 }
 
 // Options configure New.
@@ -50,9 +70,10 @@ type Options struct {
 	// user cache directory.
 	FontCacheDir string
 	// IgnoreDesktop leaves the desktop's appearance and locale out, so
-	// "system" is light, motion is on and numbers are written as under the C
-	// locale, with no digit grouping. Screenshots and tests want the same
-	// result on every machine.
+	// "system" is light, motion is on, numbers are written as under the C
+	// locale, with no digit grouping, and the form is the Windows form on
+	// every system. Screenshots and tests want the same result on every
+	// machine.
 	IgnoreDesktop bool
 }
 
@@ -84,12 +105,20 @@ func New(opt Options) (*UI, error) {
 		Typography: tokens.NewTypography(),
 		Fonts:      fonts,
 		Appearance: platform.NewAppearance(),
+		form:       SystemForm(),
+		// Read from the system below unless the desktop is ignored.
+		FullKeyboardAccess: true,
 	}
 	if opt.IgnoreDesktop {
 		u.Appearance.Set(false, false, false)
 		u.Locale = language.Und
-	} else if tag, err := language.Parse(platform.Locale()); err == nil {
-		u.Locale = tag
+		u.form = FormWindows
+	} else {
+		u.FullKeyboardAccess = platform.FullKeyboardAccess()
+		u.UnderlineAccessKeys = platform.UnderlineAccessKeys()
+		if tag, err := language.Parse(platform.Locale()); err == nil {
+			u.Locale = tag
+		}
 	}
 	u.Theme.SetAppearance(u.Appearance)
 	if opt.SettingsPath != "" {

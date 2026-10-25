@@ -22,8 +22,16 @@ dialog; and the components, from labels and buttons to tables, charts, menus,
 trees and split views. Kvit Notes, Kvit Works, Kvit Cash, Kvit Hub and the
 kvit-term terminal are built on it.
 
+Each app follows the conventions of the system it runs on, where Apple's and
+Microsoft's guidelines differ: Windows' on Windows and Linux, the Mac's on a
+Mac. Commands are made once and shown on the menu bar, toolbars, buttons and
+keys alike; dialogs, labels, shortcuts and access keys take each system's
+form. `docs/ui-guidelines/` holds the rules, and `uitest` checks a screen
+and an app against them.
+
 The gallery (`cmd/kvit-ui-gallery`) shows every component with its states in
-each theme and interface size, and `agent/skills/kvit-ui/catalog.md`
-describes each one with a working code sample.
+each theme and interface size, in either system's form, and
+`agent/skills/kvit-ui/catalog.md` describes each one with a working code
+sample.
 
 **Licence:** MPL-2.0.

@@ -15,6 +15,7 @@ package platform
 
 import (
 	"image"
+	"slices"
 	"sync"
 
 	"github.com/richardwilkes/unison"
@@ -55,17 +56,45 @@ type TrayItem struct {
 	Separator bool
 	// Disabled shows the line greyed out, and choosing it does nothing.
 	Disabled bool
+	// Checked ticks a line that turns something on and off, while it is on;
+	// the line keeps its words in either state and stays enabled (WRD-12).
+	Checked bool
+	// Default marks what clicking the icon itself does, such as Open: drawn
+	// in bold on Windows (CMD-24); other systems draw it as any line.
+	Default bool
 	// OnSelect is called when the line is chosen.
 	OnSelect func()
 }
 
-// Notification is a message posted to the desktop.
+// NotificationKind is what a notification is about, which sets how urgent
+// the desktop treats it and how often it may come (MSG-12).
+type NotificationKind int
+
+const (
+	// NotifyInformation is a fact the reader may want, posted once.
+	NotifyInformation NotificationKind = iota
+	// NotifySuccess is background work that finished, posted once.
+	NotifySuccess
+	// NotifyFailure is background work that failed, posted once; the macOS
+	// form shows a failure in the window instead (MSG-10).
+	NotifyFailure
+	// NotifyProblem is a problem the reader has to solve, posted when it
+	// starts and at most daily after, and withdrawn once solved.
+	NotifyProblem
+	// NotifyTask is an optional task, posted at most once a day.
+	NotifyTask
+)
+
+// Notification is a message posted to the desktop: one fact, about
+// something that happened in the background, posted silently (MSG-10).
 type Notification struct {
 	Title   string
 	Message string
 	// ID comes back to Tray.OnNotificationClick when the notification is
-	// clicked; "" for one that needs no answer.
+	// clicked, and names it to Withdraw; "" for one that needs no answer.
 	ID string
+	// Kind is what the notification is about: information unless set.
+	Kind NotificationKind
 }
 
 // Tray is the app's icon in the notification area, its menu, and the
@@ -107,6 +136,10 @@ type trayBackend interface {
 	// notify posts a notification; it is only called while the icon shows
 	// and notifications are authorized.
 	notify(n Notification)
+	// withdraw takes away the notifications posted with an ID, from the
+	// screen and from the desktop's list of them, where they are still
+	// there.
+	withdraw(id string)
 	// authorization is the desktop's answer when the tray is made.
 	authorization() Authorization
 	// requestAuthorization asks the desktop, which answers through
@@ -129,6 +162,8 @@ type trayEntry struct {
 	text      string
 	separator bool
 	disabled  bool
+	checked   bool
+	isDefault bool
 }
 
 // trayEvents is what a backend reports.
@@ -240,7 +275,8 @@ func (t *Tray) update() {
 	}
 	s := trayState{icons: t.icons, tooltip: t.tooltip}
 	for _, it := range t.menu {
-		s.menu = append(s.menu, trayEntry{text: it.Text, separator: it.Separator, disabled: it.Disabled})
+		s.menu = append(s.menu, trayEntry{text: it.Text, separator: it.Separator, disabled: it.Disabled,
+			checked: it.Checked, isDefault: it.Default})
 	}
 	t.mu.Unlock()
 	if t.Available() {
@@ -270,7 +306,11 @@ func (t *Tray) RequestAuthorization() {
 // desktop: it is when notifications are authorized and the icon shows.
 // Either way it is kept as LastNotification.
 func (t *Tray) Notify(title, message, id string) bool {
-	n := Notification{Title: title, Message: message, ID: id}
+	return t.Post(Notification{Title: title, Message: message, ID: id})
+}
+
+// Post posts a notification of a kind, as Notify does.
+func (t *Tray) Post(n Notification) bool {
 	t.mu.Lock()
 	t.last = n
 	post := t.auth == Authorized && t.visible && !t.closed
@@ -282,8 +322,29 @@ func (t *Tray) Notify(title, message, id string) bool {
 	return true
 }
 
+// Withdraw takes away a notification that no longer applies, such as a
+// problem the reader has since solved (MSG-12): from the screen if it is
+// still showing, and from the desktop's list of past notifications where
+// the desktop keeps one. It is named by the ID it was posted with; "" names
+// none. A notification already gone, or never shown, is left alone.
+func (t *Tray) Withdraw(id string) {
+	if id == "" {
+		return
+	}
+	t.mu.Lock()
+	closed := t.closed
+	if t.last.ID == id {
+		t.last = Notification{}
+	}
+	t.mu.Unlock()
+	if closed || !t.Available() {
+		return
+	}
+	t.backend.withdraw(id)
+}
+
 // LastNotification is the notification most recently asked for, whether or
-// not the desktop showed it.
+// not the desktop showed it, until it is withdrawn.
 func (t *Tray) LastNotification() Notification { t.mu.Lock(); defer t.mu.Unlock(); return t.last }
 
 // Close takes the icon away and lets go of what the backend holds. Call it
@@ -383,8 +444,10 @@ type testBackend struct {
 	shown  bool
 	state  trayState
 	posted []Notification
-	asked  int
-	closed bool
+	// withdrawn are the IDs Withdraw was given, in order.
+	withdrawn []string
+	asked     int
+	closed    bool
 	// answer is what requestAuthorization answers, when answers is set;
 	// otherwise the question waits for ever.
 	answer  Authorization
@@ -406,6 +469,13 @@ func (b *testBackend) notify(n Notification) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.posted = append(b.posted, n)
+}
+
+func (b *testBackend) withdraw(id string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.withdrawn = append(b.withdrawn, id)
+	b.posted = slices.DeleteFunc(b.posted, func(n Notification) bool { return n.ID == id })
 }
 
 func (b *testBackend) authorization() Authorization { return b.auth }

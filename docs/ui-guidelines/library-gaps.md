@@ -2,7 +2,9 @@
 
 What the library does today against the merged rules (rules.md), and the component changes and tests that would close the gap, in the order to do them. Line numbers are as of commit 0a36b77.
 
-Of the 199 rules, as decided by the owner on 2026-10-23, kvit-ui enforces 18, partly covers 105, contradicts 9 and does not cover 67. Many of the 70 are app matters (help topics, printing, onboarding) or reviewer matters (tone, chart choice); the work below is the part the library can carry.
+Of the 199 rules, as decided by the owner on 2026-10-23, kvit-ui enforced 18, partly covered 105, contradicted 9 and did not cover 67 at commit 0a36b77, which this document describes. Many of the 70 are app matters (help topics, printing, onboarding) or reviewer matters (tone, chart choice); the work below is the part the library can carry.
+
+Status on 2026-10-24: the proposals below are built as guidelines-plan.md's steps 1 to 7 and 9, and none of the nine contradictions remains; guidelines-plan.md ("Where it stands") lists what is left, and rules.md's "kvit-ui now" lines say what the library does today, with the files behind each.
 
 ## Platform knowledge
 

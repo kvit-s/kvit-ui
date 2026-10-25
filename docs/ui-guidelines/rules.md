@@ -7,11 +7,11 @@ How to read a rule:
 - **Windows** and **macOS** give the two forms where the platforms differ. The app uses the form for the system it runs on; Linux uses the Windows form (the owner's decision, open-questions.md Q-40). Where no forms are given, the rule is the same everywhere.
 - **Sources** lists the extracted records (ids in extracted.jsonl, `apple-<page>-<n>` or `win7-<page>-<n>`), grouped by page, each number the record's counter on that page (the record's url in extracted.jsonl links its section). A `*` marks a record on Microsoft's own checklist (top-violations).
 - **Enforce** says where the rule should be held: a component, a test reading the Go source, a test reading one running screen's controls with their roles and names, a test reading every screen of an app together, or a reviewer.
-- **kvit-ui now** says whether the library enforces the rule today, partly does, contradicts it, or does not cover it, with file:line.
+- **kvit-ui now** says whether the library enforces the rule today, partly does, contradicts it, or does not cover it, with the files that do it (line numbers in rules not yet changed are as of commit 0a36b77).
 
 Ids are stable. WRD-5 was folded into WRD-6 and WIN-21 into WIN-11; their numbers are not reused. Where the Windows 7 guide and the current guidance disagree on behaviour, the Windows form follows the current guidance.
 
-199 rules. kvit-ui enforces 18, partly covers 105, contradicts 9 and does not cover 67. 94 have a Windows and a macOS form.
+199 rules. kvit-ui enforces 73, partly covers 97, contradicts none and does not cover 29. 94 have a Windows and a macOS form.
 
 ## Contents
 
@@ -45,7 +45,7 @@ A button or menu item is a command: it starts with a specific verb that names wh
   - Test, one screen: Every Button, IconButton and MenuItem name starts with a word from an allowed verb list or the platform form's verbless list (above); the lists live in uitest and grow by review.
   - Test, all screens of an app: Across all screens, two commands with the same verb and object but different results are flagged (Insert row above vs Insert row).
   - Review: The verb is the specific one for the result.
-- **kvit-ui now:** does not cover it. No check on label wording (`uitest/uitest.go:194-212` checks only that a name exists). The library's own strings are verb-first (`table.go:595-605`, `duallist.go:54-57`).
+- **kvit-ui now:** partly. `uitest.Labels` fails a Button, IconButton or menu line that does not start with a word from `uitest.Verbs` or `uitest.Verbless`, standard commands and switches excepted (`uitest/labels.go`); whether the verb is the specific one is the reviewer's.
 
 ### WRD-2
 
@@ -59,7 +59,7 @@ Keep a command label to one to three words, using only the words the command nee
 - **Enforce:**
   - Test, one screen: Fail a Button or MenuItem label over three words and an IconButton Label over three words; fail a Button label over 26 characters; allow a list of exceptions with a reason.
   - Review: A label that fits but is padded; a toolbar label longer than one word on the Windows form.
-- **kvit-ui now:** does not cover it. No length check (`button.go:119-123` grows the button to any text). The library's own labels break it: "Move the selected column earlier" (`duallist.go:56`), "Select every row the current filter shows" (`table.go:843`).
+- **kvit-ui now:** enforces it. `uitest.Labels` fails a command over three words and a Button over 26 characters (`uitest/labels.go`); the library's own labels keep within it ("Move up", "Select shown rows").
 
 ### WRD-3
 
@@ -69,7 +69,7 @@ Leave articles and possessives off labels, menu items and tooltips.
   - Apple: [menus](https://developer.apple.com/design/human-interface-guidelines/menus) 4; [writing](https://developer.apple.com/design/human-interface-guidelines/writing) 13; [offering-help](https://developer.apple.com/design/human-interface-guidelines/offering-help) 22
 - **Enforce:**
   - Test, one screen: Fail a command label that contains a, an, the, my or your as a whole word.
-- **kvit-ui now:** contradicts it. Library defaults carry articles: "Clear the filter" (`searchfield.go:56`), "Close the pane" (`pane.go:44`), "Dismiss this notice" (`feedback.go:261`), "Clear the sort" (`table.go:597`).
+- **kvit-ui now:** enforces it. The library's own labels carry no articles (Clear, Close, Dismiss, Clear sort, Hide column, Select shown rows, Move up; `searchfield.go`, `pane.go`, `feedback.go`, `table.go`, `duallist.go`), and `uitest.Labels` fails a command with a, an, the, my or your (`uitest/labels.go`).
 
 ### WRD-4
 
@@ -85,7 +85,7 @@ A command that needs more input before it acts (a dialog that asks, a chooser, a
   - Test, Go source: Fail a label literal ending in three full stops or in "…" once `Asks` exists.
   - Test, one screen: Fail a MenuItem with a submenu whose name ends in "…".
   - Review: The command really asks for more.
-- **kvit-ui now:** partly. Written by hand ("Open &Folder…" in the doc at `menu.go:22`); nothing adds or checks it (survey §15).
+- **kvit-ui now:** enforces it. `Asks` on Command, Button, IconButton and MenuItem adds "…", and Command's `OpensWindow` adds it on the macOS form only (`command.go`, `button.go`, `iconbutton.go`, `menu.go`); `uitest.CheckRules` flags three full stops and an ellipsis typed into a command's words (`uitest/wording.go`), and `uitest.Labels` a submenu line ending in "…".
 
 ### WRD-6
 
@@ -102,7 +102,7 @@ Capitalise each kind of text in the platform's style, and give every label of on
   - Test, one screen: On a headless run with each platform form, compare every name with the converted form.
   - Test, all screens of an app: Every label of one kind (menu item, button, tab, column heading, tooltip) across all screens of an app follows the form's style.
   - Test, Go source: Fail a label built from user data (a label string assembled with a variable) passed to a component that converts case.
-- **kvit-ui now:** partly. Library strings are sentence case throughout (survey §14), which is now the whole Windows form, titles included; there is no title-case conversion for macOS and no check (survey §15).
+- **kvit-ui now:** partly. `TitleCase` converts a sentence-case label on the macOS form, with `TitleCaseKept` for exceptions (`wording.go`); Button, MenuItem, menu titles, Tab, Segmented, table column headings and Dialog's buttons go through it, and `uitest.Labels` compares every such label with its converted form in each form (`uitest/labels.go`). Nothing flags a label built from the reader's data.
 
 ### WRD-7
 
@@ -118,7 +118,7 @@ A confirming button names the action it confirms (Insert, Import), never a gener
   - Component: Dialog drops its "Confirm" default and requires ConfirmText. Dialog gains `Kind` (Ask, Inform, Properties): Inform shows one button, Close on the Windows form and OK on the macOS form; Properties allows OK, Cancel and Apply; `YesNo` is allowed only on the Windows form and only with a Title ending in "?".
   - Test, one screen: Per form: fail a dialog button named Confirm, Ok or Okay; on macOS fail OK, Yes or No except a one-button Inform OK; on Windows fail OK outside a Properties dialog, Yes without No, Yes beside OK.
   - Review: The verb is specific; anyway where a reason not to go ahead is given; Yes and No only where no specific answer exists.
-- **kvit-ui now:** contradicts it. Dialog defaults ConfirmText to "Confirm" (`feedback.go:424`), the generic word the rule forbids; an informing dialog needs CancelText set to "" by hand (`feedback.go:452`) and has no Close-only form.
+- **kvit-ui now:** enforces it. Dialog has no "Confirm" default and warns on a dialog that asks without ConfirmText; `DialogInform` (`NewMessage`) has one button, Close on the Windows form and OK on the macOS form, and `DialogProperties` OK, Cancel and Apply (`dialog.go`); `uitest.Labels` fails Confirm, Ok, Okay, and OK, Yes or No where the form does not allow them (`uitest/labels.go`).
 
 ### WRD-8
 
@@ -134,7 +134,7 @@ The button that abandons the action is Cancel, and Cancel leaves no trace. Once 
   - Component: Dialog keeps "Cancel" as its default and gains `Done()`, which turns Cancel into Close on the Windows form and Done on the macOS form; a progress dialog gets a halt button whose words follow `Stoppable` (Cancel, then Stop on the Windows form).
   - Test, one screen: Fail a dialog whose abandoning button is not Cancel, Close or Stop, except a `Don't …` answer on the Windows form; fail Yes beside Cancel without No.
   - Review: Cancel really leaves no trace.
-- **kvit-ui now:** partly. CancelText defaults to "Cancel" (`feedback.go:424`) and FloatingView's close is "Close" (`floatingview.go:61`); nothing switches Cancel to Close or Stop, and Progress has no halt button (survey §8).
+- **kvit-ui now:** enforces it. CancelText is Cancel unless set, and `Dialog.Done` turns it into Close on the Windows form and Done on the macOS form (`dialog.go`); Progress's halt button takes the words the app gives, Cancel or Stop (`progress.go`); `uitest.Labels` fails another abandoning word and Yes beside Cancel without No.
 
 ### WRD-9
 
@@ -166,7 +166,7 @@ Undo and Redo name the action they reverse.
   - Apple: [undo-and-redo](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo) 1; [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 33
 - **Enforce:**
   - Component: An undo stack in kvit-ui (FDB-8) supplies the names; the Edit menu reads them.
-- **kvit-ui now:** does not cover it. No undo stack (survey §13).
+- **kvit-ui now:** enforces it. `UndoStack` names Undo and Redo for the edit they reverse, "Undo delete transaction", and feeds the Edit menu, a Toast and a ConfirmInPlace (`undo.go`).
 
 ### WRD-12
 
@@ -180,7 +180,7 @@ A command that switches a state says unmistakably what it does in each state.
 - **Enforce:**
   - Component: MenuItem gains `Toggle{Name, On, Off string}`: the Windows form shows Name with `Checked`; the macOS form (the system menu) shows On or Off. `platform.TrayItem` gains `Checked`.
   - Review: A label that could be read as a status.
-- **kvit-ui now:** partly. MenuItem `Checked` draws a tick (`menu.go:40-42`), which is the Windows form; there is no word swap for macOS, and TrayItem has no check (`platform/tray.go:49-60`).
+- **kvit-ui now:** enforces it. Command and MenuItem take `TurnOn` and `TurnOff`: the Windows form keeps the name and ticks it, the macOS form shows the words for the state (`command.go`, `menu.go`); a tray menu line takes `Checked`, a tick with its words kept (`platform/tray.go`).
 
 ### WRD-13
 
@@ -196,7 +196,7 @@ A tooltip is short, concerns only its control, does not repeat a visible label, 
   - Component: IconButton's tip already starts with its Label (`iconbutton.go:69-74`); on the Windows form it appends the command's shortcut in parentheses, which needs a `Key` on IconButton (or one command table that menu and button share).
   - Test, one screen: Windows form: an IconButton tooltip starts with its name and carries the shortcut when the same command has one in a menu. macOS form: fail a tooltip over 60 characters or ending in a full stop. Both: fail a Button Explanation equal to the button's words.
   - Review: The tooltip describes this control only.
-- **kvit-ui now:** partly. IconButton's tooltip is Label plus Explanation on a line of its own (`iconbutton.go:69-74`, `control.go:392-409`), the Windows shape without the shortcut; no length limit (`control.go:402-403`); the tray tooltip is free text (`platform/tray.go:207-208`).
+- **kvit-ui now:** enforces it. A control made from a Command adds its shortcut in parentheses to its tooltip on the Windows form, "Bold (Ctrl+B)", and none on the macOS form (`command.go`, `iconbutton.go`, `button.go`); `uitest.Labels` fails a macOS-form tooltip over 60 characters or ending in a full stop, and an Explanation repeating a button's words (`uitest/labels.go`).
 
 ### WRD-14
 
@@ -223,7 +223,7 @@ Use plain words in the reader's terms: what they want to do, not the technology 
 - **Enforce:**
   - Test, Go source: Flag "Oops", "Whoops", "!" at the end of a label or title.
   - Review: Jargon, technology words and tone.
-- **kvit-ui now:** does not cover it. Not covered.
+- **kvit-ui now:** partly. `uitest.CheckRules` flags "Oops" in a string (`uitest/wording.go`); "Whoops" and a label ending in "!" are not flagged.
 
 ### WRD-16
 
@@ -250,7 +250,7 @@ Name the action in words that fit the input: never tap on the desktop; press a k
 - **Enforce:**
   - Test, Go source: Flag "tap", "hit", "hot key", "accelerator" in string literals.
   - Review: Verbs in help and instructions match the form.
-- **kvit-ui now:** does not cover it. Not covered.
+- **kvit-ui now:** partly. `uitest.CheckRules` flags "tap" in a string (`uitest/wording.go`); "hit", "hot key" and "accelerator" are not flagged.
 
 ### WRD-18
 
@@ -264,7 +264,7 @@ Link text says what is behind it, in words that tell the screen's links apart; n
   - Test, one screen: Fail a Link named "here", "click here", "more", "link" or "Learn more"; fail a Link ending in a full stop; fail two Links on one screen with the same name and different targets.
   - Component: Link gains a web target that sets the "external" symbol (`arrow-square-out`, `icons/catalog_gen.go:1585`) and the domain as its tooltip.
   - Review: The link predicts its target.
-- **kvit-ui now:** does not cover it. Link takes free text (`link.go:35`) and an optional Symbol and Explanation set by hand (`link.go:20-27`); nothing marks a web link or checks the words.
+- **kvit-ui now:** partly. `uitest.Labels` fails a Link named here, click here, more, link, learn more or read more, and one ending in a full stop, and `uitest.CheckRules` flags "click here" (`uitest/labels.go`, `uitest/wording.go`); nothing marks a web link or compares two links' targets.
 
 ### WRD-19
 
@@ -278,7 +278,7 @@ Every field, list, tree, slider and group of controls has a visible label: a nou
 - **Enforce:**
   - Component: A form-row helper draws the label and sets `LabeledBy`. SearchField's default prompt loses its ellipsis on the Windows form.
   - Test, one screen: Fail a label ending in a colon; fail a Field whose only name is its placeholder unless it is a SearchField, sits in a toolbar or is listed as obvious from context with a reason; fail a placeholder ending in punctuation on the Windows form.
-- **kvit-ui now:** partly. Field.Label names the field for a screen reader only; there is no visible label or LabeledBy (`field.go:34-35`, `uitest/uitest.go:206`). The placeholder shows while the field is empty, focused or not (`field.go:344-346`), which the rule now asks on every platform. SearchField's prompt "Filter…" ends in an ellipsis (`searchfield.go:38`).
+- **kvit-ui now:** partly. FormRow draws a field's label, without a colon, and names the field by it (`formrow.go`); `uitest.Labels` fails a label ending in a colon and, on the Windows form, a placeholder ending in punctuation (`uitest/labels.go`); a field named only by its placeholder is not flagged.
 
 ### WRD-20
 
@@ -292,7 +292,7 @@ Name what a group of things is with a specific noun: column headings, tabs, segm
 - **Enforce:**
   - Test, one screen: Fail a Tab, column title, segment, group label or section heading ending in punctuation, and a Tab, column title or segment over three words; fail a Tab named General, Advanced or Settings unless listed with a reason; fail a section heading containing "settings".
   - Review: Nouns, specific to the content.
-- **kvit-ui now:** does not cover it. Not covered.
+- **kvit-ui now:** partly. `uitest.Labels` fails a tab or segment ending in punctuation or over three words (`uitest/labels.go`); column titles and section headings are not read.
 
 ### WRD-21
 
@@ -321,7 +321,7 @@ A setting has a plain label and at most one short line saying what it does; anyt
 - **Enforce:**
   - Test, one screen: Fail a static Label under a control longer than about 20 words; fail a RadioOption Detail or Button Explanation that repeats its label.
   - Component: Hint (`popover.go:159-213`) is the place for a longer explanation; RadioGroup's per-option Detail (`radiogroup.go:19`) is the one-line note.
-- **kvit-ui now:** partly. Hint exists for long explanations (`popover.go:159-213`) and RadioGroup draws one Detail line per option (`radiogroup.go:150-153`); nothing limits or checks either, and there is no settings-row component.
+- **kvit-ui now:** enforces it. SettingRow has one line for a setting's description (`settings.go`) and Hint holds a longer one (`popover.go`); `uitest.Labels` fails a label over 20 words under a control, and a radio option's detail or a button's explanation repeating its label (`uitest/labels.go`).
 
 ### WRD-23
 
@@ -349,7 +349,7 @@ Write shortcuts in the platform's form.
 - **Enforce:**
   - Component: Menu shortcut text comes from unison's `KeyBinding.String()` (`menu.go:257`); kvit-ui wraps it in one function that, on the Windows form, renames Return to Enter and PageUp to Page Up and puts the logo key first.
   - Test, one screen: Every menu shortcut text on the Windows form matches `^(Win\+)?(Ctrl\+)?(Alt\+)?(Shift\+)?\S+$` with Windows key names.
-- **kvit-ui now:** partly. `menu.go:257` prints `it.Key.String()`. unison's neutral form writes Ctrl+, Alt+, Shift+ in the Windows order but Super+ last (unison `enums/mod/modifiers.go:100-123`), and names keys Return and PageUp (unison `keys.go:439`, `keys.go:457`), not Enter and Page Up.
+- **kvit-ui now:** enforces it. `UI.ShortcutText` writes a shortcut in the form's way: "Ctrl+Shift+S" with Windows' key names (Enter, Del, PgUp, Plus) on the Windows form, "⇧⌘S" with the Mac's symbols on the macOS form (`shortcut.go`); menus and tooltips use it.
 
 ### WRD-25
 
@@ -363,7 +363,7 @@ A progress description says exactly what is happening, never just Working… or 
   - Component: Button.BusyText loses its "Working…" default and becomes required with Busy; Progress requires Label and gains `Remaining`, written by one library function using `UI.CountPhrase` (`numbers.go:21-37`).
   - Test, one screen: Fail a busy text or progress label of Working… or bare Please wait; fail Loading… on a busy button.
   - Review: Loading… only where the object is obvious from the screen.
-- **kvit-ui now:** contradicts it. BusyText defaults to "Working…" (`button.go:73`); Progress has no time remaining (survey §8).
+- **kvit-ui now:** enforces it. Button has no busy default and warns once about a busy button without BusyText (`button.go`); Progress shows no percentage unless asked (`progress.go`); `uitest.Labels` fails Working…, Please wait and Loading… on a busy button (`uitest/labels.go`).
 
 ### WRD-26
 
@@ -376,7 +376,7 @@ Each dialog, page or message leads with one main instruction: what the reader sh
   - Component: Dialog's Title is the main instruction and Detail the supplemental text (`feedback.go:385-386`); its doc says so, and a separate window's title (WIN-12) is never repeated as the instruction.
   - Test, one screen: Fail a dialog whose Title ends in a full stop, holds more than one sentence, or is Warning, Error or Caution; fail a dialog whose Detail begins with its Title's words.
   - Review: Says each thing once; written from the reader's goal.
-- **kvit-ui now:** partly. Dialog has the shape, Title asking and Detail saying more (`feedback.go:385-386`, `feedback.go:568-575`), and Notice has Text and Detail (`feedback.go:227-228`); nothing checks the wording.
+- **kvit-ui now:** partly. `uitest.Labels` fails a dialog title ending in a full stop, a title of Error, Warning or Caution, and a detail starting with the title's words (`uitest/labels.go`); a title of more than one sentence is not flagged.
 
 ### WRD-27
 
@@ -390,7 +390,7 @@ Labels, buttons, menu items, tabs, titles, list items, prompts and main instruct
   - Test, Go source: Flag " & ", " / " and "#" inside label literals ("&" before a letter is the access-key mark, "&&" a literal ampersand).
   - Review: Emphasis and quotation.
   - Test, Go source: Flag `Italic: true` in a text.Style outside the gallery (`text/layout.go:35`).
-- **kvit-ui now:** does not cover it. No punctuation check (`uitest/uitest.go:194-212` checks names only). TypeAhead quotes a new value with double quotation marks (`typeahead.go:406`). Italic is available (`text/layout.go:35`) and used only in the gallery's type specimen (`cmd/kvit-ui-gallery/foundations.go:205`).
+- **kvit-ui now:** partly. `uitest.Labels` fails a command, check box or switch ending in a full stop and a command with two spaces (`uitest/labels.go`); tabs, column titles and quoted object names are not read for it.
 
 ### WRD-28
 
@@ -416,7 +416,7 @@ Labels of the options in one group (check boxes, radio buttons, list options, sl
   - Test, one screen: Fail two options with the same name in one radio group, select or list; fail a check box or radio name starting Don't or Do not other than Don't show again; fail options that all start with the same word as the group label.
   - Test, one screen: Fail a radio option name that wraps to a second line or a check box name over two lines at the window's default width.
   - Review: Parallel form; no sentence built around a control.
-- **kvit-ui now:** does not cover it. RadioGroup takes Label and Detail per option without checks (`radiogroup.go:16-20`). Counts go through `UI.CountPhrase` rather than built phrases (`numbers.go:21-37`), but Stepper builds "Decrease "+Label (`stepper.go:65`) and Tag "Remove "+text (`marks.go:197`).
+- **kvit-ui now:** partly. `uitest.Labels` fails two radio options with one name and a check box or switch named with Don't or Do not other than a don't-show-again option (`uitest/labels.go`); wrapping option names are not measured.
 
 ## Commands: menus, toolbars, buttons
 
@@ -433,7 +433,7 @@ Every command the app has is on a visible command surface (the menu bar, or wher
 - **Enforce:**
   - Component: A Command type (name, symbol, shortcut, enabled, run) that a MenuItem, an IconButton, a toolbar button and a shortcut are made from; the menu bar is built from the app's commands, Kvit-drawn in the window on Windows and Linux, the system's on macOS.
   - Test, all screens of an app: Every command reachable from a button or context menu appears in the menu bar, or, on the Windows form without one, on the toolbar or in its More menu.
-- **kvit-ui now:** does not cover it. No menu bar and no command object (survey §4).
+- **kvit-ui now:** enforces it. `Command` is made once and shown by MenuItem, Button, IconButton, Toolbar and MenuBar (`command.go`, `menubar.go`, `toolbar.go`); `Window.OffSurface` lists a command on no menu bar, toolbar or sidebar, and `uitest.App` fails it (`uitest/app.go`).
 
 ### CMD-2
 
@@ -447,7 +447,7 @@ Put the platform's standard menus in its standard order, leave out only the ones
 - **Enforce:**
   - Component: A `kvitui.MenuBar` with a platform form: on macOS unison's `InsertStdMenus` (unison `menu_bar.go:53-63`) with the app's menus between View and Window; on Windows and Linux File, Edit, View, app menus, Tools, Help, drawn by Kvit.
   - Test, all screens of an app: Fail a menu bar of more than ten menus or with a menu of one or two items.
-- **kvit-ui now:** does not cover it. No menu bar (survey §4).
+- **kvit-ui now:** enforces it. MenuBar shows the standard menus in the form's order, File, Edit, Format, View, the app's menus, Tools and Help on the Windows form, the app menu, File, Edit, Format, View, the app's menus, Window and Help on the macOS form, and leaves an empty one out (`menubar.go`); `uitest.App` fails more than ten menus and an app menu of one or two lines (`uitest/app.go`).
 
 ### CMD-3
 
@@ -461,7 +461,7 @@ About, the settings command and Quit or Exit sit where the platform puts them, w
   - Fluent: [app-settings-guidelines-for-app-settings](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings) 4, 25
 - **Enforce:**
   - Component: MenuBar places the settings command and Quit/Exit by platform; the macOS label is "Settings…" (unison still says "Preferences…", `menu_bar.go:132`, so kvit-ui passes its own item), the Windows and Linux labels are Settings and Exit. The Settings page (WIN-16) ends with an About section on Windows and Linux.
-- **kvit-ui now:** does not cover it. No menu bar and no About (survey §4, §11).
+- **kvit-ui now:** enforces it. MenuBar puts Settings last in Tools on the Windows form, unless the sidebar holds it at its foot (`Sidebar.AddFooter`, `NewSidebarCommand`), and Settings… and Quit <App> in the app menu on the macOS form, renaming unison's "Preferences…"; Exit is last in File on the Windows form (`menubar.go`, `sidebar.go`). `NewAboutSection` is the About section that ends the settings page (`settings.go`).
 
 ### CMD-4
 
@@ -475,7 +475,7 @@ The File menu holds the document commands in the platform's standard order, as t
 - **Enforce:**
   - Component: MenuBar offers the standard items with their standard shortcuts.
   - Review: Order and wording of app-specific items.
-- **kvit-ui now:** does not cover it. No menu bar.
+- **kvit-ui now:** enforces it. MenuBar puts the standard File commands the app has in the form's order with their standard keys (`menubar.go`, `command.go`).
 
 ### CMD-5
 
@@ -488,7 +488,7 @@ The Edit menu starts with Undo and Redo, then Cut, Copy and Paste, Select all an
   - Windows 7: [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 50; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 72
 - **Enforce:**
   - Component: MenuBar's Edit menu in the platform's order; Field's context menu gains Undo and Redo.
-- **kvit-ui now:** partly. The field context menu has Cut, Copy, Paste, Select All and no Undo or Redo (`field.go:207-226`).
+- **kvit-ui now:** enforces it. MenuBar's Edit menu takes the standard commands in the form's order (`menubar.go`); Field's context menu has Undo and Redo, from the window's undo manager (`field.go`).
 
 ### CMD-6
 
@@ -501,7 +501,7 @@ The View menu holds the show and hide commands for the window's parts, zoom and 
   - Windows 7: [cmd-toolbars](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-toolbars) 36, 52; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 13, 73; [ctrl-status-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-status-bars) 10
 - **Enforce:**
   - Component: MenuBar's View menu; Window offers Show/Hide Sidebar as a command (a check item on Windows and Linux).
-- **kvit-ui now:** does not cover it. The sidebar collapses to its rail by width only (`window.go:163-168`).
+- **kvit-ui now:** partly. MenuBar's View menu puts the app's own lines, such as the window's parts, before Zoom, Full screen and Refresh (`menubar.go`); Window has `FullScreenCommand` (`windowstate.go`), but no built-in Show or Hide sidebar command.
 
 ### CMD-7
 
@@ -513,7 +513,7 @@ On a Mac every app has a Window menu with Minimize, Zoom, the panels' show and h
   - Apple: [the-menu-bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar) 47, 48, 49, 50, 53; [panels](https://developer.apple.com/design/human-interface-guidelines/panels) 7
 - **Enforce:**
   - Component: MenuBar uses unison's `NewWindowMenu` (`menu_bar.go:138`).
-- **kvit-ui now:** does not cover it. No menu bar.
+- **kvit-ui now:** enforces it. MenuBar always has a Window menu on the macOS form: unison's `NewWindowMenu` in the system's bar on a Mac, and Minimize and Zoom in the drawn preview elsewhere (`menubar.go`). The system's bar is built but has not been run on a Mac.
 
 ### CMD-8
 
@@ -527,7 +527,7 @@ The Help menu is last; its first item opens the app's help, set apart from relea
   - Fluent: [app-settings-guidelines-for-app-settings](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings) 24, 32; [in-app-help-guidelines-for-app-help](https://learn.microsoft.com/en-us/windows/apps/design/in-app-help/guidelines-for-app-help) 5
 - **Enforce:**
   - Component: MenuBar's Help menu.
-- **kvit-ui now:** does not cover it. No menu bar, no help (survey §11).
+- **kvit-ui now:** enforces it. Help is the last menu, its first line the standard Help command, "<App> help" on F1 on the Windows form and Cmd-? on the macOS form (`menubar.go`, `command.go`).
 
 ### CMD-9
 
@@ -539,7 +539,7 @@ A main-menu item or toolbar button that cannot act now stays in place, disabled,
 - **Enforce:**
   - Component: MenuItem.Disabled (exists); the Command type computes it, with a flag for commands too slow to check that report the reason on use.
   - Review: An item that appears and disappears with the selection.
-- **kvit-ui now:** partly. Disabled lines are drawn and skipped (`menu.go:231-232`, `menu.go:298`); there is no toolbar, and nothing for a slow-to-check command.
+- **kvit-ui now:** enforces it. A menu line, button or symbol button made from a Command reads whether it can act each time it is shown, and its key does nothing while it cannot (`command.go`, `commandkeys.go`); a command too slow to check leaves `Enabled` nil and says why when run.
 
 ### CMD-10
 
@@ -555,7 +555,7 @@ Every object and region with commands of its own has a context menu holding the 
   - Component: MenuItem gains Default, drawn bold by the Kvit menu on Windows and Linux; a Checked line keeps its tick and loses the bold it has today (`menu.go:236-239`); on Windows and Linux the Kvit menu draws the common commands as a leading row of symbols, and Field's menu leaves out a command that cannot act instead of disabling it.
   - Test, one screen: Fail a context menu over 15 lines or 4 groups, or, on the Windows form, one with a disabled item or with common commands not at its head.
   - Review: Relevance of the items; every command for an item in its menu; comparable objects all having one.
-- **kvit-ui now:** partly. Any panel can have one (`UI.SetContextMenu`, `menu.go:691-706`), opened by right-click, the Menu key or Shift+F10 (`menu.go:713-724`); it builds any list, with no default item, no symbol row and no length check. Field's menu shows Cut, Copy and Paste disabled when they cannot act (`field.go:210-225`), which the Windows form now rules out, and has no Undo.
+- **kvit-ui now:** partly. A context menu leaves out a line that cannot act, keeping Cut, Copy and Paste on the macOS form; `Default` is bold on the Windows form; a ticked line is no longer bold (`menu.go`); Field's menu is built from the standard commands (`field.go`). `uitest.Labels` fails an open context menu over 15 lines or four groups and a disabled line on the Windows form (`uitest/labels.go`). There is no leading row of common commands.
 
 ### CMD-11
 
@@ -567,7 +567,7 @@ On a Mac a context menu shows no shortcuts; the main menus teach them.
   - Apple: [context-menus](https://developer.apple.com/design/human-interface-guidelines/context-menus) 9
 - **Enforce:**
   - Component: ShowMenu for a context menu drops `Key` on macOS.
-- **kvit-ui now:** contradicts it. The field context menu passes each action's KeyBinding (`field.go:211`).
+- **kvit-ui now:** enforces it. A context menu shows no shortcuts on the macOS form (`menu.go`, `menuLine`).
 
 ### CMD-12
 
@@ -581,7 +581,7 @@ Submenus only where they clearly help, one level deep, about five items at most;
 - **Enforce:**
   - Test, one screen: Fail a submenu inside a submenu; fail a submenu over 7 items; on the Windows form, fail a submenu in a context menu.
   - Review: Shared leading words.
-- **kvit-ui now:** partly. Submenus nest without limit (`menu.go:50-54`).
+- **kvit-ui now:** enforces it. `uitest.Labels` fails a submenu inside a submenu, a submenu over seven lines, and on the Windows form a submenu in a context menu (`uitest/labels.go`).
 
 ### CMD-13
 
@@ -593,7 +593,7 @@ Order a menu by its natural sequence where it has one (steps of a task, numbers 
 - **Enforce:**
   - Test, one screen: Fail a menu group over seven items or a menu level over 25.
   - Review: Order, grouping and commands repeated across menus.
-- **kvit-ui now:** does not cover it. Menus take any list (`menu.go:19-55`).
+- **kvit-ui now:** enforces it. `uitest.Labels` fails a menu group over seven lines and a level over 25 (`uitest/labels.go`).
 
 ### CMD-14
 
@@ -619,7 +619,7 @@ Mark an option that is on; mark the chosen one of exclusive options in the platf
   - Fluent: [ui-controls-menus](https://learn.microsoft.com/en-us/windows/apps/design/controls/menus) 3
 - **Enforce:**
   - Component: MenuItem.Checked (exists) loses its bold and keeps the tick, gains a Radio form drawn as a bullet by the Kvit menu, and a Mixed state (no mark on Windows and Linux, a dash in the macOS menu); Select marks its current option as Radio.
-- **kvit-ui now:** partly. A tick and bold words for Checked (`menu.go:40-42`, `menu.go:236-239`); no bullet or mixed form, and Select marks its option with Checked (`select.go:96`).
+- **kvit-ui now:** enforces it. A ticked line keeps its tick without bold; `Radio` draws the chosen one of a set with a bullet on the Windows form and a tick on the macOS form; `Mixed` draws nothing on the Windows form and a dash on the macOS form (`menu.go`); Select marks its options as a set (`select.go`).
 
 ### CMD-16
 
@@ -648,7 +648,7 @@ A menu holds only commands and options; a notification or confirmation goes in a
   - Component: A MenuButton with a down-arrow, and a SplitButton: a Button and a chevron opening ShowMenu, the item the main part runs marked as default, with a toggle form.
   - Test, one screen: Fail a menu opened from a button with fewer than three items.
   - Review: Notifications or confirmations put in a menu.
-- **kvit-ui now:** does not cover it. No split button or menu button component; Select is a single-choice list (`select.go`).
+- **kvit-ui now:** enforces it. MenuButton opens a menu under a down-arrow, and SplitButton's main part runs the variant last chosen on the Windows form and the likeliest on the macOS form; `NewToggleSplitButton` makes the toggle form, whose main part turns the feature on and off and whose menu picks the style, marked as the one in use, choosing a style turning the feature on (`menubutton.go`); `uitest.Labels` fails a menu button of fewer than three lines (`uitest/labels.go`). A notification or confirmation put in a menu is the reviewer's.
 
 ### CMD-18
 
@@ -664,7 +664,7 @@ Toolbars, menu bars and status bars belong to main windows; dialogs have none. T
   - Component: A Toolbar component (none today; ViewHead holds view controls) with leading, centre and trailing groups, placed by platform; Dialog takes no toolbar.
   - Test, one screen: Fail a toolbar that repeats a command, a Toolbar or StatusBar inside a Dialog, or a view whose toolbar and More button are both hidden.
   - Review: Choice of commands.
-- **kvit-ui now:** does not cover it. No toolbar component; ViewHead and Header carry actions (catalog KvitViewHead, KvitHeader).
+- **kvit-ui now:** partly. Toolbar has leading, centre and trailing groups, and the window answers its commands' keys while it is shown (`toolbar.go`); `uitest.Labels` fails a toolbar repeating a command and a toolbar or status bar inside a dialog (`uitest/labels.go`); a view whose toolbar and More button are both hidden is not flagged.
 
 ### CMD-19
 
@@ -677,7 +677,7 @@ When a toolbar does not fit, its commands, added in order of importance, move fr
 - **Enforce:**
   - Component: Toolbar overflow (as StatusBar already does for facts, `statusbar.go:38-45`).
   - Test, one screen: At the narrowest window, every command is still on screen or in the overflow menu.
-- **kvit-ui now:** partly. StatusBar overflows into "N more" (`statusbar.go:288`); nothing else does.
+- **kvit-ui now:** enforces it. A toolbar too narrow for its commands moves the words into the tooltips first and then the least important commands into a More menu that exists only then (`toolbar.go`).
 
 ### CMD-20
 
@@ -701,7 +701,7 @@ No on-screen buttons for Cut, Copy and Paste; undo and redo buttons only where t
   - Apple: [edit-menus](https://developer.apple.com/design/human-interface-guidelines/edit-menus) 9; [undo-and-redo](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo) 5, 6
 - **Enforce:**
   - Test, one screen: Fail an IconButton or Button named Cut, Copy or Paste on a screen that has an Edit menu.
-- **kvit-ui now:** does not cover it. Not covered.
+- **kvit-ui now:** enforces it. `uitest.Labels` fails a Cut, Copy or Paste button on a screen with an Edit menu (`uitest/labels.go`).
 
 ### CMD-22
 
@@ -716,7 +716,7 @@ Show text on a button when a word or two says more than a symbol; use a symbol f
 - **Enforce:**
   - Test, one screen: Fail a Button whose words are one or two characters, or only punctuation (B, I, <>, +); those are IconButtons with a Label.
   - Test, Go source: Flag a Button text starting with "+ " or "- ".
-- **kvit-ui now:** does not cover it. Not covered; the symbol set lacks bold, italic, underline, strikethrough, code and heading (catalog Symbols).
+- **kvit-ui now:** enforces it. The catalogue has bold, italic, underline, strikethrough, code and heading (`icons/catalog_gen.go`); `uitest.Labels` fails a button of one or two characters or punctuation, and `uitest.CheckRules` a button's words starting "+ " or "- " (`uitest/labels.go`, `uitest/wording.go`).
 
 ### CMD-23
 
@@ -728,7 +728,7 @@ A destructive command in a menu sits last, after a separator, marked as destruct
 - **Enforce:**
   - Component: ShowMenu inserts the separator before a trailing Danger item itself instead of leaving it to the caller.
   - Test, one screen: Fail a Danger item that is not last or has no separator before it.
-- **kvit-ui now:** partly. MenuItem.Danger exists; the separator is the caller's job (`menu.go:35-39`).
+- **kvit-ui now:** enforces it. A menu puts a separator before a destructive line at its end by itself (`menu.go`, `tidySeparators`); `uitest.Labels` fails a destructive line that is not last (`uitest/labels.go`).
 
 ### CMD-24
 
@@ -742,7 +742,7 @@ A tray icon (Windows, Linux) or Dock menu (macOS) serves an app that works in th
 - **Enforce:**
   - Component: platform.TrayItem gains Default and Checked; the tray menu's order is review.
   - Review: Tray and Dock menu contents; minimise-to-tray offered only as an opt-in.
-- **kvit-ui now:** partly. The tray menu has Text, Separator, Disabled and OnSelect only (`platform/tray.go:49-60`), with no default or check items; OnClick exists except on macOS (`platform/tray.go:73-75`).
+- **kvit-ui now:** partly. A tray menu line takes `Checked` and `Default`, the default drawn in bold on Windows (`platform/tray.go`, `platform/tray_windows.go`); OnClick exists except on macOS; the menu's contents are the reviewer's.
 
 ### CMD-25
 
@@ -770,7 +770,7 @@ Everything can be done with the keyboard alone, everything the keyboard does the
 - **Enforce:**
   - Test, one screen: Every control with a Press action is focusable and reachable by Tab (extends CheckNamed).
   - Review: Pointer-only features.
-- **kvit-ui now:** partly. Controls embed `control` and are focusable (`control.go:85`); Segmented, Tab and Sidebar have no arrow keys (survey §5).
+- **kvit-ui now:** enforces it. The gallery's tests tab through every page in both forms and fail a control that takes the keyboard and is never reached (`cmd/kvit-ui-gallery/gallery_test.go`).
 
 ### KEY-2
 
@@ -785,7 +785,7 @@ Every standard command the app has answers to the platform's standard shortcut f
 - **Enforce:**
   - Component: A Command type knows the standard commands (New, Open, Save, Close, Close tab, Reopen closed tab, Find, Undo, Redo, Rename, Delete, Properties, Help, Settings…) and their keys per platform, registers them on the window, acts on key down, and calls nothing when the command is disabled.
   - Test, all screens of an app: Every app that has Save answers to its shortcut, and so on for each standard command it has.
-- **kvit-ui now:** does not cover it. No shortcut registry; MenuItem.Key is display only (`menu.go:26-28`); apps catch keys themselves in `Window.OnKeyDown` (`window.go:37-41`). No F1 (survey §5). Shift+F10 and the Menu key already open the context menu (`menu.go:715-722`).
+- **kvit-ui now:** enforces it. A Command with `Std` has its platform's keys, and a window answers them wherever its focus is, leaving typing keys to a focused field and doing Cut, Copy, Paste, Select all, Undo and Redo in a focused control that can (`command.go`, `commandkeys.go`); `uitest.App` fails a standard command made by hand (`uitest/app.go`).
 
 ### KEY-3
 
@@ -799,7 +799,7 @@ The command modifier is Command on a Mac and Control elsewhere; Shift adds a rel
 - **Enforce:**
   - Component: Shortcuts are declared with unison's `mod.OSMenuCommand()`.
   - Test, Go source: Grep KeyBinding literals: fail a hard-coded `mod.Command`/`mod.Control`, an Alt+letter or Alt+digit binding, and Ctrl+Alt on Windows and Linux.
-- **kvit-ui now:** partly. The table uses `OSMenuCommandDown()` (`tablebody.go:356-368`); the gallery checks `CommandDown()` while its comment says Ctrl (`cmd/kvit-ui-gallery/gallery.go:230-234`).
+- **kvit-ui now:** enforces it. A shortcut is written once with `kvitui.Keys` and `ModPrimary`, Ctrl on the Windows form and Command on the macOS form, and keypad keys match their twins (`shortcut.go`); a window refuses Alt+letter and Ctrl+Alt on the Windows form (`commandkeys.go`); `uitest.CheckRules` flags a key binding written with mod.Control or mod.Command (`uitest/wording.go`).
 
 ### KEY-4
 
@@ -812,7 +812,7 @@ An app's shortcuts act only while its window has focus: never register a system-
   - Windows 7: [inter-keyboard](https://learn.microsoft.com/en-us/windows/win32/uxguide/inter-keyboard) 58, 59, 46\*, 60; [cmd-menus](https://learn.microsoft.com/en-us/windows/win32/uxguide/cmd-menus) 60\*; [top-violations](https://learn.microsoft.com/en-us/windows/win32/uxguide/top-violations) 79\*
 - **Enforce:**
   - Test, Go source: A table of reserved keys per platform; fail a declared shortcut on one, and fail any call to a system-wide hotkey API.
-- **kvit-ui now:** does not cover it. No registry to check; nothing in the repository registers a system-wide hotkey (no RegisterHotKey or equivalent).
+- **kvit-ui now:** enforces it. A window refuses, with a warning, a shortcut on a key the system owns in either form (`commandkeys.go`, `systemKey`); nothing registers a system-wide hotkey.
 
 ### KEY-5
 
@@ -828,7 +828,7 @@ Give new shortcuts only to the few frequent app commands: a simple combination (
   - Test, all screens of an app: No two commands in an app share a shortcut; a standard key is not bound to another command, and an app with document tabs binds none of the tab keys to anything else.
   - Test, Go source: No shortcut on layout-dependent punctuation or a three-modifier chord.
   - Review: Letters recall the command; reassignment when an app has many shortcuts.
-- **kvit-ui now:** does not cover it. No registry; the gallery binds its own keys by hand (Ctrl+1 to 4, plus, minus and 0, `cmd/kvit-ui-gallery/gallery.go:230-249`).
+- **kvit-ui now:** partly. A window refuses a second command on a key and another command on a standard key, and never binds Ctrl+Q on the Windows form (`commandkeys.go`); `uitest.App` fails one key for two commands across an app's screens (`uitest/app.go`); punctuation that moves between layouts is not flagged.
 
 ### KEY-6
 
@@ -843,7 +843,7 @@ Return or Enter presses the dialog's default button, when it has one, which is d
 - **Enforce:**
   - Component: Dialog gains an optional default button. On Windows and Linux there is none unless the app marks one (the likely and safe answer, never a Destructive confirm), and Enter or Space presses the focused button; on macOS the confirm button unless Destructive, then none. Button answers Return when focused on Windows and Linux, and when it is the default on macOS (today Space only). Disclosure and SectionHeading drop Return on Windows and Linux.
   - Test, one screen: In every open dialog, Return presses the default the platform form names, or the focused button on Windows and Linux, or nothing.
-- **kvit-ui now:** partly. Dialog has no default button, which is the Windows form when none is chosen, but it cannot be given one; it focuses Confirm, or Cancel when Destructive (`feedback.go:470-479`), and Button activates on Space only (`button.go:75`), so Enter on the focused button does nothing; `Dialog.Accept` is left to the app (`dialogaccept.go:3-7`); Disclosure and SectionHeading take Return (`disclosure.go:55`, `sectionheading.go:74`).
+- **kvit-ui now:** enforces it. Dialog's default is the action on the macOS form unless destructive, and on the Windows form only where `DefaultConfirm` says; Return presses it; a focused Button or IconButton takes Enter on the Windows form; Disclosure and SectionHeading take Space alone on the Windows form (`dialog.go`, `control.go`, `button.go`, `iconbutton.go`).
 
 ### KEY-7
 
@@ -858,7 +858,7 @@ Escape cancels a dialog, popover or menu, and abandons a drag, move, resize or s
 - **Enforce:**
   - Component: Popup OnEscape (exists); add Cmd-. on macOS; Table column drag, SplitView handle and Dialog move go back to where they started on Escape.
   - Test, one screen: Every popup closes on Escape; Escape during a drag leaves the layout as it was.
-- **kvit-ui now:** partly. Escape closes Dialog, Popover, Menu (`feedback.go:469`, `popover.go:114`, `menu.go:418`); TypeAhead's list does not (`typeahead.go:171`); no Cmd-.; no drag looks at Escape: Table column drag (`table.go:870-899`), the split handle and Dialog move (`dialogmove.go:74-119`).
+- **kvit-ui now:** enforces it. Escape closes a dialog, popover, menu and the type-ahead's list, Command-period does on the macOS form, and Escape abandons a table column's move or resize, a split handle's drag and a dialog's move, putting them back (`layer.go`, `typeahead.go`, `windowkeys.go`, `table.go`, `splitview.go`, `dialogmove.go`).
 
 ### KEY-8
 
@@ -871,7 +871,7 @@ Focus starts on the control people will most likely use first, never a Help link
 - **Enforce:**
   - Component: Dialog focuses the first field of its body when it has one, else the confirm button, and finish returns focus to the opener, as Popover does. A form helper moves focus to the first Field with an Error.
   - Test, one screen: After closing each dialog, focus is on the opener; Tab inside an open Popover stays in it; tabbing through every control of a screen changes no value and sets no Error.
-- **kvit-ui now:** partly. Popover focuses its first focusable child and returns focus (`popover.go:115-119`, `popover.go:125-148`), as Menu does (`menu.go:439-457`); Dialog focuses its confirm button even when its body holds a field (`feedback.go:470-479`) and, like FloatingView, gives no focus back (`feedback.go:482-487`, `floatingview.go:108-114`); the ring shows whenever a key moved focus (`control.go:160-166`); nothing moves focus to a field in error. Menu closes on Tab, as decided (`menu.go:517-518`); whether Tab leaves an open Popover is not checked.
+- **kvit-ui now:** partly. Dialog puts the keyboard in the first field of its content, else on its default button, and gives it back to the opener; Tab stays inside an open dialog or popover (`dialog.go`, `layer.go`); nothing moves the keyboard to the first field in error.
 
 ### KEY-9
 
@@ -886,7 +886,7 @@ Tab moves through controls in reading order; inside a group (radio group, tabs, 
 - **Enforce:**
   - Component: Tab, Segmented and SidebarItem get roving focus with arrow keys, as RadioGroup has; on Windows and Linux RadioGroup stops at its ends and moves without choosing on Ctrl+arrow; the tab row answers to Ctrl+Tab and Ctrl+Shift+Tab on every system, and Ctrl+Page Up/Down on Windows and Linux; Table gets Shift+arrow, Ctrl+arrow and Ctrl+Space; Table, Tree, DualList and Select get prefix type-select.
   - Test, one screen: Tab order matches top-to-bottom, leading-to-trailing order of the controls, Help links after the commit buttons.
-- **kvit-ui now:** partly. RadioGroup is one stop, the chosen option or the first (`radiogroup.go:78-90`), with arrows that choose, but it wraps from last to first and ignores Ctrl (`radiogroup.go:102-129`); Tab, Segmented, Sidebar are one stop per item with no arrows (`tab.go:42`, `segmented.go:56-60`, `sidebar.go:120-124`); Table has no Shift+arrow or Ctrl+Space (`tablebody.go:353-425`); Select steps with Up and Down but has no type-select (`select.go:41-52`); no Ctrl+Tab and no type-select in lists, trees or tables (survey §5).
+- **kvit-ui now:** enforces it. A row of tabs, a segmented control, a radio group and the sidebar are each one stop with the arrows inside; a row of tabs goes round at its ends, and a radio group stops at its ends on the Windows form, where Ctrl and an arrow move without choosing and Space chooses; Ctrl+Tab and Ctrl+Shift+Tab choose tabs on both forms; typing the start of a name jumps in Table, Tree, DualList and Select (`roving.go`, `tab.go`, `segmented.go`, `sidebar.go`, `radiogroup.go`, `windowkeys.go`, `typeselect.go`); in a Table, Shift+arrow extends the selection from the anchor, and on the Windows form Ctrl+arrow moves the keyboard without selecting and Ctrl+Space adds the row to the selection or takes it out (`tablebody.go`). `uitest.Labels` reads the Tab stops in the order Tab visits them and fails a step back up a column or back along a row, a help link after the buttons excepted (`uitest/labels.go`).
 
 ### KEY-10
 
@@ -900,7 +900,7 @@ Which controls take Tab focus follows the platform: on Windows and Linux every i
 - **Enforce:**
   - Component: Control asks the platform for the full-keyboard-access setting on macOS.
   - Review.
-- **kvit-ui now:** partly. Every control is focusable on every platform (`control.go:85`), which is the Windows form; macOS full keyboard access is not asked for.
+- **kvit-ui now:** enforces it. Every control is a Tab stop on the Windows form; on the macOS form `UI.FullKeyboardAccess`, read from the Mac's setting, keeps Tab to text fields and lists while it is off (`windowkeys.go`, `platform/keyboard_darwin.go`).
 
 ### KEY-11
 
@@ -915,7 +915,7 @@ A scrolling view answers to the wheel, the trackpad and the standard keys (arrow
 - **Enforce:**
   - Component: Region, Table, Tree, DualList and TypeAhead through `wheelScroll` (exists); add Space to Region; Ctrl+wheel zoom where a view zooms.
   - Test, one screen: Page Down in a Region moves by its height less one line; the wheel over a nested list scrolls the list and leaves focus where it was.
-- **kvit-ui now:** partly. Region handles PageUp, PageDown, Home, End, Up, Down (`region.go:133-144`), not Space; a view with nothing to scroll leaves the wheel to the one it sits in (`wheel.go:13-21`); notches follow the desktop's lines per notch (`wheel.go:41`); no Ctrl+wheel zoom.
+- **kvit-ui now:** partly. Region pages on Space and Shift+Space as well as Page Up and Down (`region.go`); there is no Ctrl+wheel zoom.
 
 ### KEY-12
 
@@ -942,7 +942,7 @@ Going to a search area puts the keyboard in its search field, with its earlier t
 - **Enforce:**
   - Component: SearchField registers itself as the window's Find target, answering Ctrl+F and Ctrl+E on Windows and Linux and Cmd-F on macOS; a find bar, where an app has one, takes Find instead.
   - Test, all screens of an app: Every app screen with a SearchField answers to Find.
-- **kvit-ui now:** does not cover it. No Find key and no search-field registration (survey §5); whether the field selects its text on focus is unison's field, not verified.
+- **kvit-ui now:** enforces it. Find's keys, Ctrl+F and Ctrl+E on the Windows form and Cmd-F on the macOS form, put the keyboard in the window's search field with its text selected when no command has them (`windowkeys.go`).
 
 ### KEY-14
 
@@ -957,7 +957,7 @@ A shortcut is taught where its command appears: every menu-bar item with a short
 - **Enforce:**
   - Component: With the Command type, a MenuItem shows its command's key, and on Windows and Linux the tooltip of an IconButton, Button or Field adds it in parentheses after the name.
   - Test, all screens of an app: Every command with a shortcut shows it in its menu-bar item, and on Windows and Linux in its toolbar tooltip.
-- **kvit-ui now:** partly. MenuItem.Key draws the shortcut (`menu.go:252-258`), but apps set it by hand; Field's tooltip shows its `Shortcut` on every system, as "Label · Shortcut" rather than in parentheses (`field.go:154-164`); IconButton's tooltip has no shortcut (`iconbutton.go:69-74`).
+- **kvit-ui now:** enforces it. A menu line made from a Command shows its key, a context menu on the macOS form shows none, and a symbol button's tooltip adds it on the Windows form (`menu.go`, `command.go`); a Field's tooltip writes its shortcut in parentheses on the Windows form only (`field.go`).
 
 ### KEY-15
 
@@ -970,7 +970,7 @@ On Windows and Linux every interactive control has an access key: Alt and a lett
 - **Enforce:**
   - Component: The `&` marker of MenuItem (`AccessText`, `menu.go:57-74`) is shared by Button, Check, Switch, RadioGroup options, Disclosure, ChipButton and a visible field or list label; the window routes Alt+letter to the control (controls already ignore keys with Alt, `control.go:153-156`); Dialog's Cancel and close button take none; platform reads the always-underline setting on Windows.
   - Test, one screen: On Windows and Linux, in each window: every eligible control has an access key, access keys are unique among enabled controls, and Link, Tab, IconButton, Cancel and Close have none.
-- **kvit-ui now:** partly. Menus underline the `&` letter and choose by it while open (`menu.go:21-24`, `menu.go:525-564`); tray menus keep text plain (`platform/tray_windows.go:486`, `platform/tray_linux.go:445`); no control outside a menu has an access key, there is no Alt+letter route and no menu bar (survey §4).
+- **kvit-ui now:** partly. Every Button, Check, Switch, radio option, Disclosure and FormRow label has an access key on the Windows form, chosen with "&" or given the first free letter, unique in the window, underlined while Alt is held, and Alt with it operates the control; menu lines get one each; OK, Cancel, Close, links, tabs and symbol buttons take none (`accesskey.go`, `menu.go`); `uitest.Labels` fails two controls sharing a chosen key (`uitest/labels.go`). Where Windows' "Underline access keys" setting is on, `UI.UnderlineAccessKeys` underlines them at all times, on controls and the menu bar's titles (`platform/keyboard_windows.go`, `accesskey.go`, `menubar.go`).
 
 ## Pointer
 
@@ -1110,7 +1110,7 @@ Hovering over text that is cut short shows the whole text.
 - **Enforce:**
   - Component: Label shows its full text as a tooltip when elided, as table cells already do.
   - Test, one screen: Every elided Label has a tooltip with the full text.
-- **kvit-ui now:** partly. Table cells and FloatingView titles disclose cut text (`tablebody.go:200-252`, `floatingview.go:194-208`); Label does not (survey §15).
+- **kvit-ui now:** enforces it. A Label cut short shows its whole text as its tooltip (`label.go`); table cells and FloatingView titles disclose cut text as before.
 
 ### PTR-13
 
@@ -1122,7 +1122,7 @@ A click outside an open popover closes it and goes no further, except on a contr
 - **Enforce:**
   - Component: Window's popup layer: a press outside a popover closes it and is consumed, unless it lands on a control that opens a popover.
   - Test, one screen: With a popover open, a click on a button closes the popover without pressing the button; a click on another popover's opener opens it.
-- **kvit-ui now:** contradicts it. A press outside a popup closes it and still reaches what is under the pointer, unless it lands on the popup's own opener (`layer.go:31-34`, `layer.go:175-202`); Popover uses it (`popover.go:114`).
+- **kvit-ui now:** enforces it. A press outside a popup closes it and goes no further, except on a control marked with `OpensPopup`, which opens its own in the same press; Select, MenuButton, SplitButton, Hint, the toolbar's More and the menu bar are marked (`layer.go`).
 
 ### PTR-14
 
@@ -1135,7 +1135,7 @@ The whole visible target is clickable, its symbol and its words alike, and it si
 - **Enforce:**
   - Component: Control takes presses over its whole box (exists); Trend's crosshair (exists).
   - Test, one screen: Every IconButton is at least 20 px square at the default interface size.
-- **kvit-ui now:** partly. Controls take the press anywhere in their box (`control.go:122-151`); Trend has a hover crosshair (catalog KvitTrend); IconButton is a control's height square unless its Size is set smaller, which nothing checks (`iconbutton.go:49-66`).
+- **kvit-ui now:** partly. `uitest.Labels` fails a symbol button smaller than 20 design pixels square (`uitest/labels.go`); a tag's remove button is smaller, inside a 16-pixel tag.
 
 ### PTR-15
 
@@ -1149,7 +1149,7 @@ In a list, table or tree that allows several, a click selects one item, Shift-cl
 - **Enforce:**
   - Component: Table (exists, through unison's `DiscontiguousSelectionDown`); Tree when an app needs several.
   - Review: Every OnRowActivated or OnActivate has the same command on a button or in the row context menu.
-- **kvit-ui now:** partly. Table: Shift-click range and toggle-modifier click (`tablebody.go:296-306`), double press activates (`tablebody.go:343-346`), but no Shift+arrow or Ctrl+Space (`tablebody.go:353-425`); Tree selects one node and runs OnActivate on a double-click of a leaf (`tree.go:311-317`); no row context menu built in (survey §12).
+- **kvit-ui now:** partly. Table: Shift-click extends to a range and the toggle modifier's click adds or removes a row, a double press activates, Shift+arrow extends from the anchor, and on the Windows form Ctrl+arrow moves the keyboard without selecting and Ctrl+Space toggles the row (`tablebody.go`); Tree selects one node and runs OnActivate on a double-click of a leaf (`tree.go`); no row context menu built in (survey §12).
 
 ## Windows and dialogs
 
@@ -1166,7 +1166,7 @@ Dialog buttons follow the platform's order and placement.
 - **Enforce:**
   - Component: Dialog lays out its buttons by platform: on macOS Cancel then the confirming button at the trailing end; on Windows and Linux the confirming button first and the safe button at the right end.
   - Test, one screen: On each platform form, the confirming button is where the platform puts it.
-- **kvit-ui now:** contradicts it. The confirming button is on the right on every system (`feedback.go:371`, `feedback.go:543-552`).
+- **kvit-ui now:** enforces it. Dialog lays out its buttons by form: the action, the second answer and Cancel from the left on the Windows form; the second answer apart, then Cancel and the action at the trailing end on the macOS form (`dialog.go`).
 
 ### WIN-2
 
@@ -1182,7 +1182,7 @@ An alert asks one question, with a specific title and at most three buttons; a r
   - Component: Dialog gains a suppression option with the platform's wording, refused on a Destructive dialog.
   - Test, one screen: Fail a Dialog with more than three buttons, or, on the Windows form, one with no body text.
   - Review: Errors and warnings offering suppression; one question per alert.
-- **kvit-ui now:** partly. Dialog has Title, Detail and two buttons at most (`feedback.go:382-401`), Detail may be empty, and it has no don't-show-again option.
+- **kvit-ui now:** partly. Dialog's `Suppressible` offers "Don't show this message again" ("Do not show…" on the macOS form), never on a destructive dialog (`dialog.go`); `uitest.Labels` fails a dialog of more than three buttons (`uitest/labels.go`); a dialog with no body text is not flagged.
 
 ### WIN-3
 
@@ -1195,7 +1195,7 @@ Every dialog has a safe button that leaves without acting (Cancel, Close, or a s
 - **Enforce:**
   - Component: Dialog refuses an empty CancelText (log a warning).
   - Test, one screen: Fail a Dialog without a safe button.
-- **kvit-ui now:** partly. CancelText defaults to Cancel (`feedback.go:424`) and a destructive dialog focuses Cancel (`feedback.go:470-478`); nothing stops an empty CancelText.
+- **kvit-ui now:** enforces it. Every dialog that asks has Cancel unless set otherwise, and one with none is warned about (`dialog.go`); `uitest.Labels` fails a dialog without a safe button (`uitest/labels.go`).
 
 ### WIN-4
 
@@ -1232,7 +1232,7 @@ A modal view has a title naming its task and an obvious way out inside it, with 
 - **Enforce:**
   - Component: Dialog (title, Cancel, close, Escape); its close symbol is drawn on Windows and Linux only.
   - Test, one screen: Every dialog has a non-empty Title on every system (decided, Q-42).
-- **kvit-ui now:** partly. Three ways out: close symbol, Cancel, Escape (`feedback.go:368-375`), the close symbol rejecting as Cancel does (`feedback.go:428-429`); Title asks the question (`feedback.go:385-386`), as the Windows form now wants; the close symbol shows on macOS too, which the macOS form rules out, and nothing refuses an empty Title.
+- **kvit-ui now:** enforces it. Dialog draws its close symbol on the Windows form only, warns about a dialog without a title, and Escape cancels it (`dialog.go`); `uitest.Labels` fails a dialog without a title (`uitest/labels.go`).
 
 ### WIN-7
 
@@ -1245,7 +1245,7 @@ One modal at a time: close a dialog before opening another, except that an alert
   - Windows 7: [win-property-win](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-property-win) 30, 26; [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 28
 - **Enforce:**
   - Component: Window.Show refuses a second modal popup other than an alert (or, on Windows and Linux, a helper owned by the top dialog); Popover closes any open popover first.
-- **kvit-ui now:** does not cover it. Popups stack without a check (`layer.go:58-68`).
+- **kvit-ui now:** partly. A dialog is not opened, with a warning, while another is open, unless it informs or, on the Windows form, is a `Helper` (`dialog.go`); a popover does not close another before opening.
 
 ### WIN-8
 
@@ -1257,7 +1257,7 @@ Cancel discards a dialog's or flow's input without asking; closing it would thro
 - **Enforce:**
   - Component: Dialog gains `OnDiscard`, asked before reject from the close control or Escape when the content holds effortful changes.
   - Review: What counts as significant effort.
-- **kvit-ui now:** contradicts it. Dismissal is always a decline (`feedback.go:498-504`), with nothing to keep typed input.
+- **kvit-ui now:** enforces it. Dialog's `OnDiscard` is asked before the close symbol or Escape throws away what was put in; Cancel discards without asking (`dialog.go`).
 
 ### WIN-9
 
@@ -1313,7 +1313,7 @@ A window's title names its content and tells it apart from the app's other windo
 - **Enforce:**
   - Test, all screens of an app: No two open windows have the same title.
   - Review.
-- **kvit-ui now:** does not cover it. The title is passed through (`window.go:56-57`).
+- **kvit-ui now:** partly. `Window.SetDocument` titles the window "document - app" on the Windows form and with the document alone on the macOS form (`windowstate.go`); two windows with one title are not flagged.
 
 ### WIN-13
 
@@ -1335,7 +1335,7 @@ Bring back the windows, their sizes, positions, views, scroll positions, expande
 - **Enforce:**
   - Component: Window saves and restores its frame in settings (`settings/store.go`); Tree and SplitView report state to keep.
   - Review.
-- **kvit-ui now:** partly. Dialog (`OnMove`) and SplitView (`OnResize`) hand positions to the app; windows remember nothing (survey §9).
+- **kvit-ui now:** partly. `Window.RememberFrame` keeps the window's place and size in the settings file and puts it back fitted to the screen's usable area (`windowstate.go`); Dialog and SplitView hand their positions to the app; trees and scroll positions are not kept.
 
 ### WIN-15
 
@@ -1349,7 +1349,7 @@ Offer full screen where people view, present or work in depth; it starts and end
 - **Enforce:**
   - Component: Window.FullScreen through unison.
   - Review.
-- **kvit-ui now:** does not cover it. No full screen (survey §9).
+- **kvit-ui now:** partly. `Window.SetFullScreen` and `FullScreenCommand`, the standard command on F11 and Ctrl-Cmd-F, make the window cover the screen and put it back (`windowstate.go`); unison has no full-screen mode, so the window's frame stays drawn.
 
 ### WIN-16
 
@@ -1364,7 +1364,7 @@ Settings hold app-wide options people seldom change, and every app setting can b
 - **Enforce:**
   - Component: A Settings component with a platform form (a page in the app's window, ending with About, on Windows and Linux; a window of panes on macOS), applying each change at once on every platform.
   - Review: Everyday commands kept off the settings page.
-- **kvit-ui now:** does not cover it. No settings component (survey §11); Sidebar has no footer group for Settings (`sidebar.go`).
+- **kvit-ui now:** partly. SettingRow, Settings at the sidebar's foot and `NewAboutSection` build a settings page that applies at once (`settings.go`, `sidebar.go`); the same `SettingsPane`s make both forms: on the Windows form `NewSettingsPage` (or `SettingsWindow.Page`) is one scrolling column with each pane a section under its name and About last, and on the macOS form `SettingsWindow` is a window of panes, titled with the pane shown, as tall as it and not resizable; `SettingsWindow.Command` opens the window on the macOS form and shows the page on the Windows form (`settingswindow.go`). unison cannot take the minimise button off the window, which the macOS form does not have.
 
 ### WIN-17
 
@@ -1403,7 +1403,7 @@ Never lose work: notes-like data (kvit-notes, kvit-works) saves automatically; k
 - **Enforce:**
   - Component: Window gains `AllowClose` wired to unison's `AllowCloseCallback`, for autosaving and asking apps alike; MenuBar's Quit goes through it.
   - Review: Which data saves automatically and which asks.
-- **kvit-ui now:** does not cover it. No unsaved-changes hook (`window.go:114`).
+- **kvit-ui now:** enforces it. `Window.AllowClose` is asked before the window closes, by its close button, Close, Exit or Quit (`window.go`).
 
 ### WIN-20
 
@@ -1415,7 +1415,7 @@ Mark a document with unsaved changes through Window.Edited, and clear the mark w
   - Apple: [file-management](https://developer.apple.com/design/human-interface-guidelines/file-management) 24, 25, 26
 - **Enforce:**
   - Component: Window.Edited: the title's asterisk on Windows and Linux, the close button's dot on macOS.
-- **kvit-ui now:** does not cover it. Not covered.
+- **kvit-ui now:** partly. `Window.SetEdited` puts an asterisk before the document in the title on the Windows form, and on the macOS form asks AppKit for the dot in the close button, finding the window by its title since unison keeps the system's window to itself (`windowstate.go`, `platform/document_darwin.go`); the dot is compiled for macOS but has not been run on a Mac.
 
 ### WIN-22
 
@@ -1442,7 +1442,7 @@ The confirming button applies the dialog's changes, does its task and closes; Ca
   - Component: Dialog keeps confirm, Cancel, close and Escape to these meanings (exists); a properties form of Dialog adds Apply on Windows and Linux, enabled once something changed.
   - Test, one screen: Fail an Apply button outside a properties dialog, a disabled Apply, or OK or Cancel on a settings page.
   - Review: Cancel leaving no side effect; modeless windows using Close.
-- **kvit-ui now:** partly. Confirm runs OnAccept and closes unless ConfirmKeepsOpen (`feedback.go:489-496`); Cancel, the close symbol and Escape all reject (`feedback.go:428-429`, `feedback.go:469`, `feedback.go:498-504`); there is no Apply, and whether Cancel leaves no trace is the application's code.
+- **kvit-ui now:** enforces it. `DialogProperties` adds Apply on the Windows form only, disabled until `MarkChanged` says something changed and again after it is pressed, which leaves the dialog open; the macOS form leaves it out (`dialog.go`). Settings apply at once and have no OK, Cancel or Apply (`settingswindow.go`). `uitest.Labels` fails an Apply outside a properties dialog or on the macOS form, and OK, Cancel or Apply in a region holding setting rows (`uitest/labels.go`). Whether Cancel leaves no trace, and whether a modeless window uses Close, is the reviewer's.
 
 ### WIN-24
 
@@ -1522,7 +1522,7 @@ A message's title (its main instruction) says what happened, or asks the one que
 - **Enforce:**
   - Test, one screen: Fail a Dialog or Notice title of "Error", "Warning", a code alone, or over about 100 characters, and one that starts with "You " in a Notice or Dialog of danger tone.
   - Review: A confirmation's title asks more than one question; an error code outside the details; "we" in a message.
-- **kvit-ui now:** does not cover it. Not checked; Dialog's Title "asks the question" (`feedback.go:385`), with no caption beside it, and the title row is always drawn (`feedback.go:449`), as every dialog has a title.
+- **kvit-ui now:** partly. `uitest.Labels` fails a dialog or notice titled Error, Warning, Caution or Alert, or over 100 characters (`uitest/labels.go`); a title of a code alone or starting "You " is not flagged.
 
 ### MSG-5
 
@@ -1598,7 +1598,7 @@ A desktop notification is for something that happened in the background, not the
 - **Enforce:**
   - Component: Tray.Notify skips when a Kvit window is active, or the app decides (`platform/tray.go:269-283`); the Windows backend sets NIIF_NOSOUND.
   - Review: A notification for the result of the reader's own command; progress in a notification.
-- **kvit-ui now:** contradicts it. Notify posts whatever it is given, even while a Kvit window is active (`platform/tray.go:272-283`); the Windows balloon is posted without NIIF_NOSOUND (`platform/tray_windows.go:438-439`), so Windows plays its notification sound.
+- **kvit-ui now:** enforces it. `UI.Notify` posts nothing while one of the app's windows is in front (`notify.go`); the Windows balloon is posted with NIIF_NOSOUND and Linux's with suppress-sound (`platform/tray_windows.go`, `platform/tray_linux.go`).
 
 ### MSG-11
 
@@ -1625,7 +1625,7 @@ Give each notification an honest kind and urgency, and the timing that goes with
 - **Enforce:**
   - Component: Notification gains a Kind (success, failure, event, task, information) and an Urgency mapped per platform, and Tray gains Withdraw(id) for a notification that no longer applies.
   - Review: A notification repeated more often than its kind allows; an advertisement.
-- **kvit-ui now:** does not cover it. Notification has Title, Message, ID only (`platform/tray.go:62-69`); nothing withdraws a posted notification.
+- **kvit-ui now:** partly. A notification has a `Kind` (information, success, failure, problem, task), shown with the matching symbol on Windows and urgency on Linux, and `Tray.Withdraw` takes one that no longer applies off the screen by its ID: the balloon on Windows, `CloseNotification` on Linux, and Notification Centre's delivered and pending lists on macOS (`platform/tray.go`, `platform/tray_windows.go`, `platform/tray_linux.go`, `platform/tray_darwin.go`). Informational notifications are not held back until the reader turns them on, and nothing limits how often a kind is posted.
 
 ### MSG-13
 
@@ -1701,7 +1701,7 @@ One primary button per view, for the action the view is for; alternatives offere
   - Apple: [buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) 4, 5, 6
 - **Enforce:**
   - Test, one screen: Fail a region with two or more ButtonPrimary buttons.
-- **kvit-ui now:** partly. "One primary per region" is the doc (`button.go:22-25`) but nothing enforces it.
+- **kvit-ui now:** enforces it. `uitest.Labels` fails a region, dialog, popover, pane or card with two enabled primary buttons (`uitest/labels.go`).
 
 ### CTL-2
 
@@ -1717,7 +1717,7 @@ Choose the control by the choice: a checkbox for one on/off option whose off sta
   - Component: RadioGroup states the limit, two to five, in its doc and in the gallery (`radiogroup.go:22-28`); Switch's doc draws the line between a switch and a checkbox (`switch.go:16-20`).
   - Test, one screen: Fail a RadioGroup with more than five options or fewer than two.
   - Review: Program option or data; a checkbox whose off state is unclear; on Windows and Linux, a checkbox that applies at once.
-- **kvit-ui now:** partly. The split between Segmented, RadioGroup and Select is documented (`segmented.go:21-25`, `radiogroup.go:22-28`, `select.go:13-17`), and the two docs disagree (Segmented two to five, RadioGroup's doc two to four); Switch's doc puts a setting that applies at once on a switch and a form's options on checkboxes (`switch.go:16-20`); no limit is checked.
+- **kvit-ui now:** partly. `uitest.Labels` fails a radio group of fewer than two or more than five options (`uitest/labels.go`); the docs of Segmented, RadioGroup and Select draw the line between them.
 
 ### CTL-3
 
@@ -1728,7 +1728,7 @@ A segmented control either selects or acts, never both; its segments are all tex
 - **Enforce:**
   - Component: Segmented.
   - Test, one screen: Fail a Segmented mixing symbol-only and text segments or with more than seven.
-- **kvit-ui now:** partly. Segmented is for 2–5 options (`segmented.go:21-25`).
+- **kvit-ui now:** partly. `uitest.Labels` fails a segmented control of more than seven segments (`uitest/labels.go`); mixing symbol-only and worded segments is not flagged.
 
 ### CTL-4
 
@@ -1771,7 +1771,7 @@ Make on and off differ by more than colour, and say what a toggle turns on; a sw
   - Fluent: [ui-controls-checkbox](https://learn.microsoft.com/en-us/windows/apps/design/controls/checkbox) 6; [ui-controls-toggles](https://learn.microsoft.com/en-us/windows/apps/design/controls/toggles) 2, 6
 - **Enforce:**
   - Component: Switch, Check, checkable buttons (exist); Switch shows On or Off beside it on the Windows form.
-- **kvit-ui now:** partly. Checked buttons get an outline as well as a tint (`button.go:63-66`, `iconbutton.go:42-44`) and Switch's knob moves as well as its track filling (`switch.go:16-20`); Switch shows no On or Off text beside it.
+- **kvit-ui now:** enforces it. A switch says On or Off beside it on the Windows form (`switch.go`); its knob moves as its track fills.
 
 ### CTL-7
 
@@ -1786,7 +1786,7 @@ Prefer a control that accepts only valid values (select, list, slider, stepper) 
 - **Enforce:**
   - Component: Field: a length limit with a remaining count, paste fitting, a masked mode with reveal, select-all on focus and spell checking set per field; NumberField and MoneyField (exist). A clear button on a focused single-line Field holding text, on the Windows form.
   - Review: A constrained control wherever the valid values can be listed; spell checking off for names, numbers and codes.
-- **kvit-ui now:** partly. NumberField checks as the reader types, accepts both decimal separators, reformats on blur and has no value while empty (`numberfield.go:15-21`, `numberfield.go:62-69`, `numberfield.go:47-53`, `numberfield.go:72-76`); Field has no length limit, no masked mode, no spell checking and no select-on-focus choice and no clear button (`field.go:31-48`; only SearchField has one, `searchfield.go:54-57`); TextArea starts three rows tall and takes more height when given it (`field.go:404`).
+- **kvit-ui now:** partly. Field has `Masked` for a secret, `MaxLength` with text past it reported as the field's error rather than cut, and a clear button while it holds the keyboard and text on the Windows form (`field.go`); NumberField checks as the reader types. There is no remaining count, paste fitting, select-all on focus or spell checking.
 
 ### CTL-8
 
@@ -1800,7 +1800,7 @@ A control that cannot act now is removed when people cannot make it work or woul
   - Component: Button.Explanation on a disabled button (exists); a field, select or list that is disabled takes its visible label with it, which needs a label linked to the control.
   - Test, one screen: Fail a disabled Button with no Explanation.
   - Review: Remove, disable or explain, by the three tests.
-- **kvit-ui now:** partly. A disabled button's Explanation is shown and read (`button.go:57-60`); ChipButton keeps an unavailable reason in the tab order (`chipbutton.go:22-27`); Stepper disables minus and plus at the ends (`stepper.go:67-68`); a Field has no visible label to disable with it (`field.go:34-35`).
+- **kvit-ui now:** enforces it. A disabled button's Explanation, or its command's, is shown and read (`button.go`); `uitest.Labels` fails a disabled button without one (`uitest/labels.go`).
 
 ### CTL-9
 
@@ -1830,7 +1830,7 @@ Static tabs hold peer pages of one thing; a control on a page changes only that 
 - **Enforce:**
   - Component: Tab carries text and a count, no symbol (`tab.go:16-29`); a document tab strip (close buttons, new tab, reorder, tear-off, the tab shortcuts).
   - Test, one screen: Fail a tab row longer than the platform allows (seven on Windows and Linux, six on macOS), a row of one tab, or a tab row inside a tab page.
-- **kvit-ui now:** partly. Tab has words, a count and an Explanation, no symbol (`tab.go:16-29`), and its doc calls a tab a view of the same thing (`tab.go:10-14`); which tab is selected is the application's (`tab.go:94-113`); nothing counts tabs or checks nesting; there are no document tabs.
+- **kvit-ui now:** partly. `uitest.Labels` fails a row of one tab and a row longer than seven on the Windows form or six on the macOS form (`uitest/labels.go`); a tab row inside a tab page is not flagged.
 
 ### CTL-11
 
@@ -1898,7 +1898,7 @@ A search field says what it searches, updates results as the reader types, start
 - **Enforce:**
   - Component: SearchField: the placeholder is set per use; clear button and Escape (exist).
   - Test, one screen: Fail a SearchField left at the bare default placeholder on an app screen.
-- **kvit-ui now:** partly. SearchField's default placeholder is "Filter…" (`searchfield.go:38`), which says nothing about what is searched; its clear button appears once there is text (`searchfield.go:56-66`) and Escape clears (`searchfield.go:67-74`); Header has a middle place that could hold a search box (`header.go:11-16`), which is where app-wide search goes on Windows; nothing filters by containment or ranks start-of-word matches.
+- **kvit-ui now:** enforces it. `uitest.Labels` fails a search field left at its "Filter…" placeholder (`uitest/labels.go`).
 
 ### CTL-16
 
@@ -1937,7 +1937,7 @@ Content text people may want to reuse (messages, addresses, identifiers) can be 
   - Fluent: [ui-controls-text-box](https://learn.microsoft.com/en-us/windows/apps/design/controls/text-box) 9; [ui-controls-text-controls](https://learn.microsoft.com/en-us/windows/apps/design/controls/text-controls) 2
 - **Enforce:**
   - Component: Label gains `Selectable` for content text.
-- **kvit-ui now:** does not cover it. Labels cannot be selected (`label.go`); Field.ReadOnly lets a field's text be selected but not changed (`field.go:45-46`).
+- **kvit-ui now:** partly. A Label with `Selectable` is selected whole by a press and copied by Copy, Ctrl+C or its context menu (`label.go`); part of its text cannot be selected.
 
 ### CTL-19
 
@@ -2078,7 +2078,7 @@ A long operation can be cancelled when stopping is harmless, and paused as well 
   - Windows 7: [win-dialog-box](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box) 71\*, 72; [progress-bars](https://learn.microsoft.com/en-us/windows/win32/uxguide/progress-bars) 41; [win-wizards](https://learn.microsoft.com/en-us/windows/win32/uxguide/win-wizards) 37; [ctrl-command-buttons](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-command-buttons) 52
 - **Enforce:**
   - Component: Progress gains an optional halt button whose words are Cancel or Stop as the application says, and Pause/Resume.
-- **kvit-ui now:** does not cover it. Progress has no cancel (survey §8, `progress.go:21-39`).
+- **kvit-ui now:** enforces it. Progress has a halt button whose words the app gives, Cancel or Stop, and Pause, which becomes Resume (`progress.go`).
 
 ### FDB-4
 
@@ -2127,7 +2127,7 @@ Every edit can be undone back to the last open or save, small related edits undo
 - **Enforce:**
   - Component: An UndoStack in kvit-ui with named entries, feeding the Edit menu, ConfirmInPlace and Toast.
   - Component: Window gains AllowClose, a hook that can hold a close to ask about unsaved changes.
-- **kvit-ui now:** does not cover it. No undo stack (survey §13); no hook can hold a window's close (only WillCloseCallback, `window.go:114`).
+- **kvit-ui now:** enforces it. `UndoStack` keeps named edits for the Edit menu, a Toast and a ConfirmInPlace (`undo.go`), and `Window.AllowClose` can hold a close to ask about unsaved changes (`window.go`).
 
 ### FDB-8
 
@@ -2162,7 +2162,7 @@ Progress details only when the reader can use them: what is happening in words (
 - **Enforce:**
   - Component: Progress drops its percentage text by default and gains Remaining, shown only once the application says the estimate is steady.
   - Review: File names flickering past; a debug identifier on a progress page.
-- **kvit-ui now:** contradicts it. Progress shows "N%" beside the bar by default (`progress.go:45`, `progress.go:70-78`); it has no time remaining (survey §8).
+- **kvit-ui now:** enforces it. Progress shows no percentage unless asked, and says the time left, "About 3 minutes left" (`progress.go`).
 
 ## Layout
 
@@ -2241,7 +2241,7 @@ A field's width matches what it expects; stack fields and radio buttons in a col
 - **Enforce:**
   - Component: A form row that draws a field's label (above it on Windows and Linux) and links it to the field.
   - Review.
-- **kvit-ui now:** partly. NumberField is right-aligned (`numberfield.go:15`, `numberfield.go:45`) and Cell aligns figures and money right, text left (`cell.go:28-40`); Field's Label names it only for a screen reader (`field.go:34-35`) and there is no form layout helper.
+- **kvit-ui now:** enforces it. FormRow puts a field's label above it on the Windows form and beside it on the macOS form (`formrow.go`); SettingRow puts the label at the leading side and the control at the trailing edge (`settings.go`).
 
 ### LAY-7
 
@@ -2289,7 +2289,7 @@ Choose a flat or hierarchical structure by the content: fewer than eight pages v
   - Component: Sidebar and Breadcrumb (exist); a back history per window with a Back button at the top leading corner, disabled when empty; a breadcrumb ellipsis that lists the hidden crumbs.
   - Test, one screen: Fail a Breadcrumb whose last crumb can be followed, and a Back button enabled with an empty history.
   - Review: Flat or hierarchical; which moves are history steps; direct links between related pages.
-- **kvit-ui now:** partly. Sidebar holds the top-level places (`sidebar.go:13-17`) and Breadcrumb shows the trail with a last crumb that is not a link (`breadcrumb.go:21-25`), but cuts a long trail in the middle into a "…" that cannot be followed (`breadcrumb.go:25-28`, `breadcrumb.go:54-56`); ViewHead heads a view with its title (`viewhead.go:10-20`); there is no back history and no Back button, and Header puts the wordmark at the leading end and navigation in its middle (`header.go:11-16`).
+- **kvit-ui now:** enforces it. `History` follows the reader's own steps, and its Back button and standard command (Alt+Left, Cmd-[) are disabled with nowhere to go back to (`history.go`); the breadcrumb's "…" lists the places it folds (`breadcrumb.go`).
 
 ## Accessibility
 
@@ -2303,7 +2303,7 @@ Every element has a name a screen reader says, and the name is the words on scre
   - Fluent: [accessibility-accessibility-overview](https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-overview) 2, 14
 - **Enforce:**
   - Test, one screen: CheckNamed (exists); add: a Button's name equals its visible words, and no name is over 150 characters or starts with Click.
-- **kvit-ui now:** enforces it. `uitest.CheckNamed` (`uitest/uitest.go:180-212`); IconButton's Label is name and tooltip (`iconbutton.go:23-27`).
+- **kvit-ui now:** enforces it. `uitest.CheckNamed`; IconButton's Label is its name and tooltip, a Button's name is its words, and `uitest.Labels` fails a name starting with Click (`uitest/labels.go`).
 
 ### A11Y-2
 
@@ -2390,7 +2390,7 @@ What the screen shows, the screen reader gets: text is drawn as text (never insi
   - Component: Field and Select gain a visible label that sets LabeledBy (today Label is only the accessible name, `field.go:34-35`); containers that group by placement take a Group role. Notice announces itself when shown or changed; a badge's count is in its control's name and announced when it changes; RadioGroup options report their position.
   - Test, one screen: Every visible label beside a control is that control's name or LabeledBy; groups are nodes in the tree.
   - Review: Words in pictures; text-character drawings.
-- **kvit-ui now:** partly. `uitest.CheckNamed` accepts LabeledBy but no component sets it (`uitest/uitest.go:207`); Progress draws its percentage beside the bar, not on it (`progress.go:70-77`); text is drawn by the `text` package; focus events are unison's (not verified). Notice is a Group named by its text but is not announced when it appears (`feedback.go:356-365`); Tab and SidebarItem put their count in their name (`tab.go:111-125`, `sidebar.go:93-95`) with no announcement when it changes; nothing sets a position in a group.
+- **kvit-ui now:** partly. FormRow names its field by the label the reader sees (`formrow.go`); no component sets LabeledBy; Notice is a Group named by its text.
 
 ## Consistency
 
@@ -2406,7 +2406,7 @@ One command or feature has one name, symbol and shortcut, spelled and capitalise
   - Component: A Command type gives one name, symbol and shortcut to every place it is shown (menu line, Button, IconButton tooltip, tray item, shortcut list) and is the title of the dialog it opens.
   - Test, all screens of an app: Across all screens of an app, collect (handler or Command, name): fail one command with two names, one name on two different commands, and one name capitalised two ways.
   - Review: A Dialog's Title uses the words of the command that opened it; on Windows, as the main instruction.
-- **kvit-ui now:** does not cover it. No command object: each menu line, button and tray item carries its own words (survey §4); Dialog.Title is free text unrelated to the command that opens it (`feedback.go:385-386`).
+- **kvit-ui now:** enforces it. A Command gives one name, symbol and shortcut to every place it is shown (`command.go`); `uitest.App` fails one command written two ways, or with two symbols or two sets of keys, across an app's screens in one form (`uitest/app.go`).
 
 ### CON-2
 
@@ -2419,7 +2419,7 @@ One symbol has one meaning in an app, and a standard action uses its standard sy
 - **Enforce:**
   - Component: The icon catalogue lists each name's meaning (`icons/catalog_gen.go`); a symbol used for a meaning not listed logs a warning.
   - Test, all screens of an app: Across all screens of an app, collect (symbol, name); fail a symbol with two unrelated names.
-- **kvit-ui now:** partly. Symbols are asked for by meaning (SKILL.md), but nothing ties a name to its uses.
+- **kvit-ui now:** partly. `uitest.App` fails one symbol used under two names across an app's screens (`uitest/app.go`); a symbol used for a meaning the catalogue does not list is not warned about.
 
 ### CON-3
 
@@ -2445,7 +2445,7 @@ Feel native on each platform. Keep content and controls in the same places acros
   - Component: Platform forms (library-gaps.md, Platform knowledge); Field gets one Required flag, drawn as an asterisk after the label on every system and given to screen readers as required, so an app cannot mix two markings.
   - Test, all screens of an app: Across all screens of an app, collect (field label, position in its form, control kind): fail one label at two positions or as two kinds of control.
   - Review: Similar windows share one layout; choices on one page use matching control kinds.
-- **kvit-ui now:** partly. Menus are native on macOS (`menu.go:100`) and word keys follow the platform (`fieldword.go:20`); nothing else varies (survey §1). Fields have no required or optional mark at all (no such field in `field.go`), so no app can be consistent about it yet.
+- **kvit-ui now:** partly. Field's `Required` is drawn as an asterisk after its FormRow label on every system and told to a screen reader (`field.go`, `formrow.go`); one label at two positions across an app is not flagged.
 
 ### CON-5
 
@@ -2511,7 +2511,7 @@ Every symbol-only control shows a short tooltip on hover and on keyboard focus: 
 - **Enforce:**
   - Component: IconButton (exists). control keeps its tooltip while the pointer crosses to it, and the window's popupKeys hides a shown tooltip on Escape, and on Windows and Linux on Ctrl, before the key goes on to anything else. On Windows and Linux the tooltip adds the Command's shortcut in parentheses after the name.
   - Test, one screen: Every IconButton has a tooltip; with no popup open, a shown tooltip goes on Escape (and Ctrl on Windows) with focus unmoved, and stays while the pointer moves from the control onto it; on Windows a control with a shortcut shows it in parentheses.
-- **kvit-ui now:** partly. IconButton's tooltip is its Label and Explanation (`iconbutton.go:69-74`), with no shortcut; tooltips show on focus too (`control.go:164-166`) and go when pointer and focus have left (`control.go:103-109`, `control.go:172-177`). Leaving the control toward the tooltip hides it at once (`control.go:103-109`), and Escape and Ctrl pass a tooltip by (`layer.go:150-163`).
+- **kvit-ui now:** partly. A symbol button's tooltip is its name, with its command's shortcut in parentheses on the Windows form (`iconbutton.go`, `command.go`); `uitest.Labels` fails a symbol button without one (`uitest/labels.go`); Escape and Ctrl do not hide a shown tooltip.
 
 ### HLP-2
 
@@ -2557,7 +2557,7 @@ Teaching tips use a Tip (anchored, non-blocking, dismissable); Spotlight stays f
   - Component: New Tip: a passive card that points at its target (or sits centred at the window's bottom), with a close button and at most one action, closing on scroll inside a scroll panel; it never shades the window, and records by id that it was shown.
   - Test, one screen: With a Tip shown, a control outside it is still pressable; a Tip inside a scroll panel closes on scroll.
   - Review: What tips teach and how often they appear.
-- **kvit-ui now:** partly. Spotlight is the primitive for a tour (catalog KvitSpotlight); there is no tip. As a tip it contradicts the rule: it shades the region and a press anywhere on it is taken to dismiss it (`spotlight.go:64-67`, `spotlight.go:135-151`), and its card goes below the lit part, above only where it does not fit (`spotlight.go:127-131`).
+- **kvit-ui now:** enforces it. Tip is a card beside what it explains, or at the bottom of the window, with a close button and at most one action; it blocks nothing, closes when what it points at moves, and is not shown again once closed, until `ResetTips` (`tip.go`).
 
 ### HLP-5
 
@@ -2584,7 +2584,7 @@ Help is reached from where it is needed, the same way throughout the app, and op
   - Component: New HelpLink: takes a topic id and words; on Windows and Linux it is a Link (`link.go`) placed at the bottom of its group, on macOS the round question-mark IconButton; Dialog (`feedback.go:382-400`) gets a Help slot that places it per platform. A topic id opens the shipped HTML page at its anchor in the system browser.
   - Test, Go source: HelpLink words end in "?" with no other closing punctuation and do not start with "Learn more", "Get help" or "Troubleshoot"; no Button labelled Help or Troubleshoot.
   - Test, all screens of an app: Every HelpLink's topic id resolves to an existing topic anchor; on macOS at most one help button per window.
-- **kvit-ui now:** does not cover it. No help at all: no help link, no F1, no Help menu (survey §11); Dialog has no help slot (`feedback.go:382-400`).
+- **kvit-ui now:** enforces it. HelpLink is a question-worded link on the Windows form and the round help button on the macOS form, opening `UI.HelpRoot`'s HTML page at its anchor (`helplink.go`); `Dialog.Help` puts it at the bottom of the content on the Windows form, reached by Tab after the buttons, and at the leading end of the button row on the macOS form (`dialog.go`). `uitest.Labels` fails help words that are not a question ending in a question mark or that start "Learn more", "Get help" or "Troubleshoot", a Button labelled Help or Troubleshoot, and more than one help button to a window or dialog on the macOS form; `uitest.App` fails a topic whose page or anchor is not in `UI.HelpRoot` (`uitest/labels.go`, `uitest/app.go`). Whether a topic says something the window cannot is the reviewer's.
 
 ### HLP-7
 
@@ -2635,7 +2635,7 @@ Numbers, dates, times and money follow the reader's locale, with the long date f
 - **Enforce:**
   - Component: ui.Number, CountPhrase (exist); a UI.Date(t, Long|Short) from platform.Locale, used by the Date cell.
   - Test, Go source: No time.Format with a literal layout outside the date helper.
-- **kvit-ui now:** partly. Locale grouping (`numbers.go:11-19`); TypeAhead counts with strconv (`typeahead.go:100-102`); a Date cell is always drawn as ISO 2006-01-02 whatever the locale (`cell.go:117-121`).
+- **kvit-ui now:** partly. Locale grouping (`numbers.go`); TypeAhead counts with `CountPhrase` (`typeahead.go`); a Date cell is always drawn as ISO 2006-01-02 whatever the locale (`cell.go`).
 
 ### OTH-3
 

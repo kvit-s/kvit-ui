@@ -122,7 +122,7 @@ func (r *Region) wheel(_, delta geom.Point, _ mod.Modifiers) bool { return r.eas
 // keyDown scrolls for the keys nothing inside the region wanted: a key goes
 // to the focused panel first and comes here only if it was not used, so a
 // field keeps Home and End for its caret and a list keeps its arrows.
-func (r *Region) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
+func (r *Region) keyDown(key unison.KeyCode, mods mod.Modifiers, _ bool) bool {
 	if !r.Scrolls() {
 		return false
 	}
@@ -132,6 +132,13 @@ func (r *Region) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 	switch key {
 	case unison.KeyPageDown:
 		y += page
+	case unison.KeySpace:
+		// Space pages down, and Shift+Space up (KEY-11).
+		if mods.ShiftDown() {
+			y -= page
+		} else {
+			y += page
+		}
 	case unison.KeyPageUp:
 		y -= page
 	case unison.KeyHome:

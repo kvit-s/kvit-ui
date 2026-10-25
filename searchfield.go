@@ -53,7 +53,7 @@ func NewSearchField(ui *UI) *SearchField {
 	}
 	// The clear button is a control's height square, the size of every
 	// other control, over the field's right end.
-	s.clear = NewIconButton(ui, "close", "Clear the filter")
+	s.clear = NewIconButton(ui, "close", "Clear")
 	s.clear.OnClick = func() {
 		s.SetText("")
 		s.edit.RequestFocus()

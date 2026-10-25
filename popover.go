@@ -111,7 +111,8 @@ func (p *Popover) Open(anchor unison.Paneler, place func(bounds geom.Rect, size 
 		}
 		return place(bounds, size)
 	}
-	p.hide = w.Show(&Popup{Panel: p, Place: sized, OnEscape: p.Close, OnPressOutside: p.Close, Anchor: anchor})
+	p.hide = w.Show(&Popup{Panel: p, Place: sized, OnEscape: p.Close, OnPressOutside: p.Close, Anchor: anchor,
+		HoldsKeyboard: true})
 	unison.InvokeTask(func() {
 		if f := p.FirstFocusableChild(); f != nil {
 			f.RequestFocus()
@@ -181,6 +182,7 @@ func NewHint(ui *UI, label, explanation string) *Hint {
 	h.Self = h
 	h.trigger = NewIconButton(ui, "info", label)
 	h.trigger.TooltipEnabled = false
+	OpensPopup(h.trigger)
 	h.trigger.OnClick = func() {
 		if h.pop.Opened() {
 			h.pop.Close()

@@ -7,6 +7,7 @@ import (
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
 	"github.com/richardwilkes/unison/enums/align"
+	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
@@ -14,7 +15,8 @@ import (
 type Option struct {
 	// Value is what the choice means to the caller.
 	Value string
-	// Label is what the segment says.
+	// Label is what the segment, or the select's line, says, in sentence
+	// case: a segment is written in title case on the macOS form (WRD-6).
 	Label string
 }
 
@@ -57,6 +59,22 @@ func NewSegmented(ui *UI, label string, options ...Option) *Segmented {
 		seg := &segment{s: s, option: o}
 		seg.Self = seg
 		seg.initControl(ui, func() { s.Choose(seg.option.Value) }, unison.KeySpace)
+		// The strip is one stop in the Tab order; the arrow keys choose the
+		// segment before or after (KEY-9).
+		keys := seg.KeyDownCallback
+		seg.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+			if mods&mod.NonSticky == 0 {
+				if next, moved := roveStep(s.segments, seg, key, false, ui.form == FormMac); moved {
+					if next != nil {
+						next.SetFocusable(true)
+						next.Focus()
+						next.fire()
+					}
+					return true
+				}
+			}
+			return keys(key, mods, repeat)
+		}
 		seg.ringRadius = func() float32 { return float32(ui.Interface.RadiusBar()) }
 		seg.SetSizer(seg.sizes)
 		seg.DrawCallback = seg.draw
@@ -83,6 +101,15 @@ func NewSegmented(ui *UI, label string, options ...Option) *Segmented {
 	return s
 }
 
+// Options are the choices, in order.
+func (s *Segmented) Options() []Option {
+	out := make([]Option, len(s.segments))
+	for i, g := range s.segments {
+		out[i] = g.option
+	}
+	return out
+}
+
 // Choose makes the option with a value the chosen one.
 func (s *Segmented) Choose(value string) {
 	s.Current = value
@@ -98,12 +125,13 @@ func (g *segment) label() *text.Layout {
 	if g.chosen() {
 		weight, ink = text.Bold, tokens.LabelOn(t.Accent)
 	}
-	return ui.Fonts.Layout([]text.Span{{Text: g.option.Label, Style: ui.Chrome(ui.Size(RoleBody), weight, ink)}}, text.Options{})
+	return ui.Fonts.Layout([]text.Span{{Text: ui.CommandCase(g.option.Label), Style: ui.Chrome(ui.Size(RoleBody), weight, ink)}}, text.Options{})
 }
 
 func (g *segment) chosen() bool { return g.option.Value == g.s.Current }
 
 func (g *segment) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	oneStop(g.s.segments, (*segment).chosen)
 	m := g.ui.Interface
 	w, _ := g.label().Size()
 	h := float32(m.TabHeight() - 2*m.Hairline())
@@ -142,7 +170,7 @@ func (g *segment) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.Tab
 	}
-	n.Name = g.option.Label
+	n.Name = g.ui.CommandCase(g.option.Label)
 	n.Selectable, n.Selected = true, g.chosen()
 	if g.Enabled() {
 		n.Actions = n.Actions.With(accessibility.Press)

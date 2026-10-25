@@ -68,8 +68,51 @@ func dialogDestructive(ui *kvitui.UI) unison.Paneler {
 	// opened with Open, modal and in the middle of the window.
 	confirm := kvitui.NewDialog(ui, "Delete 40 transactions?")
 	confirm.Detail = "They will be removed from every report. This cannot be undone."
-	confirm.ConfirmText, confirm.Destructive = "Delete them", true
+	confirm.ConfirmText, confirm.Destructive = "Delete", true
 	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(210), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), confirm))))
+}
+
+func dialogSecondAnswer(ui *kvitui.UI) unison.Paneler {
+	// The buttons are in the form's order: Save, Don't save, Cancel from the
+	// left on Windows and Linux; Don't Save apart, then Cancel and Save at
+	// the trailing end on a Mac.
+	save := kvitui.NewDialog(ui, "Save changes to the May budget?")
+	save.Detail = "Your changes are lost if you don't save them."
+	save.ConfirmText, save.OtherText = "Save", "Don't save"
+	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(190), kvitui.Centred(kvitui.Width(ui, kvitui.Px(460), save))))
+}
+
+func dialogMessage(ui *kvitui.UI) unison.Paneler {
+	// A message has one button: Close on Windows and Linux, OK on a Mac. A
+	// routine one may offer not to show it again; an error never does.
+	done := kvitui.NewMessage(ui, "Import finished", "212 transactions were added. 3 were already in the ledger.")
+	done.Suppressible = true
+	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(220), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), done))))
+}
+
+func dialogProperties(ui *kvitui.UI) unison.Paneler {
+	// The settings of one account: OK, Cancel and, on Windows and Linux,
+	// Apply, which waits until something has changed. A Mac has no Apply.
+	name := kvitui.NewField(ui)
+	name.SetText("Joint checking")
+	hidden := kvitui.NewCheck(ui, "Hide from reports")
+	props := kvitui.NewDialog(ui, "Account properties",
+		kvitui.FullWidth(kvitui.NewFormRow(ui, "Name", name)), hidden)
+	props.Kind = kvitui.DialogProperties
+	name.OnChange = func(string) { props.MarkChanged() }
+	hidden.OnChange = func(bool) { props.MarkChanged() }
+	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(260), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), props))))
+}
+
+func dialogHelp(ui *kvitui.UI) unison.Paneler {
+	// The help is a question at the bottom of the content on Windows and
+	// Linux, reached by Tab after the buttons, and the round help button at
+	// the leading end of the buttons on a Mac.
+	roll := kvitui.NewDialog(ui, "Roll the May budget over?")
+	roll.Detail = "What is left in each category moves into June."
+	roll.ConfirmText, roll.OtherText = "Roll over", "Start empty"
+	roll.Help = kvitui.NewHelpLink(ui, "budgets#rollover", "How does a budget roll over?")
+	return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(220), kvitui.Centred(kvitui.Width(ui, kvitui.Px(460), roll))))
 }
 
 func dialogMoved(ui *kvitui.UI) unison.Paneler {
@@ -78,7 +121,8 @@ func dialogMoved(ui *kvitui.UI) unison.Paneler {
 	// long as the gallery runs.
 	var x, y int
 	left := false
-	export := kvitui.NewButton(ui, "Export the ledger")
+	export := kvitui.NewButton(ui, "Export ledger")
+	export.Asks = true
 	export.OnClick = func() {
 		ask := kvitui.NewDialog(ui, "Export the ledger?")
 		ask.Detail = "Drag this dialog by its title to move it. It opens again where you leave it."

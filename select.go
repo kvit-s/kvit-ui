@@ -27,12 +27,15 @@ type Select struct {
 	Placeholder string
 	// OnChoose runs after an option is chosen, with its value.
 	OnChoose func(value string)
+
+	jump typeSelect // choosing an option by typing its words
 }
 
 // NewSelect returns a choice of options, the first chosen.
 func NewSelect(ui *UI, label string, options ...Option) *Select {
 	s := &Select{Label: label, Options: options}
 	s.Self = s
+	OpensPopup(s)
 	if len(options) > 0 {
 		s.Current = options[0].Value
 	}
@@ -50,6 +53,17 @@ func NewSelect(ui *UI, label string, options ...Option) *Select {
 			return s.step(1)
 		}
 		return keyDown(key, mods, repeat)
+	}
+	// Typing the start of an option's words chooses it, open or closed
+	// (KEY-9).
+	s.RuneTypedCallback = func(ch rune) bool {
+		if !s.jump.typing(ch) {
+			return false
+		}
+		if i := s.jump.next(ch, s.index(), len(s.Options), func(i int) string { return s.Options[i].Label }); i >= 0 && s.Options[i].Value != s.Current {
+			s.Choose(s.Options[i].Value)
+		}
+		return true
 	}
 	s.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
 		m := ui.Interface
@@ -93,7 +107,7 @@ func (s *Select) step(by int) bool {
 func (s *Select) open() {
 	var items []MenuItem
 	for _, o := range s.Options {
-		items = append(items, MenuItem{Text: PlainMenuText(o.Label), Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
+		items = append(items, MenuItem{Text: PlainMenuText(o.Label), Verbatim: true, Radio: true, Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
 	}
 	s.ui.ShowMenu(s, s.Label, items)
 }

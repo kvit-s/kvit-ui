@@ -41,7 +41,7 @@ type Pane struct {
 
 // NewPane returns an open pane with a title, holding content.
 func NewPane(ui *UI, title string, content ...unison.Paneler) *Pane {
-	p := &Pane{Title: title, CloseLabel: "Close the pane", Closable: true, open: true, shown: 1}
+	p := &Pane{Title: title, CloseLabel: "Close", Closable: true, open: true, shown: 1}
 	p.ui = ui
 	p.Self = p
 	p.DrawCallback = p.drawPane

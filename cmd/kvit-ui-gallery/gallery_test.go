@@ -50,7 +50,7 @@ func TestShots(t *testing.T) {
 	if expected == 0 {
 		t.Error("the icon page's warning about an unknown symbol was not seen, so warnings are not being caught")
 	}
-	if want := len(pageNames()) * len(tokens.BuiltInThemes()) * len(shotSizes); len(written) != want {
+	if want := len(pageNames()) * len(shots()); len(written) != want {
 		t.Fatalf("wrote %d screenshots, want %d", len(written), want)
 	}
 	for _, name := range written {
@@ -194,10 +194,10 @@ func TestTheSidebarFilters(t *testing.T) {
 	}
 }
 
-// TestEveryControlSaysWhatItIs opens every page and checks that everything a
-// reader can reach or press tells a screen reader what kind of thing it is
-// and what it is called: a control with no name is read as "button" and
-// nothing else.
+// TestEveryControlSaysWhatItIs opens every page, in both forms, and checks
+// that everything a reader can reach or press tells a screen reader what
+// kind of thing it is and what it is called: a control with no name is read
+// as "button" and nothing else.
 func TestEveryControlSaysWhatItIs(t *testing.T) {
 	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
 	if err != nil {
@@ -213,13 +213,18 @@ func TestEveryControlSaysWhatItIs(t *testing.T) {
 	defer screen.Stop()
 	screen.EnableAccessibility()
 	screen.Sync()
-	for _, page := range pageNames() {
-		screen.Do(func() { g.setPage(page) })
-		screen.Sync()
-		for _, problem := range uitest.Unnamed(screen.AccessibilityTree(g.wnd.Window)) {
-			t.Errorf("%s: %s", page, problem)
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		for _, page := range pageNames() {
+			screen.Do(func() {
+				ui.SetForm(form)
+				g.setPage(page)
+			})
+			screen.Sync()
+			for _, problem := range uitest.Unnamed(screen.AccessibilityTree(g.wnd.Window)) {
+				t.Errorf("%s, %s form: %s", page, form, problem)
+			}
+			screen.KeyPress(unison.KeyEscape, 0)
 		}
-		screen.KeyPress(unison.KeyEscape, 0)
 	}
 }
 
@@ -283,5 +288,146 @@ func TestTheCatalogueIsCurrent(t *testing.T) {
 	}
 	if string(got) != want {
 		t.Errorf("%s is not what --catalog writes; run go run ./cmd/kvit-ui-gallery --catalog %s", catalogPath, catalogPath)
+	}
+}
+
+// TestEveryPageFollowsTheLabelRules reads every page, in both forms, with
+// the checks on words, dialogs, menus and tooltips, and the gallery's own
+// screens together with the whole-app checks.
+func TestEveryPageFollowsTheLabelRules(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ui.Theme.SetReducedMotion(true)
+	var g *gallery
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: windowWidth, Height: windowHeight},
+		unison.StartupFinishedCallback(func() { g, _ = newGallery(ui, "Foundations", nil) }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Stop()
+	screen.Sync()
+	var problems []uitest.Problem
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		for _, page := range pageNames() {
+			screen.Do(func() {
+				ui.SetForm(form)
+				g.setPage(page)
+			})
+			screen.Sync()
+			screen.Do(func() {
+				for _, p := range uitest.Labels(g.wnd) {
+					p.Where = page + ": " + p.Where
+					problems = append(problems, p)
+				}
+			})
+			screen.KeyPress(unison.KeyEscape, 0)
+		}
+	}
+	uitest.Report(t, problems, labelExceptions...)
+	// The gallery as an app: its own window, with the pages' specimens out of
+	// it, in each form.
+	var screens []uitest.Screen
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		screen.Do(func() {
+			ui.SetForm(form)
+			g.setPage("Foundations")
+		})
+		screen.Sync()
+		screen.Do(func() { screens = append(screens, uitest.Collect("gallery, "+form.String()+" form", g.wnd)) })
+	}
+	uitest.CheckApp(t, screens)
+}
+
+// labelExceptions are the pages' known breaks of the label rules, each for a
+// reason the page gives.
+var labelExceptions = []string{
+	// The button page shows the primary form beside the others, three in
+	// one specimen, to compare them.
+	"KvitButton: a region: 3 primary buttons",
+	// A tag is 16 design pixels tall, and its remove button fits inside it.
+	`KvitTag: symbol button "Remove removable": smaller than 20 design pixels square`,
+}
+
+// TestEveryPageWorksFromTheKeyboard tabs through every page, in both forms,
+// and checks that Tab reaches every control on it that takes the keyboard
+// (KEY-1). A group that is one stop, such as a row of tabs, is reached
+// through its one stop, and the arrow keys move inside it.
+func TestEveryPageWorksFromTheKeyboard(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ui.Theme.SetReducedMotion(true)
+	var g *gallery
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: windowWidth, Height: windowHeight},
+		unison.StartupFinishedCallback(func() { g, _ = newGallery(ui, "Foundations", nil) }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Stop()
+	screen.Sync()
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		for _, page := range pageNames() {
+			screen.Do(func() {
+				ui.SetForm(form)
+				g.setPage(page)
+			})
+			screen.Sync()
+			// A specimen that opens a menu or a popover when shown has it
+			// closed first; the page is what is tabbed through.
+			for range 3 {
+				screen.KeyPress(unison.KeyEscape, 0)
+			}
+			var targets []*unison.Panel
+			screen.Do(func() {
+				var walk func(p *unison.Panel)
+				walk = func(p *unison.Panel) {
+					if p.Hidden || !p.Enabled() {
+						return
+					}
+					if p.Focusable() {
+						targets = append(targets, p)
+					}
+					for _, c := range p.Children() {
+						walk(c)
+					}
+				}
+				walk(g.pages)
+				if len(targets) > 0 {
+					targets[0].RequestFocus()
+				}
+			})
+			if len(targets) == 0 {
+				continue
+			}
+			// From the page's first control, Tab until the keyboard leaves
+			// the page.
+			reached := map[*unison.Panel]bool{}
+			for range 2*len(targets) + 4 {
+				inside := false
+				screen.Do(func() {
+					f := g.wnd.CurrentFocus()
+					reached[f] = true
+					for p := f; p != nil; p = p.Parent() {
+						inside = inside || p == g.pages
+					}
+				})
+				if !inside {
+					break
+				}
+				screen.KeyPress(unison.KeyTab, 0)
+			}
+			for _, p := range targets {
+				if !reached[p] {
+					name := ""
+					if n := screen.AccessibilityNodeFor(p); n != nil {
+						name = n.Role.String() + " " + n.Name
+					}
+					t.Errorf("%s, %s form: Tab never reached %s (%T)", page, form, name, p.Self)
+				}
+			}
+		}
 	}
 }

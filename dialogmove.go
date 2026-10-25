@@ -83,6 +83,17 @@ func (d *Dialog) mouseDown(where geom.Point, button, _ int, _ mod.Modifiers) boo
 	}
 	d.dragging, d.moved = true, false
 	d.grab, d.grabAt = d.inContent(where), d.FrameRect().Point
+	// Escape abandons the move, putting the dialog back where it was (KEY-7).
+	x, y := d.x, d.y
+	if w := d.ui.windowOf(d); w != nil {
+		w.startDrag(func() {
+			d.dragging, d.moved = false, false
+			d.x, d.y = x, y
+			if p := d.Parent(); p != nil {
+				p.MarkForLayoutAndRedraw()
+			}
+		})
+	}
 	return true
 }
 
@@ -107,6 +118,9 @@ func (d *Dialog) mouseDrag(where geom.Point, _ int, _ mod.Modifiers) bool {
 }
 
 func (d *Dialog) mouseUp(geom.Point, int, mod.Modifiers) bool {
+	if w := d.ui.windowOf(d); w != nil {
+		w.endDrag()
+	}
 	if !d.dragging {
 		return false
 	}

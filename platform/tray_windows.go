@@ -41,6 +41,7 @@ var (
 	procRegisterWindowMessage = user32.NewProc("RegisterWindowMessageW")
 	procCreatePopupMenu       = user32.NewProc("CreatePopupMenu")
 	procAppendMenu            = user32.NewProc("AppendMenuW")
+	procSetMenuDefaultItem    = user32.NewProc("SetMenuDefaultItem")
 	procTrackPopupMenuEx      = user32.NewProc("TrackPopupMenuEx")
 	procDestroyMenu           = user32.NewProc("DestroyMenu")
 	procSetForegroundWindow   = user32.NewProc("SetForegroundWindow")
@@ -70,6 +71,9 @@ const (
 	nifShowTip = 0x80
 
 	niifInfo           = 0x01
+	niifWarning        = 0x02
+	niifError          = 0x03
+	niifNoSound        = 0x10
 	notifyIconVersion4 = 4
 
 	wmNull        = 0x0000
@@ -92,6 +96,7 @@ const (
 
 	mfString    = 0x0000
 	mfGrayed    = 0x0001
+	mfChecked   = 0x0008
 	mfSeparator = 0x0800
 
 	tpmRightButton = 0x0002
@@ -436,11 +441,35 @@ func (t *winTray) notify(n Notification) {
 		}
 		d := t.data()
 		d.Flags = nifInfo
-		d.InfoFlags = niifInfo
+		// Silent, as a desktop notification is (MSG-10), with the symbol of
+		// its kind.
+		d.InfoFlags = niifInfo | niifNoSound
+		switch n.Kind {
+		case NotifyFailure:
+			d.InfoFlags = niifError | niifNoSound
+		case NotifyProblem:
+			d.InfoFlags = niifWarning | niifNoSound
+		}
 		copyUTF16(d.InfoTitle[:], title)
 		copyUTF16(d.Info[:], text)
 		t.balloon = n.ID
 		shellNotifyIcon(nimModify, &d)
+	})
+}
+
+// withdraw takes the balloon away while it shows the notification: a
+// balloon with no text is how Windows is told to stop showing one. A toast
+// already moved to the notification centre stays there, as Shell_NotifyIcon
+// offers no way to reach it.
+func (t *winTray) withdraw(id string) {
+	t.do(func() {
+		if !t.added || t.balloon != id {
+			return
+		}
+		d := t.data()
+		d.Flags = nifInfo
+		shellNotifyIcon(nimModify, &d)
+		t.balloon = ""
 	})
 }
 
@@ -483,9 +512,16 @@ func (t *winTray) showMenu(x, y int32) {
 		if e.disabled {
 			flags |= mfGrayed
 		}
+		if e.checked {
+			flags |= mfChecked
+		}
 		// An ampersand marks an access key in a Windows menu; doubled, it
 		// shows as itself.
 		procAppendMenu.Call(menu, flags, uintptr(i+1), uintptr(unsafe.Pointer(utf16Ptr(strings.ReplaceAll(e.text, "&", "&&")))))
+		if e.isDefault {
+			// The default line is drawn in bold; the command is its id.
+			procSetMenuDefaultItem.Call(menu, uintptr(i+1), 0)
+		}
 	}
 	if x == 0 && y == 0 {
 		var p winPoint

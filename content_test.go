@@ -215,12 +215,13 @@ func TestASectionHeadingOpensAndItsActionStaysItsOwn(t *testing.T) {
 	if n == nil || n.Role != role.Button || !n.Expandable || !n.Expanded || n.Description != "Expanded" {
 		t.Fatalf("the heading's node: %+v", n)
 	}
-	// Return on the heading closes the group; Space on its action runs the
-	// action and leaves the group alone.
+	// Space on the heading closes the group (on the Windows form Return
+	// belongs to a dialog's buttons); Space on its action runs the action and
+	// leaves the group alone.
 	screen.Do(func() { h.Focus() })
-	screen.KeyPress(unison.KeyReturn, 0)
+	screen.KeyPress(unison.KeySpace, 0)
 	if len(toggles) != 1 || toggles[0] || h.Expanded {
-		t.Errorf("Return on the heading toggled %v", toggles)
+		t.Errorf("Space on the heading toggled %v", toggles)
 	}
 	var link *kvitui.Link
 	screen.Do(func() {
@@ -349,7 +350,7 @@ func TestAPaneSlidesOverTheRightEdge(t *testing.T) {
 		}
 	})
 	close := pane.Children()[0]
-	if n := screen.AccessibilityNodeFor(close); n == nil || n.Name != "Close the pane" {
+	if n := screen.AccessibilityNodeFor(close); n == nil || n.Name != "Close" {
 		t.Errorf("the close control's node: %+v", n)
 	}
 	screen.Click(screen.PanelCenter(close))

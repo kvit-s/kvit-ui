@@ -25,7 +25,9 @@ type RadioOption struct {
 // for two to four short options whose words explain themselves, and a Select
 // for a list too long to lay out. The arrow keys move within the group and
 // choose, and Tab leaves it, which is what a screen reader user expects of a
-// radio group and what a column of separate controls does not do.
+// radio group and what a column of separate controls does not do. On the
+// Windows form Ctrl and an arrow move without choosing, and Space chooses
+// the option the keyboard is on (KEY-9).
 type RadioGroup struct {
 	unison.Panel
 	ui *UI
@@ -37,6 +39,9 @@ type RadioGroup struct {
 	OnChoose func(value string)
 
 	options []*radioOption
+	// keyAt is the option Ctrl and an arrow moved the keyboard to, which is
+	// the group's stop until the keyboard leaves it; -1 for none.
+	keyAt int
 }
 
 type radioOption struct {
@@ -46,9 +51,18 @@ type radioOption struct {
 	circle *unison.Panel
 }
 
+// Options are the group's options, in order.
+func (g *RadioGroup) Options() []RadioOption {
+	out := make([]RadioOption, len(g.options))
+	for i, o := range g.options {
+		out[i] = o.option
+	}
+	return out
+}
+
 // NewRadioGroup returns a group of options, none chosen.
 func NewRadioGroup(ui *UI, label string, options ...RadioOption) *RadioGroup {
-	g := &RadioGroup{ui: ui, Label: label}
+	g := &RadioGroup{ui: ui, Label: label, keyAt: -1}
 	g.Self = g
 	for _, o := range options {
 		opt := &radioOption{g: g, option: o}
@@ -57,10 +71,25 @@ func NewRadioGroup(ui *UI, label string, options ...RadioOption) *RadioGroup {
 		opt.ringRadius = func() float32 { return float32(ui.Interface.Px(16)) / 2 }
 		keys := opt.KeyDownCallback
 		opt.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
-			if g.arrow(opt, key) {
+			if g.arrow(opt, key, mods) {
 				return true
 			}
 			return keys(key, mods, repeat)
+		}
+		lost := opt.LostFocusCallback
+		opt.LostFocusCallback = func() {
+			lost()
+			// Once the keyboard has left the group, Tab comes back to the
+			// chosen option.
+			unison.InvokeTask(func() {
+				for _, o := range g.options {
+					if o.Focused() {
+						return
+					}
+				}
+				g.keyAt = -1
+				g.sync()
+			})
 		}
 		opt.circle = unison.NewPanel()
 		opt.circle.DrawCallback = opt.drawCircle
@@ -76,13 +105,17 @@ func NewRadioGroup(ui *UI, label string, options ...RadioOption) *RadioGroup {
 }
 
 // sync makes the chosen option, or the first when none is, the group's one
-// stop in the tab order.
+// stop in the tab order; while Ctrl and an arrow have the keyboard on
+// another option, that one.
 func (g *RadioGroup) sync() {
 	stop := 0
 	for i, o := range g.options {
 		if o.option.Value == g.Current {
 			stop = i
 		}
+	}
+	if g.keyAt >= 0 && g.keyAt < len(g.options) {
+		stop = g.keyAt
 	}
 	for i, o := range g.options {
 		o.SetFocusable(i == stop)
@@ -91,7 +124,7 @@ func (g *RadioGroup) sync() {
 
 // Choose makes the option with a value the chosen one.
 func (g *RadioGroup) Choose(value string) {
-	g.Current = value
+	g.Current, g.keyAt = value, -1
 	g.sync()
 	g.MarkForRedraw()
 	if g.OnChoose != nil {
@@ -99,8 +132,10 @@ func (g *RadioGroup) Choose(value string) {
 	}
 }
 
-// arrow moves to the option before or after, choosing it.
-func (g *RadioGroup) arrow(from *radioOption, key unison.KeyCode) bool {
+// arrow moves to the option before or after, choosing it; with Ctrl on the
+// Windows form, without choosing it.
+func (g *RadioGroup) arrow(from *radioOption, key unison.KeyCode, mods mod.Modifiers) bool {
+	only := g.ui.form == FormWindows && mods&mod.NonSticky == mod.Control
 	by := 0
 	switch key {
 	case unison.KeyUp, unison.KeyLeft:
@@ -118,9 +153,18 @@ func (g *RadioGroup) arrow(from *radioOption, key unison.KeyCode) bool {
 	}
 	n := len(g.options)
 	for range n {
+		// The Windows form stops at the ends; the macOS form goes round.
+		if g.ui.form == FormWindows && (at+by < 0 || at+by >= n) {
+			return true
+		}
 		at = (at + by + n) % n
 		if o := g.options[at]; o.Enabled() {
-			g.Choose(o.option.Value)
+			if only {
+				g.keyAt = at
+				g.sync()
+			} else {
+				g.Choose(o.option.Value)
+			}
 			o.Focus()
 			return true
 		}
@@ -145,7 +189,7 @@ func (o *radioOption) layouts(width float32) (label, detail *text.Layout) {
 	if !o.Enabled() {
 		ink = t.TextDisabled
 	}
-	label = ui.Fonts.Layout([]text.Span{{Text: o.option.Label, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}},
+	label = ui.Fonts.Layout(ui.accessSpans(o.AsPanel(), plainWords(o.option.Label), ui.Chrome(ui.Size(RoleBody), text.Regular, ink)),
 		text.Options{MaxWidth: width, Elide: width > 0})
 	if o.option.Detail != "" {
 		// The detail is a sentence, so it wraps where the label is cut short:
@@ -238,9 +282,9 @@ func (o *radioOption) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.RadioButton
 	}
-	n.Name = o.option.Label
+	n.Name = plainWords(o.option.Label)
 	if o.option.Detail != "" {
-		n.Name = o.option.Label + ". " + o.option.Detail
+		n.Name = plainWords(o.option.Label) + ". " + o.option.Detail
 	}
 	n.HasCheck = true
 	n.Checked = check.Off
@@ -259,4 +303,14 @@ func (o *radioOption) PerformAccessibilityAction(req accessibility.ActionRequest
 	}
 	o.fire()
 	return true
+}
+
+// accessWords are the option's words for its access key.
+func (o *radioOption) accessWords() string { return o.option.Label }
+
+// accessPress chooses the option, as its access key does.
+func (o *radioOption) accessPress() {
+	if o.Enabled() {
+		o.fire()
+	}
 }

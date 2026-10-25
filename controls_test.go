@@ -64,7 +64,7 @@ func TestAButtonSaysWhatItDoesInEveryState(t *testing.T) {
 		save.Form = kvitui.ButtonPrimary
 		save.OnClick = func() { pressed++ }
 		busy = kvitui.NewButton(ui, "Save")
-		busy.Busy = true
+		busy.Busy, busy.BusyText = true, "Saving…"
 		mode = kvitui.NewButton(ui, "Select region")
 		mode.Checkable = true
 		archive = kvitui.NewButton(ui, "Archive")
@@ -84,7 +84,7 @@ func TestAButtonSaysWhatItDoesInEveryState(t *testing.T) {
 		t.Errorf("a click and Space made %d presses", pressed)
 	}
 	// A busy button stays enabled and says what it is doing.
-	if n := screen.AccessibilityNodeFor(busy); n == nil || n.Name != "Working…" || n.Disabled {
+	if n := screen.AccessibilityNodeFor(busy); n == nil || n.Name != "Saving…" || n.Disabled {
 		t.Errorf("the busy button's node: %+v", n)
 	}
 	// A disabled button still gives its reason.

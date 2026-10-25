@@ -21,6 +21,9 @@ func TestADialogThatStaysOpenOnConfirmingIsClosedByTheApplication(t *testing.T) 
 		screen.Do(func() {
 			dialog = kvitui.NewDialog(ui, "Rename the ledger")
 			dialog.ConfirmText, dialog.ConfirmKeepsOpen = "Rename", keep
+			// Renaming is the likely and safe answer, so it is the default,
+			// which holds the keyboard.
+			dialog.DefaultConfirm = true
 			dialog.OnAccept = func() {
 				accepted++
 				openWhenAccepted = len(w.Popups()) != 0

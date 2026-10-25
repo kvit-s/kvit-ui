@@ -1,6 +1,7 @@
 package kvitui_test
 
 import (
+	"slices"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
@@ -288,7 +289,7 @@ func TestADualListMovesAndOrdersFromTheKeyboard(t *testing.T) {
 	screen.KeyPress(unison.KeyEnd, 0)
 	var earlier *accessibility.Node
 	for _, n := range screen.AccessibilityTree(w.Window).Nodes {
-		if n.Name == "Move the selected column earlier" {
+		if n.Name == "Move up" {
 			earlier = n
 		}
 	}
@@ -451,7 +452,7 @@ func TestAMenuIsWorkedFromTheKeyboard(t *testing.T) {
 
 // A press on a select whose list is open closes the list and leaves it
 // closed, and the next press opens it again. A press anywhere else closes
-// the list and still reaches what it landed on.
+// the list and goes no further (PTR-13).
 func TestPressingAnOpenSelectClosesItsList(t *testing.T) {
 	var s *kvitui.Select
 	var other *kvitui.Button
@@ -479,9 +480,11 @@ func TestPressingAnOpenSelectClosesItsList(t *testing.T) {
 			t.Fatalf("press %d on the chevron left the list open: %v", i+1, open())
 		}
 	}
+	// A press elsewhere closes the list and goes no further, so it presses
+	// nothing behind (PTR-13).
 	screen.Click(screen.PanelCenter(other))
 	screen.Sync()
-	if open() || pressed != 1 {
+	if open() || pressed != 0 {
 		t.Errorf("a press elsewhere left the list open: %v, and pressed that button %d times", open(), pressed)
 	}
 }
@@ -505,14 +508,27 @@ func TestContextMenusOpenFromTheKeyboardAndThePointer(t *testing.T) {
 		return out
 	}
 	screen.Click(screen.PanelCenter(field.Edit()))
+	// An empty field with nothing to paste has no command that can act, and
+	// a context menu leaves out what cannot act.
+	// Part of the text is selected, so all of it can still be selected.
+	screen.Do(func() { field.SetText("Acme"); field.Edit().SetSelection(0, 2) })
+	has := func(names ...string) bool {
+		got := items()
+		for _, n := range names {
+			if !slices.Contains(got, n) {
+				return false
+			}
+		}
+		return true
+	}
 	screen.KeyPress(unison.KeyMenu, 0)
-	if got := items(); len(got) != 4 {
-		t.Errorf("the Menu key in a field opened %v", got)
+	if !has("Cut", "Copy", "Select all") {
+		t.Errorf("the Menu key in a field with its text selected opened %v", items())
 	}
 	screen.KeyPress(unison.KeyEscape, 0)
 	screen.KeyPress(unison.KeyF10, mod.Shift)
-	if got := items(); len(got) != 4 {
-		t.Errorf("Shift+F10 in a field opened %v", got)
+	if !has("Cut", "Copy", "Select all") {
+		t.Errorf("Shift+F10 in a field opened %v", items())
 	}
 	screen.KeyPress(unison.KeyEscape, 0)
 	if len(w.Popups()) != 0 {
@@ -522,7 +538,7 @@ func TestContextMenusOpenFromTheKeyboardAndThePointer(t *testing.T) {
 	screen.ClickWith(screen.PanelPoint(table, geom.NewPoint(20, 10)), unison.ButtonRight, 0)
 	found := false
 	for _, n := range items() {
-		found = found || n == "Hide this column"
+		found = found || n == "Hide column"
 	}
 	if !found {
 		t.Errorf("a right-click on the header opened %v", items())

@@ -1,6 +1,7 @@
 package kvitui_test
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 	"testing"
@@ -35,7 +36,8 @@ func focusedNode(screen *unison.HeadlessScreen, w *kvitui.Window) *accessibility
 	return tree.Nodes[tree.Focus]
 }
 
-// nodes are the window's nodes of a role.
+// nodes are the window's nodes of a role, top to bottom and then left to
+// right.
 func nodes(screen *unison.HeadlessScreen, w *kvitui.Window, r role.Enum) []*accessibility.Node {
 	var out []*accessibility.Node
 	for _, n := range screen.AccessibilityTree(w.Window).Nodes {
@@ -43,6 +45,12 @@ func nodes(screen *unison.HeadlessScreen, w *kvitui.Window, r role.Enum) []*acce
 			out = append(out, n)
 		}
 	}
+	slices.SortStableFunc(out, func(a, b *accessibility.Node) int {
+		if a.Bounds.Y != b.Bounds.Y {
+			return cmp.Compare(a.Bounds.Y, b.Bounds.Y)
+		}
+		return cmp.Compare(a.Bounds.X, b.Bounds.X)
+	})
 	return out
 }
 
@@ -236,7 +244,7 @@ func TestACheckColumnsHeaderIsNamedByItsTitleAndItsBoxByWhatItDoes(t *testing.T)
 			box = n
 		}
 	}
-	if box == nil || box.Name != "Select the rows shown" || !box.HasCheck || box.Checked != check.Mixed {
+	if box == nil || box.Name != "Select shown rows" || !box.HasCheck || box.Checked != check.Mixed {
 		t.Fatalf("the box in the header is %+v", box)
 	}
 	if !screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: box.ID, Action: accessibility.Press}) ||
@@ -249,7 +257,7 @@ func TestACheckColumnsHeaderIsNamedByItsTitleAndItsBoxByWhatItDoes(t *testing.T)
 	}
 	screen.Do(func() { table.Model = kvitui.NewBenchmarkTableModel(40); table.Refresh() })
 	for _, n := range screen.AccessibilityTree(w.Window).Nodes {
-		if n.Role == role.ColumnHeader && n.ColumnIndex == 1 && n.Name != "Select the rows shown" {
+		if n.Role == role.ColumnHeader && n.ColumnIndex == 1 && n.Name != "Select shown rows" {
 			t.Errorf("an untitled Check column's header is %+v", n)
 		}
 	}
@@ -309,7 +317,7 @@ func TestTheKeyboardWalksTheRowsAndTicksTheirBoxes(t *testing.T) {
 			box = n
 		}
 	}
-	if box == nil || box.Name != "Select this row" || box.Checked != check.On {
+	if box == nil || box.Name != "Select row" || box.Checked != check.On {
 		t.Errorf("row 2's box is %+v", box)
 	}
 }
@@ -458,4 +466,38 @@ func TestAnAmountShowsWhatIsBehindItInAHoverCard(t *testing.T) {
 	})
 	screen.MouseMove(geom.NewPoint(1400, 900), 0)
 	waitFor(t, screen, "the card to go", func() bool { return len(w.Popups()) == 0 })
+}
+
+// On the Windows form Ctrl and an arrow move the keyboard along the rows
+// without changing the selection, and Ctrl+Space adds the row to the
+// selection or takes it out; a plain arrow selects only the row it reaches
+// (KEY-9, PTR-15).
+func TestCtrlArrowAndCtrlSpacePickRowsApart(t *testing.T) {
+	var table *kvitui.Table
+	screen, _, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		table = kvitui.NewTable(ui, kvitui.NewBenchmarkTableModel(40))
+		return []unison.Paneler{kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(300), table))}
+	})
+	screen.Do(func() { table.FocusRow(0) })
+	screen.KeyPress(unison.KeyHome, 0)
+	screen.KeyPress(unison.KeyDown, mod.Control)
+	screen.KeyPress(unison.KeyDown, mod.Control)
+	screen.KeyPress(unison.KeySpace, mod.Control)
+	screen.Do(func() {
+		if got := table.SelectedRows(); !slices.Equal(got, []int{0, 2}) || table.CurrentRow() != 2 {
+			t.Errorf("Ctrl+Down twice and Ctrl+Space selected %v with the keyboard on row %d", got, table.CurrentRow())
+		}
+	})
+	screen.KeyPress(unison.KeySpace, mod.Control)
+	screen.Do(func() {
+		if got := table.SelectedRows(); !slices.Equal(got, []int{0}) {
+			t.Errorf("Ctrl+Space again left %v selected", got)
+		}
+	})
+	screen.KeyPress(unison.KeyDown, 0)
+	screen.Do(func() {
+		if got := table.SelectedRows(); !slices.Equal(got, []int{3}) {
+			t.Errorf("a plain Down selected %v", got)
+		}
+	})
 }

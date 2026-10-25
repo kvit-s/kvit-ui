@@ -8,6 +8,7 @@ func (noTray) available() bool              { return false }
 func (noTray) show(trayState)               {}
 func (noTray) hide()                        {}
 func (noTray) notify(Notification)          {}
+func (noTray) withdraw(string)              {}
 func (noTray) authorization() Authorization { return Unsupported }
 func (noTray) requestAuthorization()        {}
 func (noTray) close()                       {}

@@ -16,15 +16,16 @@ the build.
 
 ## What there is
 
-76 components, grouped by what they are for.
+88 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
-**Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`
+**Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`, `KvitHistory`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitSignal`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
-**Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitTextArea`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`
-**Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`, `KvitFloatingView`
+**Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitTextArea`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`, `KvitFormRow`, `KvitSettingRow`, `KvitSettingsWindow`
+**Commands** — `KvitCommand`, `KvitMenuBar`, `KvitToolbar`, `KvitMenuButton`, `KvitSplitButton`, `KvitUndoStack`
+**Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`, `KvitTip`, `KvitHelpLink`, `KvitFloatingView`
 **Data** — `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitNetFlow`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable`
 **Flow** — `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight`
 
@@ -35,7 +36,7 @@ They say what a symbol means rather than what it looks like, so the drawing
 can change without touching a call site. A name outside this list draws a
 marked placeholder and logs a warning, which fails the gallery's tests.
 
-`plus`, `messages-square`, `message-square`, `send`, `chevron-right`, `chevron-down`, `zoom-in`, `zoom-out`, `pencil`, `check`, `archive`, `rotate-ccw`, `chevron-left`, `chevron-up`, `close`, `sidebar`, `list`, `search`, `note`, `tag`, `caret-sort`, `sort-ascending`, `sort-descending`, `dot`, `dot-outline`, `circle`, `square`, `minus`, `info`, `warning`, `error`, `success`, `question`, `settings`, `filter`, `columns`, `calendar`, `clock`, `user`, `robot`, `folder`, `file`, `link`, `external`, `copy`, `trash`, `undo`, `redo`, `refresh`, `more`, `more-vertical`, `drag`, `pin`, `star`, `eye`, `eye-off`, `lock`, `arrow-up`, `arrow-down`, `arrow-left`, `arrow-right`, `trend-up`, `trend-down`, `chart`, `wallet`, `coins`, `bank`, `receipt`, `repeat`, `split`, `merge`, `play`, `pause`, `stop`, `attachment`, `diff`, `git`, `agent`, `ask`, `ask-in`, `rename`, `terminal`, `chat`
+`plus`, `messages-square`, `message-square`, `send`, `chevron-right`, `chevron-down`, `zoom-in`, `zoom-out`, `pencil`, `check`, `archive`, `rotate-ccw`, `chevron-left`, `chevron-up`, `close`, `sidebar`, `list`, `search`, `note`, `tag`, `caret-sort`, `sort-ascending`, `sort-descending`, `dot`, `dot-outline`, `circle`, `square`, `minus`, `info`, `warning`, `error`, `success`, `question`, `settings`, `filter`, `columns`, `calendar`, `clock`, `user`, `robot`, `folder`, `file`, `link`, `external`, `copy`, `trash`, `undo`, `redo`, `refresh`, `more`, `more-vertical`, `drag`, `pin`, `star`, `eye`, `eye-off`, `lock`, `arrow-up`, `arrow-down`, `arrow-left`, `arrow-right`, `trend-up`, `trend-down`, `chart`, `wallet`, `coins`, `bank`, `receipt`, `repeat`, `split`, `merge`, `play`, `pause`, `stop`, `attachment`, `diff`, `git`, `agent`, `ask`, `ask-in`, `rename`, `terminal`, `chat`, `open`, `save`, `print`, `cut`, `paste`, `full-screen`, `bold`, `italic`, `underline`, `strikethrough`, `code`, `heading`
 
 ## The components
 
@@ -57,6 +58,9 @@ func NewLabel(ui *UI, s string) *Label
 | `Ink` | `Ink` | Ink is the colour; InkTextPrimary unless set. |
 | `Wrap` | `bool` | Wrap lets the text run onto further lines instead of being cut short. |
 | `LineHeight` | `float32` | LineHeight multiplies the lines' height, for a paragraph read in a popover; 0 is 1. |
+| `Selectable` | `bool` | Selectable lets content text the reader may want again, a message, an address, an identifier, be selected whole and copied: a press selects it, and Copy, Ctrl+C or the context menu copies it (CTL-18). |
+
+Methods: `Elided`.
 
 *The seven roles*
 
@@ -88,6 +92,18 @@ func labelMonoAndTabular(ui *kvitui.UI) unison.Paneler {
     amount := kvitui.NewLabel(ui, "1,234.56")
     amount.Tabular = true
     return kvitui.Column(ui, kvitui.SizeSpaceSnug, id, amount)
+}
+```
+
+*Content the reader may copy, selected by a press*
+
+```go
+func labelSelectable(ui *kvitui.UI) unison.Paneler {
+    // Content the reader may want again can be selected and copied; a
+    // control's label cannot.
+    iban := kvitui.NewLabel(ui, "GB33 BUKB 2020 1555 5555 55")
+    iban.Mono, iban.Selectable = true, true
+    return iban
 }
 ```
 
@@ -135,13 +151,17 @@ func iconUnknown(ui *kvitui.UI) unison.Paneler {
 A button whose whole label is a symbol. A real button, so it takes tab focus and a screen reader is told it is there; `Label` fills both the accessible name and the tooltip shown on pointer hover, and `Explanation` is the second sentence beside it. `Dense` draws the symbol at the 13 every symbol beside words in this library is drawn at, rather than at 18.
 
 ```go
+func NewBackButton(ui *UI, h *History) *IconButton
+func NewCommandIconButton(ui *UI, c *Command) *IconButton
 func NewIconButton(ui *UI, symbol, label string) *IconButton
 ```
 
 | Field | Type | |
 |---|---|---|
+| `Command` | `*Command` | Command, when set, is what the button runs: its symbol, name, explanation, whether it can act and whether it is on all come from the command, read each time the button is drawn, and on the Windows form its tooltip shows the command's shortcut. |
 | `Symbol` | `string` | Symbol is the meaning name of the symbol drawn. |
-| `Label` | `string` | Label says what the button does. |
+| `Label` | `string` | Label says what the button does: a verb first, in sentence case, as a tooltip is written on both forms. |
+| `Asks` | `bool` | Asks marks a button that asks for more before acting: "…" is added to its tooltip (WRD-4). |
 | `Explanation` | `string` | Explanation says more than the label can; optional. |
 | `Form` | `IconButtonForm` | Form is Quiet or Ordinary. |
 | `Dense` | `bool` | Dense draws the symbol at the small icon size, the size every symbol beside words is drawn at, rather than the full one. |
@@ -151,7 +171,7 @@ func NewIconButton(ui *UI, symbol, label string) *IconButton
 | `Size` | `Measure` | Size is the button's square side; a control's height unless set. |
 | `OnClick` | `func()` | OnClick runs when the button is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Name`, `Pressed`, `TooltipWords`.
 
 *Quiet, ordinary and checked*
 
@@ -161,7 +181,8 @@ func iconButtonForms(ui *kvitui.UI) unison.Paneler {
     remove.Form = kvitui.Ordinary
     pin := kvitui.NewIconButton(ui, "pin", "Pin")
     pin.Checked = true
-    duplicate := kvitui.NewIconButton(ui, "copy", "Copy")
+    duplicate := kvitui.NewIconButton(ui, "copy", "Duplicate")
+    duplicate.Explanation = "Only a saved report can be duplicated."
     duplicate.SetEnabled(false)
     settings := kvitui.NewIconButton(ui, "settings", "Settings")
     settings.Focus()
@@ -181,7 +202,7 @@ func iconButtonSizes(ui *kvitui.UI) unison.Paneler {
     strip := func(dense bool) *unison.Panel {
         search := kvitui.NewIconButton(ui, "search", "Search")
         add := kvitui.NewIconButton(ui, "plus", "New track")
-        branch := kvitui.NewIconButton(ui, "git", "Branch")
+        branch := kvitui.NewIconButton(ui, "git", "Switch branch")
         search.Dense, add.Dense, branch.Dense = dense, dense, dense
         return kvitui.Row(ui, kvitui.SizeSpace, search, add, branch)
     }
@@ -223,7 +244,7 @@ func NewLink(ui *UI, s string) *Link
 | `Explanation` | `string` | Explanation says in a sentence where following the link goes, for a destination its words alone do not describe. |
 | `OnActivate` | `func()` | OnActivate runs when the link is followed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`, `TooltipWords`.
 
 *Plain, symbolic and keyboard-focused*
 
@@ -285,6 +306,8 @@ func NewSidebar(ui *UI, items ...unison.Paneler) *Sidebar
 |---|---|---|
 | `Collapsed` | `bool` | Collapsed draws the sidebar as its rail. |
 
+Methods: `AddFooter`, `Commands`.
+
 *Expanded and collapsed*
 
 ```go
@@ -307,11 +330,28 @@ func sidebarExpandedAndCollapsed(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
+*Help and Settings at the foot*
+
+```go
+func sidebarFooter(ui *kvitui.UI) unison.Paneler {
+    // Settings is the last item of the sidebar, at its foot, below Help; a
+    // window whose sidebar holds it has no Settings in a Tools menu.
+    accounts := kvitui.NewSidebarItem(ui, "Accounts", "wallet")
+    accounts.Selected = true
+    side := kvitui.NewSidebar(ui, accounts, kvitui.NewSidebarItem(ui, "Budgets", "chart"))
+    run := func() {}
+    side.AddFooter(kvitui.NewSidebarCommand(ui, &kvitui.Command{Std: kvitui.StdHelp, Run: run}),
+        kvitui.NewSidebarCommand(ui, &kvitui.Command{Std: kvitui.StdSettings, Run: run}))
+    return kvitui.Height(ui, kvitui.Px(220), side)
+}
+```
+
 ### KvitSidebarItem
 
 One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number.
 
 ```go
+func NewSidebarCommand(ui *UI, c *Command) *SidebarItem
 func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem
 ```
 
@@ -327,8 +367,9 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem
 | `CountInRail` | `bool` | CountInRail keeps the badge once the sidebar collapses, on the symbol's upper corner. |
 | `CountMax` | `int` | CountMax is the largest count the badge writes out, 99 unless set. |
 | `OnClick` | `func()` | OnClick runs when the item is pressed. |
+| `Command` | `*Command` | Command, when set, is what the item runs, and gives its words and symbol where they are empty: the settings command at the foot of the sidebar is one. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Name`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Name`, `Pressed`, `TooltipWords`.
 
 *Selected, hovered and counted*
 
@@ -402,6 +443,7 @@ A body that takes the height left over and scrolls what does not fit. The scroll
 
 ```go
 func NewRegion(ui *UI, content unison.Paneler) *Region
+func NewSettingsPage(ui *UI, about *About, panes ...SettingsPane) *Region
 ```
 
 | Field | Type | |
@@ -447,8 +489,9 @@ Methods: `CountPhrase`.
 
 ```go
 func viewHeadWithControls(ui *kvitui.UI) unison.Paneler {
-    head := kvitui.NewViewHead(ui, "Transactions",
-        kvitui.Width(ui, kvitui.Px(180), kvitui.NewSearchField(ui)), kvitui.NewButton(ui, "Export"))
+    search := kvitui.NewSearchField(ui)
+    search.Placeholder = "Search transactions"
+    head := kvitui.NewViewHead(ui, "Transactions", kvitui.Width(ui, kvitui.Px(180), search), kvitui.NewButton(ui, "Export"))
     head.Count, head.Counted = 1284, "transaction"
     head.Subtitle = "Everything since the account was opened"
     return kvitui.FullWidth(head)
@@ -589,9 +632,10 @@ func NewWindow(ui *UI, title string) (*Window, error)
 |---|---|---|
 | `SidebarVisible` | `bool` | SidebarVisible false hides the sidebar entirely, which is a reader's choice, where a collapsed one is the window being narrow. |
 | `SidebarExpandsOnHover` | `bool` | SidebarExpandsOnHover opens the rail while the pointer rests on it or the keyboard is inside it; on unless an application has a reason. |
+| `AllowClose` | `func() bool` | AllowClose, when set, is asked before the window closes, by its close button, Close, Exit or Quit: true lets it close, false keeps it open, as when the reader cancels the question about unsaved changes. |
 | `OnKeyDown` | `func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool` | OnKeyDown is offered every key press before the focused control, for the application's own shortcuts; true says it used the key. |
 
-Methods: `Narrow`, `Popups`, `SetBody`, `SetHeader`, `SetSidebar`, `SetStatusBar`, `Show`, `Showing`, `SidebarCollapsed`, `SidebarExpanded`, `SidebarNarrow`.
+Methods: `AccessKeys`, `AddCommands`, `Commands`, `DocumentTitle`, `Edited`, `FitToScreen`, `FullScreenCommand`, `FullScreen`, `MenuBar`, `Narrow`, `OffSurface`, `Popups`, `RememberFrame`, `SetBody`, `SetDocument`, `SetEdited`, `SetFullScreen`, `SetHeader`, `SetMenuBar`, `SetSidebar`, `SetStatusBar`, `Show`, `Showing`, `ShownMenus`, `ShowsAccessKeys`, `SidebarCollapsed`, `SidebarExpanded`, `SidebarNarrow`, `UI`.
 
 *The whole shell*
 
@@ -628,6 +672,73 @@ func windowShell(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
+*A document's title, its unsaved mark, and where it was left*
+
+```go
+func windowDocument(ui *kvitui.UI) unison.Paneler {
+    // Source only, as every window is. The title is the document and the
+    // app on Windows and Linux, with an asterisk while there are unsaved
+    // changes, and the document alone on a Mac; AllowClose asks before the
+    // window closes; RememberFrame puts it back where it was left.
+    ui.AppName = "Kvit Cash"
+    window, err := kvitui.NewWindow(ui, "")
+    if err != nil {
+        return nil
+    }
+    window.SetDocument("May budget")
+    window.SetEdited(true)
+    window.AllowClose = func() bool { return true }
+    window.RememberFrame("window.budget")
+    window.SetBody(kvitui.NewRegion(ui, kvitui.NewSlimRow(ui, "Groceries")))
+    window.ToFront()
+    return nil
+}
+```
+
+### KvitHistory
+
+The reader's own way back through the places they went in a window. The app says which moves are steps; Back, at the top leading corner, is disabled with nowhere to go, and answers Alt+Left on Windows and Linux and Cmd-[ on a Mac.
+
+```go
+func NewHistory(ui *UI, start any, onGo func(place any)) *History
+```
+
+| Field | Type | |
+|---|---|---|
+| `OnGo` | `func(place any)` | OnGo shows a place the reader went back to. |
+
+Methods: `Back`, `CanGoBack`, `Command`, `Current`, `Visit`.
+
+*Back beside three places*
+
+```go
+func historyBack(ui *kvitui.UI) unison.Paneler {
+    var tabs []*kvitui.Tab
+    var h *kvitui.History
+    show := func(place any) {
+        for _, t := range tabs {
+            t.Selected = t.Text == place
+            t.MarkForRedraw()
+        }
+    }
+    h = kvitui.NewHistory(ui, "Accounts", show)
+    for _, name := range []string{"Accounts", "Budgets", "Reports"} {
+        t := kvitui.NewTab(ui, name)
+        t.Selected = name == "Accounts"
+        t.OnClick = func() {
+            h.Visit(name)
+            show(name)
+        }
+        tabs = append(tabs, t)
+    }
+    row := []unison.Paneler{kvitui.NewBackButton(ui, h)}
+    for _, t := range tabs {
+        row = append(row, t)
+    }
+    return kvitui.Row(ui, kvitui.SizeSpace, row...)
+}
+```
+
 ### KvitSectionHeading
 
 A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
@@ -653,7 +764,7 @@ func NewSectionHeading(ui *UI, label string) *SectionHeading
 | `OnToggle` | `func(expanded bool)` | OnToggle runs after the heading opened or closed, with the new state. |
 | `OnAction` | `func()` | OnAction runs when the hoisted action is taken. |
 
-Methods: `CountPhrase`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `CountPhrase`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *Collapsible, counted, with an action*
 
@@ -706,12 +817,12 @@ func sectionHeadingWrittenCount(ui *kvitui.UI) unison.Paneler {
     // Action and become the button's accessible name and its tooltip.
     changes := kvitui.NewSectionHeading(ui, "Changes")
     changes.CountText, changes.Collapsible = "1 · +0 −0", true
-    changes.Action, changes.ActionSymbol = "Open the diff", "diff"
+    changes.Action, changes.ActionSymbol = "Open diff", "diff"
     agents := kvitui.NewSectionHeading(ui, "Agents")
     agents.CountText, agents.Collapsible = "2 running", true
-    agents.Action, agents.ActionSymbol = "Start an agent", "plus"
+    agents.Action, agents.ActionSymbol = "Start agent", "plus"
     terminal := kvitui.NewSectionHeading(ui, "Terminal")
-    terminal.Action, terminal.ActionSymbol = "Open a terminal", "terminal"
+    terminal.Action, terminal.ActionSymbol = "Open terminal", "terminal"
     return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, changes, agents, terminal))
 }
 ```
@@ -726,7 +837,7 @@ func sectionHeadingExplanation(ui *kvitui.UI) unison.Paneler {
     // accessible description too.
     agents := kvitui.NewSectionHeading(ui, "Agents")
     agents.CountText, agents.Collapsible = "2 running", true
-    agents.Action, agents.ActionSymbol = "Start an agent", "plus"
+    agents.Action, agents.ActionSymbol = "Start agent", "plus"
     agents.ActionExplanation = "Creates an agent at this project’s root. An agent may change files. Nothing runs until you send its first message."
     changes := kvitui.NewSectionHeading(ui, "Changes")
     changes.CountText, changes.Collapsible = "1 · +0 −0", true
@@ -814,7 +925,7 @@ func NewSlimRow(ui *UI, name string) *SlimRow
 | `Measured` | `bool` | Measured is false for a value nobody measured, drawn as "—". |
 | `Symbol` | `string` | Symbol is an optional meaning name drawn before the name. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *Measured and unmeasured*
 
@@ -848,7 +959,7 @@ func NewCard(ui *UI, content ...unison.Paneler) *Card
 | `Padding` | `Measure` | Padding is the space inside the edge; the loose space unless set. |
 | `OnActivate` | `func()` | OnActivate runs when a pressable card is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *Static and interactive*
 
@@ -999,7 +1110,7 @@ func emptyStateWithAction(ui *kvitui.UI) unison.Paneler {
     empty := kvitui.NewEmptyState(ui, "No transactions yet")
     empty.Symbol = "wallet"
     empty.Detail = "Import a statement or add one by hand, and it will appear here."
-    empty.Action = "Import a statement"
+    empty.Action = "Import statement"
     return kvitui.FullWidth(empty)
 }
 ```
@@ -1011,7 +1122,7 @@ func emptyStateDropTarget(ui *kvitui.UI) unison.Paneler {
     drop := kvitui.NewEmptyState(ui, "Drop a statement here")
     drop.Dashed, drop.Symbol = true, "file-arrow-down"
     drop.Detail = "CSV, OFX and QIF. The file is read on this machine and nothing is sent anywhere."
-    drop.Action = "Choose a file"
+    drop.Action = "Choose file"
     return kvitui.FullWidth(drop)
 }
 ```
@@ -1397,22 +1508,25 @@ A button with words on it, in three forms. One primary per screen region: it is 
 
 ```go
 func NewButton(ui *UI, label string) *Button
+func NewCommandButton(ui *UI, c *Command) *Button
 ```
 
 | Field | Type | |
 |---|---|---|
-| `Text` | `string` | Text is what the button says. |
+| `Command` | `*Command` | Command, when set, is what the button runs: its words, symbol, explanation, whether it can act and whether it is on all come from the command, read each time the button is drawn. |
+| `Text` | `string` | Text is what the button says, in sentence case: kvit-ui writes it in title case on the macOS form (WRD-6). |
+| `Asks` | `bool` | Asks marks a button that asks for more before acting, such as one opening a dialog: "…" is added to its words (WRD-4). |
 | `Form` | `ButtonForm` | Form is ordinary, primary or quiet. |
 | `Danger` | `bool` | Danger draws the button in the danger colour. |
 | `Symbol` | `string` | Symbol is an optional meaning name drawn before the words. |
 | `Busy` | `bool` | Busy says the button is doing something: it stays enabled so its name can say what, and the words change to BusyText rather than a spinner appearing, since a spinner says "wait" without saying for what. |
-| `BusyText` | `string` | BusyText is what a busy button says; "Working…" unless set. |
+| `BusyText` | `string` | BusyText is what a busy button says: an -ing phrase naming the work, "Importing statement…", never "Working…" (WRD-25). |
 | `Explanation` | `string` | Explanation is one sentence the words cannot say: why the button is disabled, or what pressing it opens. |
 | `Checkable` | `bool` | Checkable makes a press toggle Checked. |
 | `Checked` | `bool` | Checked draws a button that turns a mode on as on: tinted and outlined in the accent, two marks rather than one, since a tint alone is a few percent of lightness in the high-contrast theme. |
 | `OnClick` | `func()` | OnClick runs when the button is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`, `Words`.
 
 *Text, icon plus text, and busy text in every form*
 
@@ -1423,6 +1537,7 @@ func buttonForms(ui *kvitui.UI) unison.Paneler {
         for _, form := range []kvitui.ButtonForm{kvitui.ButtonPrimary, kvitui.ButtonOrdinary, kvitui.ButtonQuiet} {
             b := kvitui.NewButton(ui, label)
             b.Form, b.Symbol, b.Busy = form, symbol, busy
+            b.BusyText = "Saving…"
             buttons = append(buttons, b)
         }
         return kvitui.Row(ui, kvitui.SizeSpace, buttons...)
@@ -1439,7 +1554,8 @@ func buttonDanger(ui *kvitui.UI) unison.Paneler {
     primary.Form, primary.Danger = kvitui.ButtonPrimary, true
     ordinary := kvitui.NewButton(ui, "Delete")
     ordinary.Danger, ordinary.Symbol = true, "trash"
-    disabled := kvitui.NewButton(ui, "Disabled")
+    disabled := kvitui.NewButton(ui, "Archive")
+    disabled.Explanation = "Only a closed account can be archived."
     disabled.SetEnabled(false)
     return kvitui.Row(ui, kvitui.SizeSpace, primary, ordinary, disabled)
 }
@@ -1502,7 +1618,7 @@ func NewChipButton(ui *UI, words string) *ChipButton
 | `Selected` | `bool` | Selectable makes the chip a choice that is on or off; Selected is whether it is on. |
 | `OnActivate` | `func()` | OnActivate runs when an available chip is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *Every tone, tinted, filled and keyboard-focused*
 
@@ -1657,6 +1773,9 @@ func NewField(ui *UI) *Field
 | `Error` | `string` | Error is a message under the field. |
 | `Shortcut` | `string` | Shortcut names the keys that reach the field, where something does. |
 | `ReadOnly` | `bool` | ReadOnly lets the text be selected and copied but not changed. |
+| `Required` | `bool` | Required marks a field that must be filled: told to a screen reader, and drawn as an asterisk after the label of the FormRow holding it (CON-4). |
+| `Masked` | `bool` | Masked hides what is typed behind dots, for a secret; the text can be neither copied nor cut (CTL-7). |
+| `MaxLength` | `int` | MaxLength is the most characters the field takes, 0 for no limit. |
 | `OnChange` | `func(text string)` | OnChange runs after every change to the text. |
 
 Methods: `Edit`, `Focus`, `SetEnabled`, `SetText`, `Text`.
@@ -1678,6 +1797,24 @@ func fieldStates(ui *kvitui.UI) unison.Paneler {
     locked.SetText("read only")
     locked.SetEnabled(false)
     return kvitui.Width(ui, kvitui.Px(200), kvitui.Column(ui, kvitui.SizeSpaceLoose, payee, reference, amount, locked))
+}
+```
+
+*Masked, and past its length limit*
+
+```go
+func formRowFields(ui *kvitui.UI) unison.Paneler {
+    // A secret is masked; a field past its limit keeps what was typed and
+    // says by how much it is over, rather than cutting it.
+    password := kvitui.NewField(ui)
+    password.Masked = true
+    password.SetText("correct horse")
+    code := kvitui.NewField(ui)
+    code.MaxLength = 6
+    code.SetText("BUKB20201")
+    return kvitui.Width(ui, kvitui.Px(320), kvitui.Column(ui, kvitui.SizeSpaceLoose,
+        kvitui.FullWidth(kvitui.NewFormRow(ui, "Pass&word", password)),
+        kvitui.FullWidth(kvitui.NewFormRow(ui, "Sort &code", code))))
 }
 ```
 
@@ -1707,7 +1844,7 @@ func textAreaStates(ui *kvitui.UI) unison.Paneler {
     source.SetText("# Notes\n\nThe file as it stands.")
     summary := kvitui.NewTextArea(ui)
     summary.Label, summary.Error = "Summary", "Say what changed"
-    summary.SetText("...")
+    summary.SetText("Fixed")
     return kvitui.Width(ui, kvitui.Px(280), kvitui.Column(ui, kvitui.SizeSpaceLoose, message, source, summary))
 }
 ```
@@ -1762,16 +1899,20 @@ Methods: `MatchPhrase`.
 
 ```go
 func searchFieldStates(ui *kvitui.UI) unison.Paneler {
+    empty := kvitui.NewSearchField(ui)
+    empty.Placeholder = "Search transactions"
     filtering := kvitui.NewSearchField(ui)
+    filtering.Placeholder = "Search transactions"
     filtering.SetText("harlow")
     filtering.Matches, filtering.MatchedNoun = 47, "transaction"
     // What a screen reader is told is a sentence: the digits grouped by the
     // reader's locale and the plural a word, so "250,000 entries" rather than
     // "250000 entry(s)". A noun that does not take an s says its own plural.
     year := kvitui.NewSearchField(ui)
+    year.Placeholder = "Search entries"
     year.SetText("2026")
     year.Matches, year.MatchedNoun, year.MatchedNounPlural = 250000, "entry", "entries"
-    return kvitui.Width(ui, kvitui.Px(220), kvitui.Column(ui, kvitui.SizeSpaceLoose, kvitui.NewSearchField(ui), filtering, year))
+    return kvitui.Width(ui, kvitui.Px(220), kvitui.Column(ui, kvitui.SizeSpaceLoose, empty, filtering, year))
 }
 ```
 
@@ -1791,7 +1932,7 @@ func NewCheck(ui *UI, label string) *Check
 | `OnChange` | `func(checked bool)` | OnChange runs after a press, with the new state. |
 | `Name` | `string` | Name is what a screen reader calls a box with no words beside it, such as the one on each row of a table; the words unless set. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *Off, on, partial and disabled*
 
@@ -1824,7 +1965,7 @@ func NewSelect(ui *UI, label string, options ...Option) *Select
 | `Placeholder` | `string` | Placeholder is what the select says while no option is chosen. |
 | `OnChoose` | `func(value string)` | OnChoose runs after an option is chosen, with its value. |
 
-Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *A currency picker*
 
@@ -1848,13 +1989,13 @@ func NewTab(ui *UI, label string) *Tab
 
 | Field | Type | |
 |---|---|---|
-| `Text` | `string` | Text names the view. |
+| `Text` | `string` | Text names the view, in sentence case: kvit-ui writes it in title case on the macOS form (WRD-6). |
 | `Selected` | `bool` | Selected marks the tab whose view is showing. |
 | `Count` | `int` | Count is how many things the view holds, drawn beside the name; below zero draws none. |
 | `Explanation` | `string` | Explanation says in one sentence what the view shows, which two or three words on a tab cannot. |
 | `OnClick` | `func()` | OnClick runs when the tab is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *Selected, counted and plain*
 
@@ -1880,6 +2021,356 @@ func tabExplanations(ui *kvitui.UI) unison.Paneler {
     history := kvitui.NewTab(ui, "History")
     history.Explanation = "Every version and who wrote it."
     return kvitui.Row(ui, kvitui.Px(0), changes, source, history)
+}
+```
+
+### KvitCommand
+
+One thing the app can do, made once and offered on a menu line, a button, a symbol button and a key, so it has one name, one symbol and one shortcut everywhere and is disabled everywhere at once. A standard command (`Std`) takes its platform name and keys by itself: an app with Save answers Ctrl+S on Windows and Linux and Cmd-S on a Mac. A window answers the keys of the commands added to it, refuses a key that is taken, and leaves typing keys to a focused text field.
+
+| Field | Type | |
+|---|---|---|
+| `Name` | `string` | Name is what the command is called everywhere: a verb first, in sentence case, "Export…" with the ellipsis left to Asks. |
+| `Std` | `StdCommand` | Std names a standard command, StdNone for the app's own. |
+| `Symbol` | `string` | Symbol is the meaning name of its symbol, drawn on a symbol button and before the words in a menu on the Windows form; a standard command has its standard one unless set. |
+| `Shortcut` | `Shortcut` | Shortcut is the app's own key for the command; a standard command's keys are the form's standard ones, and this adds one more. |
+| `Asks` | `bool` | Asks marks a command that asks for more before it acts, a dialog, a chooser or a confirmation: its name gains "…" on both forms (WRD-4). |
+| `OpensWindow` | `bool` | OpensWindow marks a command whose whole job is to show a window, such as Settings: "…" on the macOS form only (WRD-4). |
+| `Explanation` | `string` | Explanation is one sentence the name cannot say, such as why the command cannot act now: a tooltip's second line and the description a screen reader is told. |
+| `Enabled` | `func() bool` | Enabled reports whether the command can act now; nil is always. |
+| `Checked` | `func() bool` | Checked makes the command a switch, reporting whether it is on now: a tick on its menu line and a checked button. |
+| `TurnOn` | `string` | TurnOn and TurnOff are a switch's words on the macOS form, where the menu line says what choosing it does: "Show sidebar" while it is off, "Hide sidebar" while it is on. |
+| `TurnOff` | `string` | TurnOn and TurnOff are a switch's words on the macOS form, where the menu line says what choosing it does: "Show sidebar" while it is off, "Hide sidebar" while it is on. |
+| `Run` | `func()` | Run does it. |
+
+Methods: `CanRun`, `Do`, `FirstShortcut`, `IsChecked`, `Label`, `Plain`, `Shortcuts`, `SymbolName`.
+
+*One command as a button, a symbol button and a menu line*
+
+```go
+func commandEverywhere(ui *kvitui.UI) unison.Paneler {
+    export := &kvitui.Command{Name: "Export statement", Asks: true, Symbol: "external",
+        Shortcut: kvitui.Keys(unison.KeyE, kvitui.ModPrimary|kvitui.ModShift), Run: func() {}}
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(60), unison.NewPanel()))
+    whenShown(stage, func() {
+        ui.ShowMenuAt(stage, geom.Rect{}, "Statement", []kvitui.MenuItem{{Command: export}})
+    })
+    return kvitui.Column(ui, kvitui.SizeSpace,
+        kvitui.Row(ui, kvitui.SizeSpace, kvitui.NewCommandButton(ui, export), kvitui.NewCommandIconButton(ui, export)), stage)
+}
+```
+
+*Standard commands, with the form's names and keys*
+
+```go
+func commandStandard(ui *kvitui.UI) unison.Paneler {
+    run := func() {}
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(150), unison.NewPanel()))
+    whenShown(stage, func() {
+        ui.ShowMenuAt(stage, geom.Rect{}, "Edit", []kvitui.MenuItem{
+            {Command: &kvitui.Command{Std: kvitui.StdUndo, Run: run}},
+            {Command: &kvitui.Command{Std: kvitui.StdRedo, Run: run}},
+            {Separator: true},
+            {Command: &kvitui.Command{Std: kvitui.StdSelectAll, Run: run}},
+            {Command: &kvitui.Command{Std: kvitui.StdFind, Run: run}},
+        })
+    })
+    return stage
+}
+```
+
+### KvitMenuBar
+
+A main window's menus, built from its commands, with each platform's standard menus in its standard order: File, Edit, View, the app's menus, Tools and Help drawn in the window on Windows and Linux, with access keys, Alt and F10; the app menu, File, Edit, View, the app's menus, Window and Help in the system's bar on a Mac. Standard commands go to their places by themselves.
+
+```go
+func NewMenuBar(ui *UI) *MenuBar
+```
+
+Methods: `AddMenu`, `AddTo`, `Add`, `Commands`, `Menus`, `OpenMenu`.
+
+*A window's command surfaces: the menu bar and a toolbar*
+
+```go
+func menuBarWindow(ui *kvitui.UI) unison.Paneler {
+    bar, tools := windowSurfaces(ui)
+    body := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(40), unison.NewPanel()))
+    return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, kvitui.FullWidth(bar), kvitui.FullWidth(tools), body))
+}
+```
+
+*The View menu: the window's own parts first, then the standard lines*
+
+```go
+func menuBarOpened(ui *kvitui.UI) unison.Paneler {
+    bar, _ := windowSurfaces(ui)
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(150), unison.NewPanel()))
+    // The View menu, opened once the bar is in a window: the window's own
+    // parts first, then the standard lines.
+    whenShown(stage, func() {
+        for i, m := range bar.Menus() {
+            if m.Title == "&View" || m.Title == "View" {
+                bar.OpenMenu(i)
+            }
+        }
+    })
+    return kvitui.FullWidth(kvitui.Column(ui, kvitui.Px(0), kvitui.FullWidth(bar), stage))
+}
+```
+
+### KvitToolbar
+
+The commands for a window's main tasks, in leading, centre and trailing groups, added in order of importance. Too narrow for them all, it first moves the words into the tooltips and then the least important commands into a More menu, so every command stays reachable at any width.
+
+```go
+func NewToolbar(ui *UI, label string) *Toolbar
+```
+
+| Field | Type | |
+|---|---|---|
+| `Label` | `string` | Label names the toolbar for a screen reader: "Statement". |
+| `Words` | `bool` | Words shows each command's words beside its symbol, where there is room, on the Windows form (CMD-22). |
+
+Methods: `AddMenu`, `Add`, `Commands`, `InMore`.
+
+*Wide, with words; narrow, with a More menu*
+
+```go
+func toolbarWideAndNarrow(ui *kvitui.UI) unison.Paneler {
+    _, wide := windowSurfaces(ui)
+    _, narrow := windowSurfaces(ui)
+    return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpaceLoose,
+        kvitui.FullWidth(wide), kvitui.Width(ui, kvitui.Px(150), narrow)))
+}
+```
+
+### KvitMenuButton
+
+A button with a down-arrow that opens a menu of three or more commands refining its own action. One or two commands are buttons of their own.
+
+```go
+func NewMenuButton(ui *UI, label string, items ...MenuItem) *MenuButton
+```
+
+| Field | Type | |
+|---|---|---|
+| `Button` | embedded | Everything a Button has. |
+| `Items` | `[]MenuItem` | Items are the menu's lines. |
+
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+
+*Three ways to sort*
+
+```go
+func menuButtonRefinements(ui *kvitui.UI) unison.Paneler {
+    run := func() {}
+    sort := kvitui.NewMenuButton(ui, "Sort",
+        kvitui.MenuItem{Text: "By date", Radio: true, Checked: true, OnSelect: run},
+        kvitui.MenuItem{Text: "By payee", Radio: true, OnSelect: run},
+        kvitui.MenuItem{Text: "By amount", Radio: true, OnSelect: run})
+    return sort
+}
+```
+
+### KvitSplitButton
+
+Variants of one command: the main part runs the variant it shows, the arrow opens them all. On Windows and Linux the main part runs the variant last chosen; on a Mac the likeliest, unless `RememberLast` is set. `NewToggleSplitButton` is for a feature that is on or off and comes in styles: the main part turns it on and off, the menu picks the style, and choosing a style turns it on.
+
+```go
+func NewSplitButton(ui *UI, variants ...*Command) *SplitButton
+func NewToggleSplitButton(ui *UI, toggle *Command, styles ...*Command) *SplitButton
+```
+
+| Field | Type | |
+|---|---|---|
+| `Variants` | `[]*Command` | Variants are the commands the button offers, the likeliest first; a toggle split button's styles. |
+| `Current` | `int` | Current is the variant the main part runs, or the style in use. |
+| `Toggle` | `*Command` | Toggle is a toggle split button's switch: a command whose Checked says whether the feature is on and whose Run turns it on or off. |
+| `RememberLast` | `bool` | RememberLast makes the main part run the variant last chosen on the macOS form too. |
+| `MenuLabel` | `string` | MenuLabel names the arrow for a screen reader and its tooltip. |
+
+*Three export formats*
+
+```go
+func splitButtonVariants(ui *kvitui.UI) unison.Paneler {
+    run := func() {}
+    split := kvitui.NewSplitButton(ui,
+        &kvitui.Command{Name: "Export as CSV", Run: run},
+        &kvitui.Command{Name: "Export as PDF", Run: run},
+        &kvitui.Command{Name: "Export as OFX", Run: run})
+    split.MenuLabel = "Choose format"
+    return split
+}
+```
+
+*Bullets, turned on and off, in three styles*
+
+```go
+func toggleSplitButtonStyles(ui *kvitui.UI) unison.Paneler {
+    // The main part turns the bullets on and off, and shows them on here;
+    // the menu picks how they look, and choosing a style turns them on.
+    on := true
+    bullets := &kvitui.Command{Name: "Bullets", Symbol: "list-bullets",
+        Checked: func() bool { return on }, Run: func() { on = !on }}
+    run := func() {}
+    return kvitui.NewToggleSplitButton(ui, bullets,
+        &kvitui.Command{Name: "Dot bullets", Run: run},
+        &kvitui.Command{Name: "Dash bullets", Run: run},
+        &kvitui.Command{Name: "Arrow bullets", Run: run})
+}
+```
+
+### KvitUndoStack
+
+The edits that can be undone, each named for what it did, so the Edit menu reads Undo delete transaction rather than Undo. Its Undo and Redo are standard commands, done by a focused text field itself while it has an edit of its own; `Toast` and `Confirm` report the last edit with an undo that takes it back.
+
+```go
+func NewUndoStack(ui *UI) *UndoStack
+```
+
+Methods: `Add`, `CanRedo`, `CanUndo`, `Clear`, `Commands`, `Confirm`, `RedoName`, `Redo`, `Toast`, `UndoName`, `Undo`.
+
+*Undo and Redo named for the edit*
+
+```go
+func undoStackMenu(ui *kvitui.UI) unison.Paneler {
+    stack := kvitui.NewUndoStack(ui)
+    stack.Add("Delete transaction", func() {}, func() {})
+    undo, redo := stack.Commands()
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(80), unison.NewPanel()))
+    whenShown(stage, func() {
+        ui.ShowMenuAt(stage, geom.Rect{}, "Edit", []kvitui.MenuItem{{Command: undo}, {Command: redo}})
+    })
+    return stage
+}
+```
+
+### KvitFormRow
+
+A field with its visible label: above the field on Windows and Linux, beside it on a Mac. The label names the field for a screen reader, ends without a colon, takes an asterisk when the field is `Required`, and holds the field's access key.
+
+```go
+func NewFormRow(ui *UI, label string, field unison.Paneler) *FormRow
+```
+
+| Field | Type | |
+|---|---|---|
+| `Label` | `string` | Label names the field, in sentence case, with an "&" before the access key's letter where the app chooses one. |
+| `Required` | `bool` | Required marks a field that must be filled. |
+| `LabelWidth` | `Measure` | LabelWidth, on the macOS form, is the width of the label's column, so the fields of a form line up; nil takes the label's own width. |
+
+*Required and optional*
+
+```go
+func formRows(ui *kvitui.UI) unison.Paneler {
+    payee := kvitui.NewField(ui)
+    payee.SetText("Harlow Market")
+    payeeRow := kvitui.NewFormRow(ui, "&Payee", payee)
+    payeeRow.Required = true
+    memo := kvitui.NewFormRow(ui, "&Memo", kvitui.NewField(ui))
+    return kvitui.Width(ui, kvitui.Px(320), kvitui.Column(ui, kvitui.SizeSpaceLoose, kvitui.FullWidth(payeeRow), kvitui.FullWidth(memo)))
+}
+```
+
+### KvitSettingRow
+
+One setting: its name and one short line at the leading side, the control at the trailing edge, applying at once with no OK or Apply. A switch says On or Off beside it on Windows and Linux. On those systems the settings page ends with `NewAboutSection`, and Settings is the last item of the sidebar, at its foot.
+
+```go
+func NewSettingRow(ui *UI, label, description string, control unison.Paneler) *SettingRow
+```
+
+| Field | Type | |
+|---|---|---|
+| `Label` | `string` | Label names the setting. |
+| `Description` | `string` | Description says in one short line what the setting does, "" for none. |
+
+*A switch, a select and a stepper*
+
+```go
+func settingRows(ui *kvitui.UI) unison.Paneler {
+    motion := kvitui.NewSwitch(ui, "")
+    motion.Checked = true
+    theme := kvitui.NewSelect(ui, "", kvitui.Option{Value: "system", Label: "Follow the system"},
+        kvitui.Option{Value: "light", Label: "Light"}, kvitui.Option{Value: "dark", Label: "Dark"})
+    size := kvitui.NewStepper(ui, "", 10, 24)
+    size.Value, size.Unit = 13, "px"
+    return kvitui.Width(ui, kvitui.Px(520), kvitui.Column(ui, kvitui.Px(0),
+        kvitui.FullWidth(kvitui.NewSettingRow(ui, "Reduce motion", "Panels open without sliding.", motion)),
+        kvitui.FullWidth(kvitui.NewSettingRow(ui, "Theme", "", theme)),
+        kvitui.FullWidth(kvitui.NewSettingRow(ui, "Interface size", "Every part of the window grows with it.", size))))
+}
+```
+
+*The About section at the end of the page*
+
+```go
+func settingsAbout(ui *kvitui.UI) unison.Paneler {
+    // On Windows and Linux the settings page ends with About; on a Mac About
+    // is in the app menu, which opens the same section in a window.
+    return kvitui.Width(ui, kvitui.Px(520), kvitui.NewAboutSection(ui, kvitui.About{
+        Name: "Kvit Cash", Version: "2.4.1", Details: []string{"Build 2026-10-24"},
+        Links: []kvitui.AboutLink{{Text: "Report a problem"}, {Text: "Third-party notices"}, {Text: "Terms of use"}},
+    }))
+}
+```
+
+### KvitSettingsWindow
+
+An app's settings as a Mac has them: a window of its own, opened by Settings… in the app menu, with its panes in a row across the top, each a symbol over its name. The window is titled with the pane shown, takes that pane's height, cannot be resized, and has no OK, Cancel or Apply, since each setting applies as it is changed; Command-W closes it. `SettingsPanes` is what the window holds. On Windows and Linux the same panes make a page in the app's window instead (`Page`, or `NewSettingsPage`): one scrolling column with each pane a section under its name and About last. `Command` gives the Settings command, which opens the window on a Mac and shows the page on Windows and Linux, so an app writes its settings once. unison cannot take the minimise button off the window.
+
+```go
+func NewSettingsWindow(ui *UI, panes ...SettingsPane) *SettingsWindow
+```
+
+| Field | Type | |
+|---|---|---|
+| `Panes` | `*SettingsPanes` | Panes are what the window holds. |
+
+Methods: `Close`, `Command`, `Open`, `Page`, `Window`.
+
+*Three panes, as the window holds them*
+
+```go
+func settingsPanesOnPage(ui *kvitui.UI) unison.Paneler {
+    // The panes as a Mac's settings window holds them, drawn on the page in
+    // a ruled frame where the window would be.
+    frame := kvitui.NewPanel(ui)
+    frame.RuleTop, frame.RuleBottom, frame.RuleLeft, frame.RuleRight = true, true, true, true
+    frame.SetLayout(&unison.FlexLayout{Columns: 1})
+    frame.AddChild(kvitui.FullWidth(kvitui.NewSettingsPanes(ui, settingsPanes(ui)...)))
+    return kvitui.Width(ui, kvitui.Px(560), frame)
+}
+```
+
+*The same panes as the page on Windows and Linux*
+
+```go
+func settingsPageOnPage(ui *kvitui.UI) unison.Paneler {
+    // On Windows and Linux the same panes make a page in the app's window,
+    // one scrolling column ending with About, shown here in a ruled frame
+    // where the window's body would be.
+    page := kvitui.NewSettingsPage(ui, &kvitui.About{Name: "Kvit Cash", Version: "2.4.1"}, settingsPanes(ui)...)
+    frame := kvitui.NewPanel(ui)
+    frame.RuleTop, frame.RuleBottom, frame.RuleLeft, frame.RuleRight = true, true, true, true
+    frame.SetLayout(&unison.FlexLayout{Columns: 1, HAlign: align.Fill, VAlign: align.Fill})
+    frame.AddChild(page)
+    page.SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, VAlign: align.Fill, HGrab: true, VGrab: true})
+    return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(380), frame))
+}
+```
+
+*Opened in a window of its own*
+
+```go
+func settingsWindowOpen(ui *kvitui.UI) unison.Paneler {
+    // Settings… in a Mac's app menu runs the window's Command, which opens
+    // the window there; on Windows and Linux the same command shows the
+    // app's settings page. This button opens the window on either.
+    window := kvitui.NewSettingsWindow(ui, settingsPanes(ui)...)
+    open := kvitui.NewButton(ui, "Open settings window")
+    open.OnClick = func() { _ = window.Open() }
+    return kvitui.Left(open)
 }
 ```
 
@@ -2052,25 +2543,36 @@ func noticeForms(ui *kvitui.UI) unison.Paneler {
 
 ### KvitDialog
 
-A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape. An open dialog moves when its title row is dragged, staying inside the window; it opens in the middle unless the application says where with MoveTo, and OnMove tells the application where the reader left it, for it to keep.
+A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first. Its buttons follow the platform: the action first and Cancel at the right end on Windows and Linux, Cancel and then the action at the trailing end on a Mac. `ConfirmText` names the action; there is no Confirm to fall back on. A message that only informs (`NewMessage`) has one button, Close on Windows and Linux and OK on a Mac. A properties dialog of one object (`DialogProperties`) has OK and Cancel, and on Windows and Linux Apply, which is enabled once `MarkChanged` says something changed and leaves the dialog open. Return presses the default button on a Mac (the action, unless destructive); on Windows and Linux Enter presses the focused button, and the action only where `DefaultConfirm` marks it. Escape cancels everywhere, and so does the close symbol beside the title on Windows and Linux. `Help` takes a KvitHelpLink: the question at the bottom of the content on Windows and Linux, which Tab reaches after the buttons, and the round help button at the leading end of the buttons on a Mac. The keyboard starts in the first field, stays inside, and goes back to the opener; `OnDiscard` is asked before the close symbol or Escape throws away typed input; one dialog is open at a time. An open dialog moves when its title row is dragged, staying inside the window; it opens in the middle unless the application says where with MoveTo, and OnMove tells the application where the reader left it, for it to keep.
 
 ```go
 func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog
+func NewMessage(ui *UI, title, detail string) *Dialog
 ```
 
 | Field | Type | |
 |---|---|---|
-| `Title` | `string` | Title asks the question; Detail says more. |
-| `Detail` | `string` | Title asks the question; Detail says more. |
-| `ConfirmText` | `string` | ConfirmText and CancelText are the buttons' words; "" leaves a button out, and a dialog with neither has no row of buttons. |
-| `CancelText` | `string` | ConfirmText and CancelText are the buttons' words; "" leaves a button out, and a dialog with neither has no row of buttons. |
-| `Destructive` | `bool` | Destructive draws the confirming button in the danger colour and takes away the keyboard default. |
-| `OnAccept` | `func()` | OnAccept and OnReject run when the dialog is answered. |
-| `OnReject` | `func()` | OnAccept and OnReject run when the dialog is answered. |
+| `Kind` | `DialogKind` | Kind is what the dialog is for: asking (the default), informing, or showing an object's properties. |
+| `Title` | `string` | Title names the question or what happened, on every dialog (WIN-6, decided Q-42); Detail says more. |
+| `Detail` | `string` | Title names the question or what happened, on every dialog (WIN-6, decided Q-42); Detail says more. |
+| `ConfirmText` | `string` | ConfirmText names the action the dialog confirms, "Import" or "Delete": a dialog that asks needs it, and has no "Confirm" to fall back on (WRD-7). |
+| `CancelText` | `string` | CancelText is the safe button's words, Cancel unless set; a dialog that asks always has one (WIN-3). |
+| `OtherText` | `string` | OtherText is an optional second answer, such as "Don't save", beside the action on the Windows form and at the leading end on the macOS form; "" for none. |
+| `Destructive` | `bool` | Destructive draws the confirming button in the danger colour, and takes away the default on both forms. |
+| `DefaultConfirm` | `bool` | DefaultConfirm makes the action the default on the Windows form, which Enter presses wherever the keyboard is in the dialog: only where it is clearly the likely and safe answer. |
+| `Suppressible` | `bool` | Suppressible offers "Don't show this message again" under the detail, for a routine message that can recur; an error or a destructive question never offers it (WIN-2). |
+| `SuppressNoun` | `string` |  |
+| `Helper` | `bool` | Helper lets the dialog open over another on the Windows form, as a chooser over the dialog that needs it; an informing dialog may open over another on both forms. |
+| `OnAccept` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |
+| `OnReject` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |
+| `OnOther` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |
+| `OnApply` | `func()` | OnAccept and OnReject run when the dialog is answered; OnOther when the second answer is chosen; OnApply when a properties dialog's Apply is pressed, which leaves it open. |
+| `OnDiscard` | `func() bool` | OnDiscard is asked before the close symbol or Escape throws away what the reader put into the dialog: true goes ahead, false keeps it open. |
 | `OnMove` | `func(x, y int)` | OnMove runs when the reader lets go of the dialog after dragging it, with where its top-left corner is now, as Position gives it. |
+| `Help` | `*HelpLink` | Help opens the help topic for the dialog, where the topic says what the dialog cannot; nil for none (HLP-6). |
 | `ConfirmKeepsOpen` | `bool` | ConfirmKeepsOpen leaves the dialog open when it is confirmed, for an answer the application checks and may refuse, saying why in the dialog; Close takes it away once the answer is taken. |
 
-Methods: `Accept`, `Close`, `MoveTo`, `Open`, `Position`.
+Methods: `Accept`, `ButtonWords`, `Close`, `Done`, `MarkChanged`, `MoveTo`, `Open`, `Position`, `SafeButton`, `Suppressed`.
 
 *A destructive confirmation*
 
@@ -2080,8 +2582,67 @@ func dialogDestructive(ui *kvitui.UI) unison.Paneler {
     // opened with Open, modal and in the middle of the window.
     confirm := kvitui.NewDialog(ui, "Delete 40 transactions?")
     confirm.Detail = "They will be removed from every report. This cannot be undone."
-    confirm.ConfirmText, confirm.Destructive = "Delete them", true
+    confirm.ConfirmText, confirm.Destructive = "Delete", true
     return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(210), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), confirm))))
+}
+```
+
+*A second answer, in the form's order*
+
+```go
+func dialogSecondAnswer(ui *kvitui.UI) unison.Paneler {
+    // The buttons are in the form's order: Save, Don't save, Cancel from the
+    // left on Windows and Linux; Don't Save apart, then Cancel and Save at
+    // the trailing end on a Mac.
+    save := kvitui.NewDialog(ui, "Save changes to the May budget?")
+    save.Detail = "Your changes are lost if you don't save them."
+    save.ConfirmText, save.OtherText = "Save", "Don't save"
+    return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(190), kvitui.Centred(kvitui.Width(ui, kvitui.Px(460), save))))
+}
+```
+
+*A message, which may offer not to show it again*
+
+```go
+func dialogMessage(ui *kvitui.UI) unison.Paneler {
+    // A message has one button: Close on Windows and Linux, OK on a Mac. A
+    // routine one may offer not to show it again; an error never does.
+    done := kvitui.NewMessage(ui, "Import finished", "212 transactions were added. 3 were already in the ledger.")
+    done.Suppressible = true
+    return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(220), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), done))))
+}
+```
+
+*With the help for its question, placed by the form*
+
+```go
+func dialogHelp(ui *kvitui.UI) unison.Paneler {
+    // The help is a question at the bottom of the content on Windows and
+    // Linux, reached by Tab after the buttons, and the round help button at
+    // the leading end of the buttons on a Mac.
+    roll := kvitui.NewDialog(ui, "Roll the May budget over?")
+    roll.Detail = "What is left in each category moves into June."
+    roll.ConfirmText, roll.OtherText = "Roll over", "Start empty"
+    roll.Help = kvitui.NewHelpLink(ui, "budgets#rollover", "How does a budget roll over?")
+    return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(220), kvitui.Centred(kvitui.Width(ui, kvitui.Px(460), roll))))
+}
+```
+
+*The properties of one object, with Apply on Windows and Linux*
+
+```go
+func dialogProperties(ui *kvitui.UI) unison.Paneler {
+    // The settings of one account: OK, Cancel and, on Windows and Linux,
+    // Apply, which waits until something has changed. A Mac has no Apply.
+    name := kvitui.NewField(ui)
+    name.SetText("Joint checking")
+    hidden := kvitui.NewCheck(ui, "Hide from reports")
+    props := kvitui.NewDialog(ui, "Account properties",
+        kvitui.FullWidth(kvitui.NewFormRow(ui, "Name", name)), hidden)
+    props.Kind = kvitui.DialogProperties
+    name.OnChange = func(string) { props.MarkChanged() }
+    hidden.OnChange = func(bool) { props.MarkChanged() }
+    return kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(260), kvitui.Centred(kvitui.Width(ui, kvitui.Px(420), props))))
 }
 ```
 
@@ -2094,7 +2655,8 @@ func dialogMoved(ui *kvitui.UI) unison.Paneler {
     // long as the gallery runs.
     var x, y int
     left := false
-    export := kvitui.NewButton(ui, "Export the ledger")
+    export := kvitui.NewButton(ui, "Export ledger")
+    export.Asks = true
     export.OnClick = func() {
         ask := kvitui.NewDialog(ui, "Export the ledger?")
         ask.Detail = "Drag this dialog by its title to move it. It opens again where you leave it."
@@ -2106,6 +2668,68 @@ func dialogMoved(ui *kvitui.UI) unison.Paneler {
         ask.Open(ui.WindowOf(export))
     }
     return kvitui.Left(export)
+}
+```
+
+### KvitTip
+
+A teaching tip beside a feature that is not obvious: a title, a sentence, a close button and at most one action. It blocks nothing, so the window goes on working around it; it closes when what it points at scrolls, and once closed it is not shown again unless `ResetTips` is called. Spotlight is for a guided tour.
+
+```go
+func NewTip(ui *UI, id, title, words string) *Tip
+```
+
+| Field | Type | |
+|---|---|---|
+| `ID` | `string` | ID names the tip in the settings file, which keeps whether it was seen. |
+| `Title` | `string` | Title says what the feature is; Text says what it does for the reader. |
+| `Text` | `string` | Title says what the feature is; Text says what it does for the reader. |
+| `Action` | `string` | Action is the words of the tip's one action, "" for none. |
+| `OnAction` | `func()` | OnAction runs when the action is taken, after the tip closes; OnClose when the tip closes by its close button or its target moving. |
+| `OnClose` | `func()` | OnAction runs when the action is taken, after the tip closes; OnClose when the tip closes by its close button or its target moving. |
+
+Methods: `Seen`, `ShowBeside`, `ShowInWindow`, `Shown`.
+
+*Beside the button it explains*
+
+```go
+func tipBeside(ui *kvitui.UI) unison.Paneler {
+    split := kvitui.NewButton(ui, "Split")
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), kvitui.Column(ui, kvitui.Px(0),
+        kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(120), unison.NewPanel())), kvitui.Left(split))))
+    tip := kvitui.NewTip(ui, "gallery.split", "Split a transaction", "Share one payment among several categories.")
+    tip.Action = "Try it"
+    whenShown(stage, func() {
+        // The gallery shows the tip every time; an app shows it once.
+        ui.ResetTips()
+        tip.ShowBeside(split)
+    })
+    return stage
+}
+```
+
+### KvitHelpLink
+
+The way to the help topic for one place, an HTML page shipped with the app opened at its anchor: on Windows and Linux a link worded as the question the topic answers, on a Mac the round question-mark button, one per window.
+
+```go
+func NewHelpLink(ui *UI, topic, question string) *HelpLink
+```
+
+| Field | Type | |
+|---|---|---|
+| `Topic` | `string` | Topic is the page and its anchor under UI.HelpRoot. |
+| `Question` | `string` | Question is what the topic answers, a whole question ending in a question mark; the link's words on the Windows form. |
+
+Methods: `Open`.
+
+*A question, or the Mac's help button*
+
+```go
+func helpLinkTopic(ui *kvitui.UI) unison.Paneler {
+    // A link worded as the question its topic answers on Windows and Linux;
+    // the round question-mark button on a Mac.
+    return kvitui.NewHelpLink(ui, "budgets#rollover", "How does a budget roll over?")
 }
 ```
 
@@ -2486,7 +3110,7 @@ func NewStatTile(ui *UI, label, value, unit string) *StatTile
 | `History` | `[]float64` | History is the recent shape; NotMeasured for a gap. |
 | `Caption` | `string` | Caption is a line under it all. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *A dashboard row*
 
@@ -2732,8 +3356,8 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
     // Opened at the stage's top left once it is in a window.
     whenShown(stage, func() {
         ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-            {Text: "Open", Symbol: "file", Key: command(unison.KeyO)},
-            {Text: "Duplicate", Symbol: "copy", Key: command(unison.KeyD)},
+            {Text: "Open", Symbol: "file", Shortcut: command(unison.KeyO)},
+            {Text: "Duplicate", Symbol: "copy", Shortcut: command(unison.KeyD)},
             {Text: "Archive", Symbol: "archive"},
             {Separator: true},
             {Text: "Delete", Symbol: "trash", Danger: true},
@@ -2745,18 +3369,27 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
 
 ### KvitMenuItem
 
-One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it.
+One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac.
 
 | Field | Type | |
 |---|---|---|
-| `Text` | `string` | Text is what the line says. |
-| `Key` | `unison.KeyBinding` | Key is the shortcut shown at the right of the line, which is how a menu teaches that there is a faster way; the zero value shows none. |
+| `Command` | `*Command` | Command is what the line runs: its words, symbol, shortcut, explanation, tick and whether it can act now all come from the command, read as the menu opens, unless the fields below are set. |
+| `Text` | `string` | Text is what the line says, in sentence case: kvit-ui writes it in title case on the macOS form (WRD-6). |
+| `Verbatim` | `bool` | Verbatim leaves Text as written on both forms, for a line naming the reader's own thing, such as a recent file; pass such words through PlainMenuText too. |
+| `Asks` | `bool` | Asks marks a line that asks for more before acting: "…" is added to its words (WRD-4). |
+| `Shortcut` | `Shortcut` | Shortcut is the key shown at the right of the line, which is how a menu teaches that there is a faster way; the zero value shows none. |
+| `Key` | `unison.KeyBinding` | Key is a shortcut given as unison's key binding, shown as unison writes it; Shortcut is the form-aware way. |
 | `Symbol` | `string` | Symbol is an optional meaning name drawn before the words. |
 | `Explanation` | `string` | Explanation is one sentence saying what choosing the line does, for a line whose words cannot say it: shown as its tooltip and told to a screen reader, never in place of the words. |
 | `Danger` | `bool` | Danger draws a destructive line in the danger colour. |
-| `Checked` | `bool` | Checked marks the entry in use, with a tick in place of its symbol and its words in bold, so it still stands out in grey. |
+| `Checked` | `bool` | Checked marks an option that is on with a tick in place of its symbol. |
+| `Radio` | `bool` | Radio marks the line as one of a set of options of which one is chosen: the chosen one, Checked, has a bullet on the Windows form and a tick on the macOS form (CMD-15). |
+| `Mixed` | `bool` | Mixed marks an option that is on for only part of the selection: no mark on the Windows form, a dash on the macOS form (CMD-15). |
+| `TurnOn` | `string` | TurnOn and TurnOff are an on-and-off line's words on the macOS form, where the line says what choosing it does: TurnOn while it is off, TurnOff while it is on, with no tick. |
+| `TurnOff` | `string` | TurnOn and TurnOff are an on-and-off line's words on the macOS form, where the line says what choosing it does: TurnOn while it is off, TurnOff while it is on, with no tick. |
+| `Default` | `bool` | Default marks what double-clicking or Return on the item does, drawn in bold in a context menu on the Windows form (CMD-10, Q-33). |
 | `Disabled` | `bool` | Disabled draws the line and does nothing when chosen. |
-| `Separator` | `bool` | Separator makes the line a divider instead, as goes before a destructive entry at the bottom of a menu. |
+| `Separator` | `bool` | Separator makes the line a divider between groups instead. |
 | `OnSelect` | `func()` | OnSelect runs when the line is chosen. |
 | `Items` | `[]MenuItem` | Items make the line open a submenu of its own instead of acting: beside the line, when the pointer rests on it or on Right, Return or Space, and closed again by Left or Escape. |
 
@@ -2767,7 +3400,7 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
     stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(110), unison.NewPanel()))
     whenShown(stage, func() {
         ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-            {Text: "Reconcile", Symbol: "check", Key: command(unison.KeyR)},
+            {Text: "Reconcile", Symbol: "check", Shortcut: command(unison.KeyR)},
             {Text: "Split", Symbol: "split", Disabled: true},
             {Text: "Delete", Symbol: "trash", Danger: true},
         })
@@ -2787,6 +3420,25 @@ func menuItemSubmenu(ui *kvitui.UI) unison.Paneler {
         ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
             {Text: "Turn into", Symbol: "rename", Items: []kvitui.MenuItem{{Text: "Heading"}, {Text: "Quote"}}},
             {Text: "Copy as", Symbol: "copy", Items: []kvitui.MenuItem{{Text: "Markdown"}, {Text: "Plain text"}}},
+        })
+    })
+    return stage
+}
+```
+
+*A switch, a set of options and an option on for part of the selection*
+
+```go
+func menuItemStates(ui *kvitui.UI) unison.Paneler {
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
+    whenShown(stage, func() {
+        ui.ShowMenuAt(stage, geom.Rect{}, "View", []kvitui.MenuItem{
+            {Text: "Status bar", TurnOn: "Show status bar", TurnOff: "Hide status bar", Checked: true},
+            {Separator: true},
+            {Text: "Compact rows", Radio: true},
+            {Text: "Comfortable rows", Radio: true, Checked: true},
+            {Separator: true},
+            {Text: "Bold", Mixed: true},
         })
     })
     return stage
@@ -2838,10 +3490,11 @@ func NewSwitch(ui *UI, label string) *Switch
 | Field | Type | |
 |---|---|---|
 | `Text` | `string` | Text is what the switch turns on. |
+| `Name` | `string` | Name names the switch for a screen reader where it has no Text, as in a SettingRow, which sets it. |
 | `Checked` | `bool` | Checked is whether it is on. |
 | `OnChange` | `func(checked bool)` | OnChange runs after a press, with the new state. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *On, off and disabled*
 
@@ -2870,7 +3523,7 @@ func NewRadioGroup(ui *UI, label string, options ...RadioOption) *RadioGroup
 | `Current` | `string` | Current is the chosen option's value. |
 | `OnChoose` | `func(value string)` | OnChoose runs when the reader chooses an option. |
 
-Methods: `Choose`.
+Methods: `Choose`, `Options`.
 
 *Three options with detail*
 
@@ -2900,7 +3553,13 @@ func NewProgress(ui *UI, label string, value float64) *Progress
 | `Maximum` | `float64` | Value against Maximum, 1 unless set. |
 | `Determinate` | `bool` | Determinate says the total is known; false draws the moving band. |
 | `Label` | `string` | Label says what is happening. |
-| `ShowPercent` | `bool` | ShowPercent draws the share done beside the label. |
+| `ShowPercent` | `bool` | ShowPercent draws the share done beside the label; off unless set, since the label saying what is happening is what the reader needs (FDB-10). |
+| `Remaining` | `time.Duration` | Remaining is how long the work is expected to take still, said as "About 3 minutes left" beside the label; 0 says nothing (FDB-10). |
+| `HaltText` | `string` | HaltText is the words of the button that stops the work: Cancel while stopping leaves no trace, Stop once what is done is kept (FDB-3, WRD-8); "" draws no button. |
+| `OnHalt` | `func()` |  |
+| `Pausable` | `bool` | Pausable draws Pause beside the bar, Resume while Paused, for work that cancelling would throw away (FDB-3); OnPause runs with the new state. |
+| `Paused` | `bool` | Pausable draws Pause beside the bar, Resume while Paused, for work that cancelling would throw away (FDB-3); OnPause runs with the new state. |
+| `OnPause` | `func(paused bool)` |  |
 
 *Determinate and indeterminate*
 
@@ -2910,6 +3569,18 @@ func progressForms(ui *kvitui.UI) unison.Paneler {
     reconciling.Determinate = false
     return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpaceLoose,
         kvitui.FullWidth(kvitui.NewProgress(ui, "Importing statement", 0.47)), kvitui.FullWidth(reconciling)))
+}
+```
+
+*With Stop, Pause and the time left*
+
+```go
+func progressHalt(ui *kvitui.UI) unison.Paneler {
+    p := kvitui.NewProgress(ui, "Importing statement", 0.4)
+    p.HaltText, p.OnHalt = "Stop", func() {}
+    p.Pausable = true
+    p.Remaining = 3 * time.Minute
+    return kvitui.Width(ui, kvitui.Px(480), p)
 }
 ```
 
@@ -2932,7 +3603,7 @@ func NewSlider(ui *UI, label string, value float64) *Slider
 | `Step` | `float64` | Step is how far an arrow key moves it; a tenth of the range unless set. |
 | `OnChange` | `func(value float64)` | OnChange runs as the value moves. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
 
 *With its value shown*
 
@@ -2990,7 +3661,7 @@ func NewSegmented(ui *UI, label string, options ...Option) *Segmented
 | `Current` | `string` | Current is the Value of the chosen option. |
 | `OnChoose` | `func(value string)` | OnChoose runs after an option is chosen, with its value. |
 
-Methods: `Choose`.
+Methods: `Choose`, `Options`.
 
 *A period control*
 
@@ -3212,7 +3883,7 @@ Methods: `Close`, `Open`, `Opened`.
 
 ```go
 func spotlightOnButton(ui *kvitui.UI) unison.Paneler {
-    target := kvitui.NewButton(ui, "Import a statement")
+    target := kvitui.NewButton(ui, "Import statement")
     target.Form = kvitui.ButtonPrimary
     stage := kvitui.FullWidth(kvitui.At(ui, kvitui.Px(40), kvitui.Px(20), kvitui.Px(160), target))
     spot := kvitui.NewSpotlight(ui, target, "Start here", "Import a statement and the dashboard fills itself in.")

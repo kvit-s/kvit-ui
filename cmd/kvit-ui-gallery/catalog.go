@@ -43,6 +43,7 @@ var catalog = []entry{
 		specimens: []specimen{
 			{caption: "The seven roles", build: labelRoles},
 			{caption: "Monospace and tabular numerals", build: labelMonoAndTabular},
+			{caption: "Content the reader may copy, selected by a press", build: labelSelectable},
 		},
 	},
 	{
@@ -87,6 +88,7 @@ var catalog = []entry{
 		summary: "The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone.",
 		specimens: []specimen{
 			{caption: "Expanded and collapsed", build: sidebarExpandedAndCollapsed},
+			{caption: "Help and Settings at the foot", build: sidebarFooter},
 		},
 	},
 	{
@@ -140,6 +142,15 @@ var catalog = []entry{
 		summary: "The application shell: header, optional sidebar, body and status bar, with the sidebar collapsing to its rail below the laptop breakpoint and opening over the body while the pointer rests on it. Not shown here because it is a window; see the code sample.",
 		specimens: []specimen{
 			{caption: "The whole shell", build: windowShell, sourceOnly: true},
+			{caption: "A document's title, its unsaved mark, and where it was left", build: windowDocument, sourceOnly: true},
+		},
+	},
+	{
+		name:    "KvitHistory",
+		group:   "Structure",
+		summary: "The reader's own way back through the places they went in a window. The app says which moves are steps; Back, at the top leading corner, is disabled with nowhere to go, and answers Alt+Left on Windows and Linux and Cmd-[ on a Mac.",
+		specimens: []specimen{
+			{caption: "Back beside three places", build: historyBack},
 		},
 	},
 	{
@@ -334,6 +345,7 @@ var catalog = []entry{
 		summary: "A single line of text. The outline is the control-boundary token, so its edges are visible. An error is a message and a border together, never a border alone.",
 		specimens: []specimen{
 			{caption: "Resting, filled and in error", build: fieldStates},
+			{caption: "Masked, and past its length limit", build: formRowFields},
 		},
 	},
 	{
@@ -377,6 +389,84 @@ var catalog = []entry{
 		specimens: []specimen{
 			{caption: "Selected, counted and plain", build: tabForms},
 			{caption: "Each tab saying what its view shows", build: tabExplanations},
+		},
+	},
+	{
+		name:    "KvitCommand",
+		group:   "Commands",
+		summary: "One thing the app can do, made once and offered on a menu line, a button, a symbol button and a key, so it has one name, one symbol and one shortcut everywhere and is disabled everywhere at once. A standard command (`Std`) takes its platform name and keys by itself: an app with Save answers Ctrl+S on Windows and Linux and Cmd-S on a Mac. A window answers the keys of the commands added to it, refuses a key that is taken, and leaves typing keys to a focused text field.",
+		specimens: []specimen{
+			{caption: "One command as a button, a symbol button and a menu line", build: commandEverywhere},
+			{caption: "Standard commands, with the form's names and keys", build: commandStandard},
+		},
+	},
+	{
+		name:    "KvitMenuBar",
+		group:   "Commands",
+		summary: "A main window's menus, built from its commands, with each platform's standard menus in its standard order: File, Edit, View, the app's menus, Tools and Help drawn in the window on Windows and Linux, with access keys, Alt and F10; the app menu, File, Edit, View, the app's menus, Window and Help in the system's bar on a Mac. Standard commands go to their places by themselves.",
+		specimens: []specimen{
+			{caption: "A window's command surfaces: the menu bar and a toolbar", build: menuBarWindow},
+			{caption: "The View menu: the window's own parts first, then the standard lines", build: menuBarOpened},
+		},
+	},
+	{
+		name:    "KvitToolbar",
+		group:   "Commands",
+		summary: "The commands for a window's main tasks, in leading, centre and trailing groups, added in order of importance. Too narrow for them all, it first moves the words into the tooltips and then the least important commands into a More menu, so every command stays reachable at any width.",
+		specimens: []specimen{
+			{caption: "Wide, with words; narrow, with a More menu", build: toolbarWideAndNarrow},
+		},
+	},
+	{
+		name:    "KvitMenuButton",
+		group:   "Commands",
+		summary: "A button with a down-arrow that opens a menu of three or more commands refining its own action. One or two commands are buttons of their own.",
+		specimens: []specimen{
+			{caption: "Three ways to sort", build: menuButtonRefinements},
+		},
+	},
+	{
+		name:    "KvitSplitButton",
+		group:   "Commands",
+		summary: "Variants of one command: the main part runs the variant it shows, the arrow opens them all. On Windows and Linux the main part runs the variant last chosen; on a Mac the likeliest, unless `RememberLast` is set. `NewToggleSplitButton` is for a feature that is on or off and comes in styles: the main part turns it on and off, the menu picks the style, and choosing a style turns it on.",
+		specimens: []specimen{
+			{caption: "Three export formats", build: splitButtonVariants},
+			{caption: "Bullets, turned on and off, in three styles", build: toggleSplitButtonStyles},
+		},
+	},
+	{
+		name:    "KvitUndoStack",
+		group:   "Commands",
+		summary: "The edits that can be undone, each named for what it did, so the Edit menu reads Undo delete transaction rather than Undo. Its Undo and Redo are standard commands, done by a focused text field itself while it has an edit of its own; `Toast` and `Confirm` report the last edit with an undo that takes it back.",
+		specimens: []specimen{
+			{caption: "Undo and Redo named for the edit", build: undoStackMenu},
+		},
+	},
+	{
+		name:    "KvitFormRow",
+		group:   "Controls",
+		summary: "A field with its visible label: above the field on Windows and Linux, beside it on a Mac. The label names the field for a screen reader, ends without a colon, takes an asterisk when the field is `Required`, and holds the field's access key.",
+		specimens: []specimen{
+			{caption: "Required and optional", build: formRows},
+		},
+	},
+	{
+		name:    "KvitSettingRow",
+		group:   "Controls",
+		summary: "One setting: its name and one short line at the leading side, the control at the trailing edge, applying at once with no OK or Apply. A switch says On or Off beside it on Windows and Linux. On those systems the settings page ends with `NewAboutSection`, and Settings is the last item of the sidebar, at its foot.",
+		specimens: []specimen{
+			{caption: "A switch, a select and a stepper", build: settingRows},
+			{caption: "The About section at the end of the page", build: settingsAbout},
+		},
+	},
+	{
+		name:    "KvitSettingsWindow",
+		group:   "Controls",
+		summary: "An app's settings as a Mac has them: a window of its own, opened by Settings… in the app menu, with its panes in a row across the top, each a symbol over its name. The window is titled with the pane shown, takes that pane's height, cannot be resized, and has no OK, Cancel or Apply, since each setting applies as it is changed; Command-W closes it. `SettingsPanes` is what the window holds. On Windows and Linux the same panes make a page in the app's window instead (`Page`, or `NewSettingsPage`): one scrolling column with each pane a section under its name and About last. `Command` gives the Settings command, which opens the window on a Mac and shows the page on Windows and Linux, so an app writes its settings once. unison cannot take the minimise button off the window.",
+		specimens: []specimen{
+			{caption: "Three panes, as the window holds them", build: settingsPanesOnPage},
+			{caption: "The same panes as the page on Windows and Linux", build: settingsPageOnPage},
+			{caption: "Opened in a window of its own", build: settingsWindowOpen},
 		},
 	},
 	{
@@ -430,10 +520,30 @@ var catalog = []entry{
 	{
 		name:    "KvitDialog",
 		group:   "Feedback",
-		summary: "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first; the confirming button is on the right, and a destructive dialog takes no keyboard default. There are three ways out, because different readers find different ones: the close symbol at the right of the title, the cancel button, and Escape. An open dialog moves when its title row is dragged, staying inside the window; it opens in the middle unless the application says where with MoveTo, and OnMove tells the application where the reader left it, for it to keep.",
+		summary: "A modal surface that has to be answered first. Expensive, and worth it only where the answer really does come first. Its buttons follow the platform: the action first and Cancel at the right end on Windows and Linux, Cancel and then the action at the trailing end on a Mac. `ConfirmText` names the action; there is no Confirm to fall back on. A message that only informs (`NewMessage`) has one button, Close on Windows and Linux and OK on a Mac. A properties dialog of one object (`DialogProperties`) has OK and Cancel, and on Windows and Linux Apply, which is enabled once `MarkChanged` says something changed and leaves the dialog open. Return presses the default button on a Mac (the action, unless destructive); on Windows and Linux Enter presses the focused button, and the action only where `DefaultConfirm` marks it. Escape cancels everywhere, and so does the close symbol beside the title on Windows and Linux. `Help` takes a KvitHelpLink: the question at the bottom of the content on Windows and Linux, which Tab reaches after the buttons, and the round help button at the leading end of the buttons on a Mac. The keyboard starts in the first field, stays inside, and goes back to the opener; `OnDiscard` is asked before the close symbol or Escape throws away typed input; one dialog is open at a time. An open dialog moves when its title row is dragged, staying inside the window; it opens in the middle unless the application says where with MoveTo, and OnMove tells the application where the reader left it, for it to keep.",
 		specimens: []specimen{
 			{caption: "A destructive confirmation", build: dialogDestructive},
+			{caption: "A second answer, in the form's order", build: dialogSecondAnswer},
+			{caption: "A message, which may offer not to show it again", build: dialogMessage},
+			{caption: "With the help for its question, placed by the form", build: dialogHelp},
+			{caption: "The properties of one object, with Apply on Windows and Linux", build: dialogProperties},
 			{caption: "Opened from a button, moved by its title row, and opened again where it was left", build: dialogMoved},
+		},
+	},
+	{
+		name:    "KvitTip",
+		group:   "Feedback",
+		summary: "A teaching tip beside a feature that is not obvious: a title, a sentence, a close button and at most one action. It blocks nothing, so the window goes on working around it; it closes when what it points at scrolls, and once closed it is not shown again unless `ResetTips` is called. Spotlight is for a guided tour.",
+		specimens: []specimen{
+			{caption: "Beside the button it explains", build: tipBeside},
+		},
+	},
+	{
+		name:    "KvitHelpLink",
+		group:   "Feedback",
+		summary: "The way to the help topic for one place, an HTML page shipped with the app opened at its anchor: on Windows and Linux a link worded as the question the topic answers, on a Mac the round question-mark button, one per window.",
+		specimens: []specimen{
+			{caption: "A question, or the Mac's help button", build: helpLinkTopic},
 		},
 	},
 	{
@@ -565,10 +675,11 @@ var catalog = []entry{
 	{
 		name:    "KvitMenuItem",
 		group:   "Flow",
-		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it.",
+		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac.",
 		specimens: []specimen{
 			{caption: "Ordinary, disabled and destructive", build: menuItemForms},
 			{caption: "Lines that open a submenu", build: menuItemSubmenu},
+			{caption: "A switch, a set of options and an option on for part of the selection", build: menuItemStates},
 		},
 	},
 	{
@@ -601,6 +712,7 @@ var catalog = []entry{
 		summary: "How far through something the application is. An unknown total is a moving band rather than a bar creeping toward the end, and it carries a label saying how far through what.",
 		specimens: []specimen{
 			{caption: "Determinate and indeterminate", build: progressForms},
+			{caption: "With Stop, Pause and the time left", build: progressHalt},
 		},
 	},
 	{

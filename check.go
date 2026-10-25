@@ -66,7 +66,7 @@ func (c *Check) label() *text.Layout {
 	if !c.Enabled() {
 		ink = t.TextDisabled
 	}
-	return ui.Fonts.Layout([]text.Span{{Text: c.Text, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}}, text.Options{})
+	return ui.Fonts.Layout(ui.accessSpans(c.AsPanel(), plainWords(c.Text), ui.Chrome(ui.Size(RoleBody), text.Regular, ink)), text.Options{})
 }
 
 // checkPadding is the space on each side of a check box. It is six pixels
@@ -134,7 +134,7 @@ func (c *Check) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.CheckBox
 	}
-	n.Name = c.Text
+	n.Name = plainWords(c.Text)
 	if c.Name != "" {
 		n.Name = c.Name
 	}
@@ -159,4 +159,14 @@ func (c *Check) PerformAccessibilityAction(req accessibility.ActionRequest) bool
 	}
 	c.fire()
 	return true
+}
+
+// accessWords are the box's words for its access key.
+func (c *Check) accessWords() string { return c.Text }
+
+// accessPress ticks or clears the box, as its access key does.
+func (c *Check) accessPress() {
+	if c.Enabled() {
+		c.fire()
+	}
 }

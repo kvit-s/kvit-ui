@@ -72,6 +72,7 @@ func NewSectionHeading(ui *UI, label string) *SectionHeading {
 	h := &SectionHeading{Text: label, Count: -1, Expanded: true}
 	h.Self = h
 	h.initControl(ui, h.toggle, unison.KeyReturn, unison.KeyNumPadEnter, unison.KeySpace)
+	h.pressKeys = spaceOnWindows
 	keyDown := h.KeyDownCallback
 	h.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
 		if !h.Collapsible || !h.Focused() {

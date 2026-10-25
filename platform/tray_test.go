@@ -94,7 +94,7 @@ func TestNotificationsNeedAuthorizationAndTheIcon(t *testing.T) {
 	if !tray.Notify("Kvit", "Note captured", "note:one") {
 		t.Error("not posted while shown and authorized")
 	}
-	if got := tray.LastNotification(); got != (Notification{"Kvit", "Note captured", "note:one"}) {
+	if got := tray.LastNotification(); got != (Notification{Title: "Kvit", Message: "Note captured", ID: "note:one"}) {
 		t.Errorf("last notification %+v", got)
 	}
 	if len(b.posted) != 1 || b.posted[0].ID != "note:one" {
@@ -108,6 +108,35 @@ func TestNotificationsNeedAuthorizationAndTheIcon(t *testing.T) {
 	}
 	if denied.LastNotification().Message != "Denied" {
 		t.Error("a notification not posted should still be recorded")
+	}
+}
+
+// A notification that no longer applies is withdrawn by its ID; one with
+// no ID cannot be named, and a closed tray withdraws nothing (MSG-12).
+func TestANotificationIsWithdrawnByItsID(t *testing.T) {
+	tray, b := syncTray(Authorized)
+	tray.Show()
+	tray.Post(Notification{Title: "Sync stopped", Message: "The bank asks you to sign in again.", ID: "sync:bank", Kind: NotifyProblem})
+	tray.Post(Notification{Title: "Import finished", ID: "import:1", Kind: NotifySuccess})
+	tray.Withdraw("sync:bank")
+	tray.Withdraw("")
+	if !slices.Equal(b.withdrawn, []string{"sync:bank"}) {
+		t.Errorf("the backend was asked to withdraw %q", b.withdrawn)
+	}
+	if len(b.posted) != 1 || b.posted[0].ID != "import:1" {
+		t.Errorf("still posted: %+v", b.posted)
+	}
+	if tray.LastNotification().ID != "import:1" {
+		t.Errorf("withdrawing another notification cleared the last one: %+v", tray.LastNotification())
+	}
+	tray.Withdraw("import:1")
+	if tray.LastNotification() != (Notification{}) {
+		t.Errorf("the last notification is %+v after it was withdrawn", tray.LastNotification())
+	}
+	tray.Close()
+	tray.Withdraw("import:1")
+	if len(b.withdrawn) != 2 {
+		t.Errorf("a closed tray withdrew again: %q", b.withdrawn)
 	}
 }
 
@@ -178,5 +207,17 @@ func TestTheSystemTrayAnswers(t *testing.T) {
 	t.Logf("tray available %v, notifications %v", tray.Available(), tray.Authorization())
 	if !tray.Available() && tray.Authorization() != Unsupported {
 		t.Error("notifications are authorized without a notification area")
+	}
+}
+
+// A line that turns something on and off keeps its words and is ticked
+// while on; the line a click on the icon runs is the default (WRD-12,
+// CMD-24).
+func TestTheMenuTicksAndMarksTheDefault(t *testing.T) {
+	tray, b := syncTray(Authorized)
+	tray.SetMenu([]TrayItem{{Text: "Open", Default: true}, {Text: "Pause syncing", Checked: true}})
+	tray.Show()
+	if len(b.state.menu) != 2 || !b.state.menu[0].isDefault || !b.state.menu[1].checked || b.state.menu[1].disabled {
+		t.Errorf("the menu as the backend has it: %+v", b.state.menu)
 	}
 }

@@ -10,12 +10,14 @@ import (
 )
 
 // The library's rules: outside the packages that define design values, no
-// colour is written as a literal and no font size as a number. Checked: the
+// colour is written as a literal and no font size as a number, and no
+// wording the interface rules forbid is written in the source. Checked: the
 // root package (the components) and every command. Exempt: the packages
-// whose job is to hold or apply design values.
+// whose job is to hold or apply design values, and uitest, which holds the
+// rules and so spells out what they forbid.
 func TestNoColourLiteralsOrNumericFontSizes(t *testing.T) {
 	// The components and the gallery at the least.
-	if n := uitest.CheckRules(t, ".", "palette", "tokens", "text", "settings", "platform", "icons", "tools"); n < 50 {
+	if n := uitest.CheckRules(t, ".", "palette", "tokens", "text", "settings", "platform", "icons", "tools", "uitest"); n < 50 {
 		t.Errorf("the rule check read only %d files", n)
 	}
 }
@@ -72,5 +74,33 @@ func f() {
 	}
 	if got := uitest.Violations(fset, f); len(got) != 5 {
 		t.Errorf("found %d of the 5 planted literals:\n%s", len(got), strings.Join(got, "\n"))
+	}
+}
+
+// The wording check catches each kind of wording planted here, and passes a
+// busy button's ellipsis and a key binding written with kvitui.Keys.
+func TestTheWordingCheckCatchesWhatIsPlanted(t *testing.T) {
+	src := `package x
+func f() {
+	_ = "Oops, that did not work"
+	_ = "Tap to open"
+	_ = "To export, click here"
+	_ = "Loading..."
+	_ = kvitui.NewButton(ui, "Export…")
+	_ = kvitui.NewButton(ui, "+ Add account")
+	_ = kvitui.MenuItem{Text: "Open…"}
+	_ = &kvitui.Command{Name: "Import…"}
+	_ = unison.KeyBinding{KeyCode: unison.KeyS, Modifiers: mod.Control}
+	b.BusyText = "Importing statement…"
+	_ = kvitui.Keys(unison.KeyS, kvitui.ModPrimary)
+	_ = kvitui.MenuItem{Text: "Open", Asks: true}
+}`
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "x.go", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := uitest.WordingViolations(fset, f); len(got) != 9 {
+		t.Errorf("found %d of the 9 planted wordings:\n%s", len(got), strings.Join(got, "\n"))
 	}
 }

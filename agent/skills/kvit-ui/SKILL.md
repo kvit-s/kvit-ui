@@ -169,9 +169,11 @@ sentence is.
 
 The rules below hold on every system unless they say Windows or macOS; Linux
 takes the Windows form. Each names its rules in
-`docs/ui-guidelines/rules.md`, where the reasoning and sources are. Some lean
-on library support that is still being built (`docs/ui-guidelines/library-gaps.md`);
-where they do, the rule says what to do with the library as it is today.
+`docs/ui-guidelines/rules.md`, where the reasoning and sources are. The
+library follows the system the app runs on (`UI.Form`: `FormWindows`, also
+Linux's, or `FormMac`); a test draws either form on any system with
+`uitest.Options{Form: kvitui.FormMac}`, and `Session.CheckLabels` and
+`uitest.CheckApp` check a screen and an app against these rules in both.
 
 ### Labels
 
@@ -207,31 +209,34 @@ worst kind of wrong. (WRD-1, WRD-10)
   the Recycle Bin
 
 **5. Ellipsis when the command asks for more.** A command that opens a
-dialog, a chooser or a confirmation before acting ends with "…", the one
-character U+2026, never three full stops. One that acts at once has none. On
-Windows, a command whose whole job is to show a window (Settings,
-Properties, About) has none. Write it into the label yourself for now.
-(WRD-4)
+dialog, a chooser or a confirmation before acting ends with "…". Set `Asks`
+on the Command, Button, IconButton or MenuItem and kvit-ui adds it; never
+type it, and never three full stops. One that acts at once has none. A
+command whose whole job is to show a window (Settings) sets `OpensWindow`,
+which adds "…" on macOS only. (WRD-4)
 
-- "Export the ledger" opening a dialog → "Export…"
+- "Export the ledger" opening a dialog → "Export" with `Asks`
 
 **6. Write sentence case.** Write every label once, in sentence case:
 "Select all", "Don't save". That is the Windows and Linux form for all text,
-window and dialog titles included. kvit-ui will turn menu items, buttons,
-tabs and column headings into title case on macOS; never write title case
-yourself, and never mix the two in one menu. (WRD-6)
+window and dialog titles included. kvit-ui turns menu items, menu titles,
+buttons, tabs, segments and column headings into title case on macOS
+(`TitleCase`); never write title case yourself, and never mix the two in one
+menu. A name kept lower case on purpose goes in `kvitui.TitleCaseKept`. A
+line naming the reader's own thing is `Verbatim`. (WRD-6)
 
 - "Quick Capture…" beside "Quick capture note…" in one menu → every item in
   sentence case
 
 **7. Confirming buttons name the action; never Confirm.** The button that
-carries out a dialog says what it does, so always set Dialog's ConfirmText:
-its default, "Confirm", is a placeholder, not a label. A message that only
-informs has one button: Close on Windows, OK on macOS. OK, Cancel and Apply
-belong only to a properties dialog of one object (Windows). Yes and No
+carries out a dialog says what it does, so always set Dialog's ConfirmText;
+there is no default, and a dialog without one is warned about. A message
+that only informs is `NewMessage`: one button, Close on Windows, OK on
+macOS. OK, Cancel and Apply belong only to `DialogProperties`. Yes and No
 appear only together, on Windows, where no specific answer is possible. The
-abandoning button is Cancel; once the work is done it becomes Close. Every
-dialog has a safe button that leaves without acting. (WRD-7, WRD-8)
+abandoning button is Cancel; once the work is done, `Done()` turns it into
+Close (Done on macOS). Every dialog has a safe button that leaves without
+acting. (WRD-7, WRD-8)
 
 - "OK" on Insert link → "Insert"
 - "OK" on Confirm import → "Import"
@@ -239,7 +244,8 @@ dialog has a safe button that leaves without acting. (WRD-7, WRD-8)
 
 **8. Busy words say what is happening.** Not "Working…", "Loading…" or
 "Please wait": an -ing phrase naming the operation. Always set Button's
-BusyText. (WRD-25)
+BusyText; a busy button without one keeps its words and is warned about.
+(WRD-25)
 
 - "Working…" → "Importing statement…"
 
@@ -264,9 +270,9 @@ action people would have to guess from a symbol: words. (CMD-22)
 
 **12. Never letters or punctuation standing in for a symbol.** A text button
 reading "B", "<>" or "+ Insert" is a symbol drawn in the wrong component.
-Use an IconButton with the meaning name and a Label in words. If the symbol
-you need is not in the catalogue (bold, italic, underline, strikethrough,
-code and heading are not, yet), say so; do not type it. (CMD-22)
+Use an IconButton with the meaning name and a Label in words: `bold`,
+`italic`, `underline`, `strikethrough`, `code` and `heading` are in the
+catalogue. If the symbol you need is not, say so; do not type it. (CMD-22)
 
 - "B", "I", "U", "S" → IconButtons named "Bold", "Italic", "Underline",
   "Strikethrough"
@@ -286,25 +292,32 @@ not archive, withdraw, remove or cancel. (CON-2)
 
 **14. One command, one name, everywhere.** A command has the same words in
 the menu bar, on its button, in its tooltip, in the tray menu and in any
-dialog it opens. Until kvit-ui has a Command type, give each command one
-name constant and one handler, and make every control that runs it from
-those two. (CON-1)
+dialog it opens. Make each command once as a `kvitui.Command` (name, symbol,
+shortcut, Enabled, Run) and build every place it appears from it:
+`MenuItem{Command: c}`, `NewCommandButton`, `NewCommandIconButton`, a
+`Toolbar`, a `MenuBar`. It is then disabled everywhere at once; call
+`ui.Refresh()` when something other than a command changes what can run.
+(CON-1, CMD-9)
 
 - "Quick Capture…", "Quick capture note…" and "Quick capture" for one
   command → "Quick capture…" in every place
 
 **15. Every command is on a visible command surface.** On macOS that is the
 menu bar. On Windows and Linux it is the menu bar for an app with many
-commands, or a toolbar and its More menu for one with few. Buttons and
+commands, or a `Toolbar` and its More menu for one with few. Buttons and
 context menus are extra routes to commands that also live there; a command
-reached only from a context menu or a hover button cannot be found. (CMD-1)
+reached only from a context menu or a hover button cannot be found.
+`Window.OffSurface` lists the ones that are. (CMD-1)
 
-**16. Standard commands in the standard menus.** Undo, Redo, Cut, Copy,
-Paste, Select all and Find go in Edit; New, Open, Save, Close and Print in
-File; show and hide commands in View. On Windows and Linux, Settings is the
-last item of the sidebar or the toolbar's More menu, and About is a section
-at the bottom of the Settings page; on macOS both are in the app menu. Exit
-on Windows, Quit on macOS. (CMD-2 to CMD-8)
+**16. Standard commands in the standard menus.** Give a standard command its
+`Std` (StdSave, StdUndo, StdFind…) and `MenuBar.Add` puts it in its menu at
+its place for the form: Undo, Redo, Cut, Copy, Paste, Select all and Find in
+Edit; New, Open, Save, Close and Print in File; the app's own lines go in a
+standard menu with `AddTo` or in a menu of their own with `AddMenu`. On
+Windows and Linux, Settings is the last item of the sidebar
+(`Sidebar.AddFooter(NewSidebarCommand(ui, settings))`) or of Tools, and About
+is `NewAboutSection` at the bottom of the Settings page; on macOS both are in
+the app menu. Exit on Windows, Quit on macOS. (CMD-2 to CMD-8)
 
 **17. Menus: most used first, grouped, short, destructive last.** Separate
 groups with separators; at most one level of submenu, none in a context
@@ -314,49 +327,62 @@ CMD-23)
 
 **18. A toggle says what it does.** On Windows and Linux a menu item keeps
 its name and shows a tick ("Sidebar" ✓); on macOS it swaps its words ("Show
-sidebar" / "Hide sidebar"). Until MenuItem takes both words, use the tick
-(`Checked`). (WRD-12)
+sidebar" / "Hide sidebar"). Give the Command (or MenuItem) its `Checked`
+and both words, `TurnOn` and `TurnOff`; kvit-ui shows each form's. One of a
+set of options is `Radio`. A feature that is on or off and comes in styles,
+such as bullets, is `NewToggleSplitButton`: its main part turns it on and
+off and its menu picks the style. (WRD-12, CMD-15, CMD-17)
 
 ### Shortcuts
 
-**19. Standard commands get the standard shortcut.** If the app has Save,
-Ctrl+S (Cmd-S) saves; Find, New, Close, Undo, Redo, Copy, Paste and Select
-all likewise. Redo is both Ctrl+Y and Ctrl+Shift+Z on Windows and Linux.
-Ctrl+F and Ctrl+E go to the window's search field. A shortcut whose command
-cannot act does nothing, silently. Until kvit-ui has a shortcut registry,
-handle the keys in `Window.OnKeyDown` and set the same key on the command's
-MenuItem. (KEY-2, KEY-13)
+**19. Standard commands get the standard shortcut.** A Command with `Std`
+has its platform's keys without choosing them: StdSave is Ctrl+S on
+Windows and Linux and Cmd-S on macOS; Redo is both Ctrl+Y and Ctrl+Shift+Z.
+A window answers the keys of the commands on its menu bar
+(`Window.SetMenuBar`), on a toolbar it shows, and given to
+`Window.AddCommands`, wherever the focus is, leaving typing keys to a
+focused field. Ctrl+F and Ctrl+E go to the window's search field by
+themselves. A shortcut whose command cannot act does nothing, silently.
+(KEY-2, KEY-13)
 
 - Save with no Ctrl+S → Save on Ctrl+S
 - a window with search but no Ctrl+F → Ctrl+F focuses its SearchField
 
-**20. Menus show their shortcuts.** A menu item whose command has a key
-shows it in `Key`; that is how people learn it. Context menus on macOS show
-none. (KEY-14, CMD-11)
+**20. Menus show their shortcuts.** A menu line made from a Command shows
+its key, and a symbol button's tooltip adds it in parentheses on Windows and
+Linux ("Bold (Ctrl+B)"); that is how people learn it. Context menus on macOS
+show none, by themselves. (KEY-14, CMD-11)
 
 - 23 menu items, none showing a shortcut → every item with a key shows it
 
 **21. Few new shortcuts, and never the system's.** Give a new shortcut only
-to a frequent command, on a letter that recalls its name, built on the
-command modifier (`mod.OSMenuCommand()`, never `mod.Control` or
-`mod.Command` by hand). Never Alt+letter on Windows (access keys own it),
-never Ctrl+Alt, never Ctrl+Q, never a key the system or another command
-already uses. (KEY-3, KEY-4, KEY-5)
+to a frequent command, on a letter that recalls its name, written once for
+both systems: `kvitui.Keys(unison.KeyK, kvitui.ModPrimary|kvitui.ModShift)`,
+never `mod.Control` or `mod.Command` by hand. The window refuses, with a
+warning, Alt+letter on Windows (access keys own it), Ctrl+Alt, Ctrl+Q, a
+key the system owns, and a key another command or a standard one already
+has. (KEY-3, KEY-4, KEY-5)
 
-**22. Access keys on Windows and Linux.** In a MenuItem's Text, put "&"
-before the access letter ("&Import"); kvit-ui underlines it on Windows and
-Linux and drops it on macOS. Not on OK, Cancel, Close, links or tabs; two
-items at one level never share a letter. Text that comes from the reader's
-data goes through `PlainMenuText`. Outside menus kvit-ui does not read "&"
-yet, so do not write it there. (KEY-15)
+**22. Access keys on Windows and Linux.** Every control with words has one:
+kvit-ui gives each the first free letter of its words, unique in the
+window, underlines it while Alt is held (always, where Windows'
+"Underline access keys" setting is on), and Alt with the letter operates
+the control. To choose the letter, put "&" before it ("&Import") in a
+Button, Check, Switch, radio option, FormRow label or MenuItem; macOS draws
+the words without it. OK, Cancel, Close, links, tabs and symbol buttons take
+none. Text that comes from the reader's data goes through `PlainMenuText`.
+(KEY-15)
 
 ### Dialogs and messages
 
-**23. Let Dialog place its buttons.** Give Dialog its ConfirmText and
-CancelText and let it lay them out; never build a row of dialog buttons
-yourself. The platform order (the main action first and the safe button
-last on Windows and Linux, the default last on macOS) is the Dialog's job.
-(WIN-1)
+**23. Let Dialog place its buttons.** Give Dialog its ConfirmText, and
+OtherText for a second answer such as "Don't save", and let it lay them out;
+never build a row of dialog buttons yourself. Dialog puts the main action
+first and the safe button last on Windows and Linux, and the default last
+on macOS; Return presses the default (the action, unless destructive) on
+macOS, and on Windows only where `DefaultConfirm` says the action is the
+likely, safe answer. Set `OnDiscard` where closing would throw away typed
+work. (WIN-1, KEY-6, WIN-8)
 
 **24. Ask only when it matters.** No dialog before an action that can be
 undone: do it, and show ConfirmInPlace or a toast with Undo. Ask before a
@@ -376,15 +402,22 @@ always on screen is read once and then ignored. (WRD-22)
 - a permanent 50-word paragraph under one setting → one line, the rest in a
   Hint
 
-**27. Settings apply at once.** An app's settings are a page (on macOS a
-window) where each change takes effect as it is made: no OK, Cancel or
+**27. Settings apply at once.** An app's settings are written once, as
+`SettingsPane`s given to `NewSettingsWindow`: a page in the app's window on
+Windows and Linux (`Page`), a window of panes on macOS, and `Command` shows
+the right one. Each change takes effect as it is made: no OK, Cancel or
 Apply. On Windows a setting that applies at once is a switch, not a
-checkbox. Each setting is one row: its label, a one-line description where
-needed, and the control. (WIN-16, WIN-23, CTL-2, WRD-22)
+checkbox. Each setting is a `SettingRow`: its label, a one-line description
+where needed, and the control. A form's field is a `FormRow`, its label
+above the field on Windows and beside it on macOS, with `Required` for an
+asterisk. (WIN-16, WIN-23, CTL-2, WRD-22, LAY-6)
 
 **28. Links go somewhere; buttons act.** A link opens a page, a window or a
 help topic and commits nothing; anything that changes data is a button.
-Labels end without a colon. (CTL-26, WRD-19)
+Labels end without a colon. Help for one place is a `HelpLink` worded as
+the question its topic answers ("How does a budget roll over?"), never a
+Help button or "Learn more"; a dialog takes it as `Help`, and kvit-ui
+places it for the form. (CTL-26, WRD-19, HLP-6)
 
 ## The workflow for a new screen
 

@@ -48,6 +48,9 @@ func NewSplitView(ui *UI, panes ...unison.Paneler) *SplitView {
 			h.MouseDownCallback = h.mouseDown
 			h.MouseDragCallback = h.mouseDrag
 			h.MouseUpCallback = func(geom.Point, int, mod.Modifiers) bool {
+				if w := ui.windowOf(h); w != nil {
+					w.endDrag()
+				}
 				h.pressed = false
 				h.MarkForRedraw()
 				return true
@@ -205,6 +208,15 @@ func (h *splitHandle) mouseDown(where geom.Point, button, _ int, _ mod.Modifiers
 	pane, _ := h.resized()
 	h.grab, h.grabSize = h.alongRoot(where), h.s.natural(pane)
 	h.MarkForRedraw()
+	// Escape abandons the drag, putting the handle back (KEY-7).
+	if w := h.ui.windowOf(h); w != nil {
+		start := h.grabSize
+		w.startDrag(func() {
+			h.pressed = false
+			h.resizeTo(start, 0)
+			h.MarkForRedraw()
+		})
+	}
 	return true
 }
 
@@ -257,7 +269,7 @@ func (h *splitHandle) draw(gc *unison.Canvas, _ geom.Rect) {
 func (h *splitHandle) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	n := b.Node()
 	n.Role = role.Separator
-	n.Name = "Resize the regions"
+	n.Name = "Resize regions"
 	pane, _ := h.resized()
 	n.HasNumber = true
 	n.Number = float64(h.s.natural(pane))

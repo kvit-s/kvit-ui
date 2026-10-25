@@ -366,7 +366,7 @@ func NewCell(ui *UI, kind CellKind, v CellValue) *Cell {
 	c.tip = partTip{ui: ui, owner: c}
 	c.card = partTip{ui: ui, owner: c}
 	c.box = NewCheck(ui, "")
-	c.box.Name = "Select this row"
+	c.box.Name = "Select row"
 	c.box.OnChange = func(wanted bool) {
 		c.box.Checked = c.Value.Checked
 		if c.OnToggle != nil {

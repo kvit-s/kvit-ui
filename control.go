@@ -64,8 +64,11 @@ type control struct {
 	askedFocus    bool // set while Focus is giving the control the focus
 	activate      func()
 	keys          []unison.KeyCode // the keys that activate the control
-	ringRadius    func() float32   // the corner radius of the shape the ring surrounds
-	noRing        bool             // shows keyboard focus its own way instead of a ring
+	// pressKeys, when set, gives the keys that activate the control in the
+	// app's form, in place of keys.
+	pressKeys  func(ui *UI) []unison.KeyCode
+	ringRadius func() float32 // the corner radius of the shape the ring surrounds
+	noRing     bool           // shows keyboard focus its own way instead of a ring
 	// tip gives the tooltip's words, "" for none: shown beside the control
 	// on pointer hover and on keyboard focus.
 	tip func() string
@@ -151,7 +154,11 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 		return true
 	}
 	c.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
-		if !c.Enabled() || repeat || mods.CommandDown() || mods.OptionDown() || !slices.Contains(c.keys, key) {
+		keys := c.keys
+		if c.pressKeys != nil {
+			keys = c.pressKeys(ui)
+		}
+		if !c.Enabled() || repeat || mods.CommandDown() || mods.OptionDown() || mods.ControlDown() || !slices.Contains(keys, key) {
 			return false
 		}
 		c.fire()
@@ -241,6 +248,34 @@ func (c *control) hideTip() {
 	}
 }
 
+// buttonKeys are the keys that press a focused button: Space, and on the
+// Windows form Enter too; on the macOS form Return presses only a dialog's
+// default button (KEY-6, decided Q-7).
+func buttonKeys(ui *UI) []unison.KeyCode {
+	if ui.form == FormWindows {
+		return []unison.KeyCode{unison.KeySpace, unison.KeyReturn, unison.KeyNumPadEnter}
+	}
+	return []unison.KeyCode{unison.KeySpace}
+}
+
+// TooltipWords are what the control's tooltip says now, "" for none.
+func (c *control) TooltipWords() string {
+	if c.tip == nil {
+		return ""
+	}
+	return c.tip()
+}
+
+// spaceOnWindows are the keys that operate a disclosure: Space, and Return
+// too on the macOS form; on the Windows form Enter belongs to a dialog's
+// buttons (KEY-6).
+func spaceOnWindows(ui *UI) []unison.KeyCode {
+	if ui.form == FormWindows {
+		return []unison.KeyCode{unison.KeySpace}
+	}
+	return []unison.KeyCode{unison.KeySpace, unison.KeyReturn, unison.KeyNumPadEnter}
+}
+
 func (c *control) fire() {
 	if c.activate != nil {
 		c.activate()
@@ -248,16 +283,20 @@ func (c *control) fire() {
 }
 
 // Focus gives the control the keyboard focus, with its ring, as a Tab to it
-// would. A control not in a window yet takes it once it is.
+// would. A control not in a window yet takes it once it is. A member of a
+// group that is one stop in the Tab order, such as an unchosen tab, takes it
+// too, and keeps it while it holds it.
 func (c *control) Focus() {
 	if c.Window() != nil {
 		c.askedFocus = true
+		c.SetFocusable(true)
 		c.RequestFocus()
 		return
 	}
 	unison.InvokeTask(func() {
 		if c.Window() != nil {
 			c.askedFocus = true
+			c.SetFocusable(true)
 			c.RequestFocus()
 		}
 	})

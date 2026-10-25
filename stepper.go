@@ -63,7 +63,8 @@ func (s *Stepper) sync() {
 		s.Value = s.Follow()
 	}
 	s.figure.Value, s.figure.Unit = strconv.Itoa(s.Value), s.Unit
-	s.minus.Label, s.plus.Label = "Decrease "+s.Label, "Increase "+s.Label
+	what := lowerFirst(s.Label)
+	s.minus.Label, s.plus.Label = "Decrease "+what, "Increase "+what
 	s.minus.SetEnabled(s.Value > s.From)
 	s.plus.SetEnabled(s.Value < s.To)
 }

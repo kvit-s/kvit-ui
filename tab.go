@@ -5,6 +5,7 @@ import (
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
+	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
@@ -15,7 +16,8 @@ import (
 // whoever drew it.
 type Tab struct {
 	control
-	// Text names the view.
+	// Text names the view, in sentence case: kvit-ui writes it in title
+	// case on the macOS form (WRD-6).
 	Text string
 	// Selected marks the tab whose view is showing.
 	Selected bool
@@ -42,6 +44,23 @@ func NewTab(ui *UI, label string) *Tab {
 	}, unison.KeySpace)
 	// The ring surrounds the tab's square ground.
 	t.ringRadius = func() float32 { return 0 }
+	// A row of tabs is one stop in the Tab order; Left and Right choose the
+	// tab before or after (KEY-9).
+	keys := t.KeyDownCallback
+	t.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		if mods&mod.NonSticky == 0 {
+			// A row of tabs goes round at its ends, as Ctrl+Tab does.
+			if next, moved := roveStep(siblings[*Tab](t.AsPanel()), t, key, false, true); moved {
+				if next != nil {
+					next.SetFocusable(true)
+					next.Focus()
+					next.fire()
+				}
+				return true
+			}
+		}
+		return keys(key, mods, repeat)
+	}
 	t.SetSizer(t.sizes)
 	t.DrawCallback = t.draw
 	t.tip = func() string { return t.Explanation }
@@ -55,7 +74,7 @@ func (t *Tab) layouts() (name, count *text.Layout) {
 	if t.Selected {
 		weight, ink = text.Bold, tk.TextPrimary
 	}
-	name = ui.Fonts.Layout([]text.Span{{Text: t.Text, Style: ui.Chrome(ui.Size(RoleBody), weight, ink)}}, text.Options{})
+	name = ui.Fonts.Layout([]text.Span{{Text: ui.CommandCase(t.Text), Style: ui.Chrome(ui.Size(RoleBody), weight, ink)}}, text.Options{})
 	if t.Count >= 0 {
 		st := ui.Chrome(ui.Size(RoleCaption), text.Regular, tk.TextFaint)
 		st.Tabular = true
@@ -78,6 +97,7 @@ func (t *Tab) content() (width, height float32, name, count *text.Layout) {
 }
 
 func (t *Tab) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	oneStop(siblings[*Tab](t.AsPanel()), func(o *Tab) bool { return o.Selected })
 	m := t.ui.Interface
 	w, h, _, _ := t.content()
 	size := geom.NewSize(w+2*float32(m.SpaceLoose()), max(float32(m.TabHeight()), h))
@@ -116,9 +136,9 @@ func (t *Tab) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if n.Role == role.Auto {
 		n.Role = role.Tab
 	}
-	n.Name = t.Text
+	n.Name = t.ui.CommandCase(t.Text)
 	if t.Count >= 0 {
-		n.Name = t.Text + ", " + t.ui.CountPhrase(t.Count, "item", "")
+		n.Name += ", " + t.ui.CountPhrase(t.Count, "item", "")
 	}
 	n.Description = t.Explanation
 	n.Selectable = true

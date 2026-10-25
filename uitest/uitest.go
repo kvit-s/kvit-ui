@@ -29,6 +29,10 @@ type Options struct {
 	// Motion leaves animation on. It is off unless set, so a test sees the
 	// state a change ends in at once rather than partway there.
 	Motion bool
+	// Form is the system whose conventions the window follows: the Windows
+	// form (also Linux's) unless set, on every system, so a test of the
+	// macOS form runs anywhere.
+	Form kvitui.Form
 }
 
 // Session is a headless screen showing one Kvit window.
@@ -62,6 +66,7 @@ func Open(t testing.TB, opt Options, build func(ui *kvitui.UI) unison.Paneler) *
 		ui.Interface.SetFontSize(opt.InterfaceSize)
 	}
 	ui.Theme.SetReducedMotion(!opt.Motion)
+	ui.SetForm(opt.Form)
 	width, height := opt.Width, opt.Height
 	if width <= 0 {
 		width = 1500
@@ -102,6 +107,12 @@ func (s *Session) Sync() { s.Screen.Sync() }
 // SetTheme changes the theme, as a reader choosing one does.
 func (s *Session) SetTheme(id string) {
 	s.Do(func() { s.UI.Theme.SetThemeID(id) })
+	s.Sync()
+}
+
+// SetForm makes the window follow a form, and lays it out again.
+func (s *Session) SetForm(f kvitui.Form) {
+	s.Do(func() { s.UI.SetForm(f) })
 	s.Sync()
 }
 

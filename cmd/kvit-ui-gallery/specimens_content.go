@@ -120,12 +120,12 @@ func sectionHeadingWrittenCount(ui *kvitui.UI) unison.Paneler {
 	// Action and become the button's accessible name and its tooltip.
 	changes := kvitui.NewSectionHeading(ui, "Changes")
 	changes.CountText, changes.Collapsible = "1 · +0 −0", true
-	changes.Action, changes.ActionSymbol = "Open the diff", "diff"
+	changes.Action, changes.ActionSymbol = "Open diff", "diff"
 	agents := kvitui.NewSectionHeading(ui, "Agents")
 	agents.CountText, agents.Collapsible = "2 running", true
-	agents.Action, agents.ActionSymbol = "Start an agent", "plus"
+	agents.Action, agents.ActionSymbol = "Start agent", "plus"
 	terminal := kvitui.NewSectionHeading(ui, "Terminal")
-	terminal.Action, terminal.ActionSymbol = "Open a terminal", "terminal"
+	terminal.Action, terminal.ActionSymbol = "Open terminal", "terminal"
 	return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, changes, agents, terminal))
 }
 
@@ -136,7 +136,7 @@ func sectionHeadingExplanation(ui *kvitui.UI) unison.Paneler {
 	// accessible description too.
 	agents := kvitui.NewSectionHeading(ui, "Agents")
 	agents.CountText, agents.Collapsible = "2 running", true
-	agents.Action, agents.ActionSymbol = "Start an agent", "plus"
+	agents.Action, agents.ActionSymbol = "Start agent", "plus"
 	agents.ActionExplanation = "Creates an agent at this project’s root. An agent may change files. Nothing runs until you send its first message."
 	changes := kvitui.NewSectionHeading(ui, "Changes")
 	changes.CountText, changes.Collapsible = "1 · +0 −0", true
@@ -171,7 +171,7 @@ func emptyStateWithAction(ui *kvitui.UI) unison.Paneler {
 	empty := kvitui.NewEmptyState(ui, "No transactions yet")
 	empty.Symbol = "wallet"
 	empty.Detail = "Import a statement or add one by hand, and it will appear here."
-	empty.Action = "Import a statement"
+	empty.Action = "Import statement"
 	return kvitui.FullWidth(empty)
 }
 
@@ -179,7 +179,7 @@ func emptyStateDropTarget(ui *kvitui.UI) unison.Paneler {
 	drop := kvitui.NewEmptyState(ui, "Drop a statement here")
 	drop.Dashed, drop.Symbol = true, "file-arrow-down"
 	drop.Detail = "CSV, OFX and QIF. The file is read on this machine and nothing is sent anywhere."
-	drop.Action = "Choose a file"
+	drop.Action = "Choose file"
 	return kvitui.FullWidth(drop)
 }
 

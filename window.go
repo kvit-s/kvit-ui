@@ -34,6 +34,11 @@ type Window struct {
 	// SidebarExpandsOnHover opens the rail while the pointer rests on it or
 	// the keyboard is inside it; on unless an application has a reason.
 	SidebarExpandsOnHover bool
+	// AllowClose, when set, is asked before the window closes, by its close
+	// button, Close, Exit or Quit: true lets it close, false keeps it open,
+	// as when the reader cancels the question about unsaved changes. An app
+	// that saves by itself saves here and returns true (WIN-19).
+	AllowClose func() bool
 	// OnKeyDown is offered every key press before the focused control, for
 	// the application's own shortcuts; true says it used the key. It is
 	// here rather than in the window's KeyDownCallback, which Kvit uses to
@@ -41,6 +46,16 @@ type Window struct {
 	OnKeyDown func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool
 
 	header, sidebar, body, status unison.Paneler
+	menuBar                       *MenuBar
+	altHeld                       bool          // Alt is held, which shows the access keys
+	dragUndo                      func()        // puts things back as they were before the drag under way
+	accessCache                   []AccessKey   // the access keys while they are shown
+	document                      string        // the document the window shows, for its title
+	edited                        bool          // the document has unsaved changes
+	fullScreen                    bool          // the window fills the screen
+	beforeFullScreen              geom.Rect     // where the window was before it filled the screen
+	titledIn                      Form          // the form the title was last given in
+	commands                      []*Command    // the commands whose keys the window answers
 	panel                         *Panel        // the sidebar's ground, ruled on its right
 	stage                         *unison.Panel // holds the body, and draws what spills out of its components
 	railHovered, railFocused      bool
@@ -53,8 +68,11 @@ type Window struct {
 
 // NewWindow returns a shell window, the design width wide and 960 design
 // pixels tall, with nothing in it yet.
-func NewWindow(ui *UI, title string) (*Window, error) {
-	uw, err := unison.NewWindow(title)
+func NewWindow(ui *UI, title string) (*Window, error) { return newWindow(ui, title) }
+
+// newWindow is NewWindow with unison's options for the window.
+func newWindow(ui *UI, title string, options ...unison.WindowOption) (*Window, error) {
+	uw, err := unison.NewWindow(title, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +101,11 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 	content := uw.Content()
 	content.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) {
 		painterFor(gc, ui).fill(content.ContentRect(true), ui.Theme.Tokens().WindowBackground)
+		if ui.UnderlineAccessKeys && !w.altHeld {
+			// The controls may have changed since the last frame; the keys
+			// are worked out again once for this one.
+			w.accessCache = nil
+		}
 	}
 	content.SetLayout(windowLayout{w})
 	uw.MinMaxContentSizeCallback = func() (minimum, maximum geom.Size) {
@@ -92,13 +115,38 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 	}
 	w.watchPointer()
 	uw.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
-		if w.popupKeys(key) {
+		if w.dragKeys(key) || w.popupKeys(key, mods) || w.popupTab(key, mods) || w.limitedTab(key, mods) {
+			return true
+		}
+		if key == unison.KeyLOption || key == unison.KeyROption {
+			w.setAltHeld(true)
+		} else if !mods.OptionDown() {
+			// Alt let go while another window had the keyboard, as after
+			// Alt+Tab, is noticed at the next key.
+			w.setAltHeld(false)
+		}
+		if w.menuBar != nil && w.menuBar.windowKeyDown(key, mods) {
+			return true
+		}
+		if !repeat && w.accessKeyPress(key, mods) {
 			return true
 		}
 		if !repeat && w.contextKeys(key, mods) {
 			return true
 		}
+		if w.commandKeys(key, mods) || w.windowKeys(key, mods) {
+			return true
+		}
 		return w.OnKeyDown != nil && w.OnKeyDown(key, mods, repeat)
+	}
+	uw.KeyUpCallback = func(key unison.KeyCode, _ mod.Modifiers) bool {
+		if key == unison.KeyLOption || key == unison.KeyROption {
+			w.setAltHeld(false)
+		}
+		if w.menuBar != nil {
+			w.menuBar.windowKeyUp(key)
+		}
+		return false
 	}
 	uw.MouseDownCallback = func(where geom.Point, button, _ int, _ mod.Modifiers) bool {
 		at := uw.Content().PointFromRoot(where)
@@ -112,11 +160,15 @@ func NewWindow(ui *UI, title string) (*Window, error) {
 	}
 	ui.windows[uw] = w
 	uw.WillCloseCallback = func() { delete(ui.windows, uw) }
+	uw.AllowCloseCallback = func() bool { return w.AllowClose == nil || w.AllowClose() }
 	ui.watchWindow(uw)
 	m := ui.Interface
 	uw.SetContentRect(geom.NewRect(0, 0, float32(m.WidthDrawn()), float32(m.Px(960))))
 	return w, nil
 }
+
+// UI is the interface the window is drawn with.
+func (w *Window) UI() *UI { return w.ui }
 
 // SetHeader puts the header across the top.
 func (w *Window) SetHeader(p unison.Paneler) { w.header = p; w.rebuild() }
@@ -140,6 +192,9 @@ func (w *Window) rebuild() {
 	content.RemoveAllChildren()
 	w.panel.RemoveAllChildren()
 	w.stage.RemoveAllChildren()
+	if w.menuBar != nil && !w.menuBar.isNative() {
+		content.AddChild(w.menuBar)
+	}
 	if w.header != nil {
 		content.AddChild(w.header)
 	}
@@ -292,8 +347,19 @@ func (l windowLayout) LayoutSizes(target *unison.Panel, _ geom.Size) (minSize, p
 
 func (l windowLayout) PerformLayout(target *unison.Panel) {
 	w, m := l.w, l.w.ui.Interface
+	// The title follows the form: the document, and the app's name on the
+	// Windows form.
+	if w.titledIn != w.ui.form {
+		w.titledIn = w.ui.form
+		w.retitle()
+	}
 	r := target.ContentRect(false)
 	top, bottom := r.Y, r.Bottom()
+	if b := w.menuBar; b != nil && !b.isNative() {
+		_, p, _ := b.Sizes(geom.NewSize(r.Width, 0))
+		b.SetFrameRect(geom.NewRect(r.X, top, r.Width, p.Height))
+		top += p.Height
+	}
 	if w.header != nil {
 		h := float32(m.HeaderHeight())
 		w.header.AsPanel().SetFrameRect(geom.NewRect(r.X, top, r.Width, h))

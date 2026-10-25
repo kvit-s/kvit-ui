@@ -225,7 +225,7 @@ func TestADialogHasToBeAnsweredFirst(t *testing.T) {
 	})
 	screen.Do(func() {
 		dialog = kvitui.NewDialog(ui, "Delete 40 transactions?")
-		dialog.ConfirmText, dialog.Destructive = "Delete them", true
+		dialog.ConfirmText, dialog.Destructive = "Delete", true
 		dialog.OnReject = func() { rejected++ }
 		dialog.OnAccept = func() { accepted++ }
 		dialog.Open(w)

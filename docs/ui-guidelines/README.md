@@ -2,7 +2,7 @@
 
 AI agents build most of the screens in kvit-cash, kvit-notes and kvit-works, and the results are often clunky: sentences on buttons, letters typed where symbols belong, one command under several names, generic labels such as OK, permanent paragraphs of explanation, missing shortcuts (survey of 2026-10-22). The kvit-ui skill teaches colour, sizes and screen-reader names, and says nothing about wording, symbols, menus or shortcuts.
 
-This folder condenses Apple's and Microsoft's published desktop guidelines (Apple's Human Interface Guidelines, Microsoft's Windows 7 UX guide, and Microsoft's current Fluent and WinUI guidance) into rules for the Kvit apps, each traced to its source, and compares each rule with what kvit-ui does today. Later work turns the rules into behaviour in kvit-ui's components, automated tests, a section of the kvit-ui skill and a reviewer's checklist. This folder is documents only: no component, test or skill was changed.
+This folder condenses Apple's and Microsoft's published desktop guidelines (Apple's Human Interface Guidelines, Microsoft's Windows 7 UX guide, and Microsoft's current Fluent and WinUI guidance) into rules for the Kvit apps, each traced to its source, and compares each rule with what kvit-ui does today. The rules are turned into behaviour in kvit-ui's components, automated tests (`uitest`), a section of the kvit-ui skill and a reviewer's checklist; guidelines-plan.md says what is built and what is left.
 
 The owner's decisions applied throughout:
 
@@ -22,6 +22,7 @@ The owner's decisions applied throughout:
 | `checklist.md` | 47 judgment items for a reviewer agent looking at a screenshot and the screen reader's list of controls. |
 | `skill-section-draft.md` | The draft of the section now in `agent/skills/kvit-ui/SKILL.md` ("Words, symbols, commands and shortcuts"): 28 rules on wording, symbols, commands, menus and shortcuts, with before-and-after pairs from the apps and the library. |
 | `guidelines-plan.md` | The next steps: what gets built in kvit-ui and in which order, the tests, and the review of the apps. |
+| `app-review-brief.md` | The brief for reviewing each app (step 8): what has to happen first, giving the app's agents the kvit-ui skills, adding the checks to the app's tests, moving its commands, the survey's findings still to fix, and when an app is done. |
 
 The extracted records are the evidence; the merged rules are what later work builds on; the open questions say what is not settled; library-gaps, the checklist and the skill draft are the three ways the rules reach code, review and agents.
 
@@ -151,6 +152,6 @@ The application repositories (kvit-cash, kvit-notes, kvit-works) were not availa
 | On Microsoft's Windows 7 checklist | | 458 (131 of them the checklist page's own items) | | |
 
 - Merged rules: 199 (WRD 28, CMD 25, KEY 15, PTR 15, WIN 24, MSG 17, CTL 26, FDB 10, LAY 10, A11Y 8, CON 8, HLP 8, OTH 5). 94 have a separate Windows and macOS form.
-- kvit-ui today: enforces 18, partly covers 105, contradicts 9, does not cover 67.
+- kvit-ui today: enforces 77, partly covers 93, contradicts none, does not cover 29 (as of 2026-10-24, after steps 1 to 7 and 9 of guidelines-plan.md; rules.md has the detail).
 - Where each rule should be enforced (a rule can have several): a component 143, a test reading one screen's controls 66, a test reading the Go source 24, a test reading every screen of an app 18, a reviewer 123.
 - Questions: 52 in all. 11 were settled by the current Microsoft guidance; the owner decided the other 41 on 2026-10-23.

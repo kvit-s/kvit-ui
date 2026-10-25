@@ -9,7 +9,6 @@ import (
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
-	"github.com/richardwilkes/unison/enums/mod"
 )
 
 func scrollBarBesideColumn(ui *kvitui.UI) unison.Paneler {
@@ -42,18 +41,17 @@ func whenShown(p *unison.Panel, f func()) {
 	}
 }
 
-// command is a shortcut with the platform's command key.
-func command(key unison.KeyCode) unison.KeyBinding {
-	return unison.KeyBinding{KeyCode: key, Modifiers: mod.OSMenuCommand()}
-}
+// command is a shortcut on the command key: Ctrl on Windows and Linux,
+// Command on a Mac.
+func command(key unison.KeyCode) kvitui.Shortcut { return kvitui.Keys(key, kvitui.ModPrimary) }
 
 func menuOpened(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
 	// Opened at the stage's top left once it is in a window.
 	whenShown(stage, func() {
 		ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-			{Text: "Open", Symbol: "file", Key: command(unison.KeyO)},
-			{Text: "Duplicate", Symbol: "copy", Key: command(unison.KeyD)},
+			{Text: "Open", Symbol: "file", Shortcut: command(unison.KeyO)},
+			{Text: "Duplicate", Symbol: "copy", Shortcut: command(unison.KeyD)},
 			{Text: "Archive", Symbol: "archive"},
 			{Separator: true},
 			{Text: "Delete", Symbol: "trash", Danger: true},
@@ -66,7 +64,7 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(110), unison.NewPanel()))
 	whenShown(stage, func() {
 		ui.ShowMenuAt(stage, geom.Rect{}, "", []kvitui.MenuItem{
-			{Text: "Reconcile", Symbol: "check", Key: command(unison.KeyR)},
+			{Text: "Reconcile", Symbol: "check", Shortcut: command(unison.KeyR)},
 			{Text: "Split", Symbol: "split", Disabled: true},
 			{Text: "Delete", Symbol: "trash", Danger: true},
 		})
@@ -158,7 +156,7 @@ func timelineHistory(ui *kvitui.UI) unison.Paneler {
 }
 
 func spotlightOnButton(ui *kvitui.UI) unison.Paneler {
-	target := kvitui.NewButton(ui, "Import a statement")
+	target := kvitui.NewButton(ui, "Import statement")
 	target.Form = kvitui.ButtonPrimary
 	stage := kvitui.FullWidth(kvitui.At(ui, kvitui.Px(40), kvitui.Px(20), kvitui.Px(160), target))
 	spot := kvitui.NewSpotlight(ui, target, "Start here", "Import a statement and the dashboard fills itself in.")

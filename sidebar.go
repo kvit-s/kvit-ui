@@ -7,6 +7,7 @@ import (
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
 	"github.com/richardwilkes/unison/enums/align"
+	"github.com/richardwilkes/unison/enums/mod"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
@@ -20,6 +21,8 @@ type Sidebar struct {
 	ui *UI
 	// Collapsed draws the sidebar as its rail.
 	Collapsed bool
+
+	footer []*unison.Panel // the items held at the foot
 }
 
 // NewSidebar returns an expanded sidebar holding items, top to bottom.
@@ -35,6 +38,31 @@ func NewSidebar(ui *UI, items ...unison.Paneler) *Sidebar {
 	column := &spaced{FlexLayout: unison.FlexLayout{Columns: 1}, ui: ui, gap: Px(0)}
 	s.SetLayout(syncing{Layout: &sidebarLayout{s: s, column: column}, sync: s.sync})
 	return s
+}
+
+// AddFooter puts items at the foot of the sidebar, below the places, in
+// order: Help, then Settings last, where the Windows form puts the settings
+// command (WIN-16, CMD-3).
+func (s *Sidebar) AddFooter(items ...unison.Paneler) {
+	for _, it := range items {
+		if it.AsPanel().LayoutData() == nil {
+			it.AsPanel().SetLayoutData(&unison.FlexLayoutData{HAlign: align.Fill, HGrab: true})
+		}
+		s.footer = append(s.footer, it.AsPanel())
+		s.AddChild(it)
+	}
+	s.MarkForLayoutAndRedraw()
+}
+
+// Commands are the commands the sidebar's items run.
+func (s *Sidebar) Commands() []*Command {
+	var out []*Command
+	for _, c := range s.Children() {
+		if item, ok := c.Self.(*SidebarItem); ok && item.Command != nil {
+			out = append(out, item.Command)
+		}
+	}
+	return out
 }
 
 func (s *Sidebar) sync() {
@@ -63,7 +91,22 @@ func (l *sidebarLayout) LayoutSizes(target *unison.Panel, hint geom.Size) (minSi
 	return minSize, prefSize, maxSize
 }
 
-func (l *sidebarLayout) PerformLayout(target *unison.Panel) { l.column.PerformLayout(target) }
+func (l *sidebarLayout) PerformLayout(target *unison.Panel) {
+	l.column.PerformLayout(target)
+	// The footer's items stand at the foot, in order, the last at the
+	// bottom.
+	r := target.ContentRect(false)
+	y := r.Bottom()
+	for i := len(l.s.footer) - 1; i >= 0; i-- {
+		p := l.s.footer[i]
+		if p.Hidden {
+			continue
+		}
+		_, pref, _ := p.Sizes(geom.NewSize(r.Width, 0))
+		y -= pref.Height
+		p.SetFrameRect(geom.NewRect(r.X, y, r.Width, pref.Height))
+	}
+}
 
 // ProvideAccessibility names the sidebar as the application's navigation.
 func (s *Sidebar) ProvideAccessibility(b *unison.AccessibilityBuilder) {
@@ -109,8 +152,24 @@ type SidebarItem struct {
 	CountMax int
 	// OnClick runs when the item is pressed.
 	OnClick func()
+	// Command, when set, is what the item runs, and gives its words and
+	// symbol where they are empty: the settings command at the foot of the
+	// sidebar is one.
+	Command *Command
 
 	badge *Badge
+}
+
+// NewSidebarCommand returns an item that runs a command, named and drawn by
+// it: the settings command at the foot of the sidebar is one (WIN-16).
+func NewSidebarCommand(ui *UI, c *Command) *SidebarItem {
+	name := c.Name
+	if name == "" {
+		name = ui.StdName(c.Std)
+	}
+	it := NewSidebarItem(ui, name, c.SymbolName())
+	it.Command = c
+	return it
 }
 
 // NewSidebarItem returns an unselected item with no count.
@@ -118,11 +177,29 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem {
 	it := &SidebarItem{Text: label, Symbol: symbol, Count: -1, CountMax: 99}
 	it.Self = it
 	it.initControl(ui, func() {
+		if it.Command != nil {
+			ui.runCommand(it.Command)
+		}
 		if it.OnClick != nil {
 			it.OnClick()
 		}
-	}, unison.KeySpace)
+	}, unison.KeySpace, unison.KeyReturn, unison.KeyNumPadEnter)
 	it.ringRadius = func() float32 { return 0 }
+	// The items are one stop in the Tab order; Up and Down move the keyboard
+	// among them without opening one, and Space or Enter opens it (KEY-9).
+	keys := it.KeyDownCallback
+	it.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		if mods&mod.NonSticky == 0 {
+			if next, moved := roveStep(siblings[*SidebarItem](it.AsPanel()), it, key, true, false); moved {
+				if next != nil {
+					next.SetFocusable(true)
+					next.Focus()
+				}
+				return true
+			}
+		}
+		return keys(key, mods, repeat)
+	}
 	it.badge = NewBadge(ui, 0)
 	it.badge.Tone = BadgeNeutral
 	it.AddChild(it.badge)
@@ -142,6 +219,7 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem {
 // sync hands the count to the badge while it is to be drawn, and none
 // otherwise.
 func (it *SidebarItem) sync() {
+	oneStop(siblings[*SidebarItem](it.AsPanel()), func(o *SidebarItem) bool { return o.Selected })
 	b := it.badge
 	b.Count = 0
 	if it.Count > 0 && (!it.Collapsed || it.CountInRail) {

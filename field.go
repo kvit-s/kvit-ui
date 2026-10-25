@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"strings"
+
 	"github.com/kvit-s/kvit-ui/palette"
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
@@ -38,17 +40,37 @@ type Field struct {
 	// Error is a message under the field. Non-empty is what "in error"
 	// means; there is no separate flag, so the two cannot disagree.
 	Error string
-	// Shortcut names the keys that reach the field, where something does. It
-	// is shown with the label as the field's tooltip, so a route to the field
-	// is written down somewhere; "" shows no tooltip.
+	// Shortcut names the keys that reach the field, where something does. On
+	// the Windows form it is shown in parentheses after the label as the
+	// field's tooltip, "Search (Ctrl+F)", so a route to the field is written
+	// down somewhere; the macOS form puts no shortcut in a tooltip (KEY-14).
+	// "" shows no tooltip.
 	Shortcut string
 	// ReadOnly lets the text be selected and copied but not changed.
 	ReadOnly bool
+	// Required marks a field that must be filled: told to a screen reader,
+	// and drawn as an asterisk after the label of the FormRow holding it
+	// (CON-4).
+	Required bool
+	// Masked hides what is typed behind dots, for a secret; the text can be
+	// neither copied nor cut (CTL-7).
+	Masked bool
+	// MaxLength is the most characters the field takes, 0 for no limit.
+	// Text past it, typed or pasted, is kept and reported as the field's
+	// error, rather than cut without a word (CTL-7).
+	MaxLength int
 	// OnChange runs after every change to the text.
 	OnChange func(text string)
 
 	edit    *unison.Field
 	message *Label
+	// clear empties a plain single-line field: shown on the Windows form
+	// while the field holds the keyboard and some text (CTL-7, decided
+	// Q-44). nil for the fields that have their own.
+	clear *IconButton
+	// overLimit is the error the length limit set, kept apart from the
+	// application's own.
+	overLimit string
 	// padLeft and padRight are the space between the outline and the text,
 	// which a search field widens for its symbol and its clear button.
 	padLeft, padRight func() float32
@@ -109,7 +131,33 @@ func NewField(ui *UI) *Field {
 	f := &Field{ui: ui}
 	f.Self = f
 	f.initField(ui, false)
+	f.clear = NewIconButton(ui, "close", "Clear")
+	// Not a stop in the Tab order: the keyboard empties a field another way.
+	f.clear.SetFocusable(false)
+	f.clear.OnClick = func() {
+		f.SetText("")
+		f.edit.RequestFocus()
+	}
+	f.AddChildAtIndex(f.clear, 0)
+	f.padRight = func() float32 {
+		if f.clearShown() {
+			return float32(ui.Interface.ControlHeight())
+		}
+		return float32(ui.Interface.SpaceNear())
+	}
+	f.place = func(box geom.Rect) {
+		f.clear.Hidden = !f.clearShown()
+		c := float32(ui.Interface.ControlHeight())
+		f.clear.SetFrameRect(geom.NewRect(box.Right()-c, box.Y+(box.Height-c)/2, c, c))
+	}
 	return f
+}
+
+// clearShown reports whether the clear button shows: on the Windows form,
+// while the field holds the keyboard and some text it may change.
+func (f *Field) clearShown() bool {
+	return f.clear != nil && f.ui.form == FormWindows && f.edit.Focused() && f.edit.Text() != "" &&
+		!f.ReadOnly && !f.Masked && f.edit.Enabled()
 }
 
 func (f *Field) initField(ui *UI, multi bool) {
@@ -126,6 +174,7 @@ func (f *Field) initField(ui *UI, multi bool) {
 	e.DrawCallback = f.draw
 	e.GainedFocusCallback = func() {
 		e.DefaultFocusGained()
+		f.MarkForLayoutAndRedraw()
 		if w := e.Window(); w != nil {
 			ui.watchWindow(w)
 			w.MarkForRedraw()
@@ -133,6 +182,7 @@ func (f *Field) initField(ui *UI, multi bool) {
 	}
 	e.LostFocusCallback = func() {
 		e.DefaultFocusLost()
+		f.MarkForLayoutAndRedraw()
 		if w := e.Window(); w != nil {
 			w.MarkForRedraw()
 		}
@@ -143,6 +193,7 @@ func (f *Field) initField(ui *UI, multi bool) {
 		}
 	}
 	e.ModifiedCallback = func(_, after *unison.FieldState) {
+		f.checkLength()
 		if f.changed != nil {
 			f.changed()
 		}
@@ -153,10 +204,10 @@ func (f *Field) initField(ui *UI, multi bool) {
 	}
 	e.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
 		e.Tooltip = nil
-		if f.Shortcut != "" {
+		if f.Shortcut != "" && ui.form == FormWindows {
 			say := f.Shortcut
 			if f.Label != "" {
-				say = f.Label + " · " + f.Shortcut
+				say = f.Label + " (" + f.Shortcut + ")"
 			}
 			e.Tooltip = newTooltip(ui, say, "")
 		}
@@ -170,6 +221,9 @@ func (f *Field) initField(ui *UI, multi bool) {
 		n.Description = f.Error
 		if f.Error == "" && f.describe != nil {
 			n.Description = f.describe()
+		}
+		if f.Required {
+			n.Description = joinWords("Required", n.Description)
 		}
 		n.Placeholder = f.Placeholder
 		n.Invalid = f.Error != ""
@@ -204,24 +258,38 @@ func (f *Field) initField(ui *UI, multi bool) {
 		can, do := e.InstallCmdHandlers(id, nil, nil)
 		e.InstallCmdHandlers(id, func(v any) bool { return !f.ReadOnly && can(v) }, do)
 	}
+	// A secret is neither copied nor cut out of a masked field.
+	for _, id := range []int{unison.CutItemID, unison.CopyItemID} {
+		can, do := e.InstallCmdHandlers(id, nil, nil)
+		e.InstallCmdHandlers(id, func(v any) bool { return !f.Masked && can(v) }, do)
+	}
 	// The editing commands as a Kvit menu, as every other menu is, rather
-	// than unison's own.
+	// than unison's own, made of the standard commands so each has its
+	// standard name and key. The menu leaves out what cannot act (CMD-10).
 	e.ContextMenuCallback = nil
 	ui.SetContextMenu(e, func(geom.Point) (string, []MenuItem) {
-		command := func(a *unison.Action, can func() bool, do func()) MenuItem {
-			return MenuItem{Text: a.Title, Key: a.KeyBinding, Disabled: !can(), OnSelect: do}
+		line := func(std StdCommand, can func() bool, do func()) MenuItem {
+			return MenuItem{Command: &Command{Std: std, Enabled: can, Run: do}}
 		}
-		cut := e.CanCut
-		paste := e.CanPaste
+		never := func() bool { return false }
+		cut, paste := e.CanCut, e.CanPaste
 		if f.ReadOnly {
-			cut, paste = func() bool { return false }, func() bool { return false }
+			cut, paste = never, never
+		}
+		undo, redo := never, never
+		var doUndo, doRedo func()
+		if m := unison.UndoManagerFor(e); m != nil && !f.ReadOnly {
+			undo, redo, doUndo, doRedo = m.CanUndo, m.CanRedo, m.Undo, m.Redo
 		}
 		return "", []MenuItem{
-			command(unison.CutAction(), cut, e.Cut),
-			command(unison.CopyAction(), e.CanCopy, e.Copy),
-			command(unison.PasteAction(), paste, e.Paste),
+			line(StdUndo, undo, doUndo),
+			line(StdRedo, redo, doRedo),
 			{Separator: true},
-			command(unison.SelectAllAction(), e.CanSelectAll, e.SelectAll),
+			line(StdCut, cut, e.Cut),
+			line(StdCopy, e.CanCopy, e.Copy),
+			line(StdPaste, paste, e.Paste),
+			{Separator: true},
+			line(StdSelectAll, e.CanSelectAll, e.SelectAll),
 		}
 	})
 	f.message = NewLabel(ui, "")
@@ -232,6 +300,20 @@ func (f *Field) initField(ui *UI, multi bool) {
 	// screen reader meets, under the field's label.
 	f.Accessibility.Role = role.None
 	f.SetLayout(fieldLayout{f})
+}
+
+// checkLength reports text past MaxLength as the field's error, and takes
+// the report away once the text fits.
+func (f *Field) checkLength() {
+	n := len([]rune(f.edit.Text()))
+	over := ""
+	if f.MaxLength > 0 && n > f.MaxLength {
+		over = f.ui.CountPhrase(n-f.MaxLength, "character", "") + " over the limit of " + f.ui.Number(f.MaxLength)
+	}
+	if f.Error == f.overLimit {
+		f.Error = over
+	}
+	f.overLimit = over
 }
 
 // Text is what is typed in the field.
@@ -267,6 +349,10 @@ func (f *Field) style() {
 	if key != f.font {
 		f.font = key
 		f.edit.Font = unisonFont(ui, key.family, key.px)
+	}
+	f.edit.ObscurementRune = 0
+	if f.Masked {
+		f.edit.ObscurementRune = '•'
 	}
 	// The ground and the outline are drawn here, rounded; unison's own
 	// square ground is left transparent.
@@ -339,7 +425,11 @@ func (f *Field) draw(gc *unison.Canvas, dirty geom.Rect) {
 		l.Draw(gc, inner.X, box.Y+(box.Height-h)/2)
 	}
 	if !f.edit.Enabled() && f.edit.Text() != "" {
-		own(f.edit.Text(), t.TextDisabled)
+		shown := f.edit.Text()
+		if f.Masked {
+			shown = strings.Repeat("•", len([]rune(shown)))
+		}
+		own(shown, t.TextDisabled)
 	}
 	if f.edit.Text() == "" && f.Placeholder != "" {
 		own(f.Placeholder, t.TextFaint)

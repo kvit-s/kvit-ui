@@ -137,8 +137,10 @@ func TestTheBreadcrumbLinksBackAndCutsTheMiddle(t *testing.T) {
 	if len(followed) != 1 || followed[0] != "p" {
 		t.Errorf("following the first crumb reported %v", followed)
 	}
-	// The "…" stands for several places and cannot be followed.
-	if n := screen.AccessibilityNodeFor(long.Children()[2]); n == nil || n.Role != role.Label {
+	// The "…" stands for several places, and lists them when followed
+	// (LAY-10).
+	if n := screen.AccessibilityNodeFor(long.Children()[2]); n == nil || n.Role != role.Link || n.Name != "…" ||
+		!strings.HasSuffix(n.Description, "places between") {
 		t.Errorf("the elided crumb is %+v", n)
 	}
 	if n := screen.AccessibilityNodeFor(short); n == nil || n.Role != role.Group || n.Name != "Breadcrumb" {
@@ -436,10 +438,11 @@ func TestTheWindowCollapsesItsSidebarAndOpensTheRailOverTheBody(t *testing.T) {
 	screen.MouseMove(geom.NewPoint(600, 200), 0)
 	screen.Sync()
 	check("pointer gone", true, m.RailWidth(), m.RailWidth())
-	// The keyboard inside the rail opens it as well: Tab moves between its
-	// items. The focus the window handed its first item when it opened did
-	// not open it, as the narrow check above shows.
-	screen.KeyPress(unison.KeyTab, 0)
+	// The keyboard inside the rail opens it as well: the items are one stop
+	// in the Tab order, and Down moves between them. The focus the window
+	// handed its first item when it opened did not open it, as the narrow
+	// check above shows.
+	screen.KeyPress(unison.KeyDown, 0)
 	check("keyboard in the rail", false, m.SidebarWidth(), m.RailWidth())
 	// Never smaller than the floor.
 	screen.Do(func() { w.SetContentRect(geom.NewRect(0, 0, 400, 300)) })
