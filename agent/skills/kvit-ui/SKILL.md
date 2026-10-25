@@ -1,6 +1,6 @@
 ---
 name: kvit-ui
-description: The shared interface vocabulary for the kvit desktop applications, written in Go on unison: how to describe a screen, which component to reach for, what each colour means and what it is reserved for, how to word labels, menus, dialogs and messages and when to use a symbol or a shortcut, and the workflow for getting a screen from a description to working Go. Use whenever building, changing or reviewing a screen in kvit-notes, kvit-notes-pro, kvit-hub or kvit-cash, or when writing anything in Go that draws.
+description: The shared interface vocabulary for the kvit desktop applications, written in Go on unison: how to describe a screen, which component to reach for, what each colour means and what it is reserved for, how to word labels, menus, dialogs and messages and when to use a symbol or a shortcut, and the workflow for getting a screen from a description to working Go. Use whenever building, changing or reviewing a screen in kvit-works, kvit-notes, kvit-notes-pro, kvit-hub or kvit-cash, or when writing anything in Go that draws.
 ---
 
 # Building a screen in the kvit estate
