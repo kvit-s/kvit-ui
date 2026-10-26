@@ -2,6 +2,7 @@ package kvitui_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
@@ -205,6 +206,28 @@ func TestASplitViewsHandleMovesWithTheKeys(t *testing.T) {
 			t.Errorf("a drag of 40 px made the left region %v wide, want %v", got, want)
 		}
 	})
+}
+
+// Tab reaches a split view's handle where it is drawn, between the last
+// control of the region before it and the first of the region after it,
+// rather than going back to it from the region after it (KEY-9).
+func TestTabReachesASplitViewsHandleBetweenItsRegions(t *testing.T) {
+	screen, _, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		split := kvitui.NewSplitView(ui, kvitui.NewButton(ui, "Left"), kvitui.NewButton(ui, "Middle"), kvitui.NewButton(ui, "Right"))
+		return []unison.Paneler{kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(120), split))}
+	})
+	var order []string
+	for range 10 {
+		screen.KeyPress(unison.KeyTab, 0)
+		if n := focusedNode(screen, w); n != nil && n.Role == role.Separator {
+			order = append(order, "handle")
+		} else if n != nil {
+			order = append(order, n.Name)
+		}
+	}
+	if !strings.Contains(strings.Join(order, ", "), "Left, handle, Middle, handle, Right") {
+		t.Errorf("Tab went %v, want Left, handle, Middle, handle, Right", order)
+	}
 }
 
 func TestATreeOpensAndStepsWithTheArrows(t *testing.T) {

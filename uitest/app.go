@@ -52,7 +52,12 @@ type HelpUse struct {
 
 // CommandFact is one command as the whole-app checks read it.
 type CommandFact struct {
-	Name   string
+	Name string
+	// ID is the name that does not change with the command's state: a
+	// switch's Name rather than its words for the state it is in on the
+	// macOS form (WRD-12), so a switch read in both states is one command.
+	// Empty is Name.
+	ID     string
 	Std    kvitui.StdCommand
 	Symbol string
 	// Keys are its shortcuts as each form writes them.
@@ -148,7 +153,7 @@ func Collect(name string, w *kvitui.Window) Screen {
 	}
 	walk(w.Content())
 	for _, c := range cmds {
-		f := CommandFact{Name: c.Label(ui), Std: c.Std, Symbol: c.SymbolName(), Keys: map[kvitui.Form][]string{}}
+		f := CommandFact{Name: c.Label(ui), ID: commandID(ui, c), Std: c.Std, Symbol: c.SymbolName(), Keys: map[kvitui.Form][]string{}}
 		for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
 			for _, k := range c.Shortcuts(form) {
 				f.Keys[form] = append(f.Keys[form], kvitui.ShortcutTextIn(form, k))
@@ -163,6 +168,27 @@ func Collect(name string, w *kvitui.Window) Screen {
 		s.OffSurface = append(s.OffSurface, c.Label(ui))
 	}
 	return s
+}
+
+// commandID is a command's name whatever its state: a switch's own name
+// rather than the macOS form's words for the state it is in.
+func commandID(ui *kvitui.UI, c *kvitui.Command) string {
+	if c.Checked == nil || c.TurnOn == "" || c.TurnOff == "" {
+		return c.Label(ui)
+	}
+	n := c.Name
+	if n == "" {
+		n = ui.StdName(c.Std)
+	}
+	return ui.CommandCase(n)
+}
+
+// id is the name the whole-app checks group the command by.
+func (c CommandFact) id() string {
+	if c.ID != "" {
+		return c.ID
+	}
+	return c.Name
 }
 
 // isAppMenu reports whether a menu bar title is one of the app's own menus
@@ -259,7 +285,7 @@ func App(screens ...Screen) []Problem {
 	byKey := map[string][]CommandFact{}
 	for _, s := range screens {
 		for _, c := range s.Commands {
-			name := s.Form.String() + " form: " + sameName(c.Name)
+			name := s.Form.String() + " form: " + sameName(c.id())
 			byName[name] = append(byName[name], c)
 			for _, k := range c.Keys[s.Form] {
 				byKey[s.Form.String()+" "+k] = append(byKey[s.Form.String()+" "+k], c)
@@ -289,7 +315,7 @@ func App(screens ...Screen) []Problem {
 	for _, key := range sortedKeys(byKey) {
 		names := map[string]bool{}
 		for _, c := range byKey[key] {
-			names[sameName(c.Name)] = true
+			names[sameName(c.id())] = true
 		}
 		if len(names) > 1 {
 			add("KEY-5", key, "one key for "+strings.Join(sortedKeys(names), " and "))

@@ -118,6 +118,23 @@ func TestTheAppChecksFindWhatIsPlanted(t *testing.T) {
 	}
 }
 
+// A switch on a key, read once on and once off on the macOS form, is one
+// command, though its menu line says Show in one state and Hide in the other.
+func TestTheAppChecksTakeASwitchsTwoWordsAsOneCommand(t *testing.T) {
+	on := false
+	pane := &kvitui.Command{Name: "Ask pane", TurnOn: "Show Ask pane", TurnOff: "Hide Ask pane",
+		Checked: func() bool { return on }, Shortcut: kvitui.Keys(unison.KeyJ, kvitui.ModPrimary), Run: func() { on = !on }}
+	s := uitest.Open(t, uitest.Options{Form: kvitui.FormMac}, func(ui *kvitui.UI) unison.Paneler {
+		return kvitui.Column(ui, kvitui.SizeSpace, kvitui.NewCommandButton(ui, pane))
+	})
+	closed := s.Collect("closed")
+	on = true
+	open := s.Collect("open")
+	if problems := uitest.App(closed, open); found(problems, "KEY-5", "J") || found(problems, "CON-1", "pane") {
+		t.Errorf("one switch was reported as two commands: %v", problems)
+	}
+}
+
 // A help link is worded as a whole question, never generically; the macOS
 // form has one help button to a window; a generic Help button is reported;
 // and the whole-app checks report a topic the app does not ship (HLP-6).

@@ -38,8 +38,9 @@ type SplitView struct {
 func NewSplitView(ui *UI, panes ...unison.Paneler) *SplitView {
 	s := &SplitView{ui: ui, Fill: len(panes) - 1, panes: panes, sizes: make([]Measure, len(panes))}
 	s.Self = s
+	// Each handle is added between its two regions, so Tab reaches it where
+	// it is drawn: after the region before it and before the one after.
 	for i, p := range panes {
-		s.AddChild(p)
 		if i > 0 {
 			h := &splitHandle{s: s, before: i - 1}
 			h.Self = h
@@ -66,6 +67,7 @@ func NewSplitView(ui *UI, panes ...unison.Paneler) *SplitView {
 			s.handles = append(s.handles, h)
 			s.AddChild(h)
 		}
+		s.AddChild(p)
 	}
 	s.SetLayout(splitLayout{s})
 	return s
