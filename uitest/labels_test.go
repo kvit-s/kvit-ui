@@ -246,6 +246,46 @@ func TestTheTabOrderCheckFollowsTheReadingOrder(t *testing.T) {
 	}
 }
 
+// scrolledToFoot lays its children out in a column read at its foot, as a
+// scroll view shows a list scrolled to its end: only the last child is in
+// sight, and the ones before it are above the panel.
+type scrolledToFoot struct{}
+
+func (scrolledToFoot) LayoutSizes(target *unison.Panel, _ geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	kids := target.Children()
+	_, p, _ := kids[len(kids)-1].Sizes(geom.Size{})
+	return p, p, p
+}
+
+func (scrolledToFoot) PerformLayout(target *unison.Panel) {
+	kids := target.Children()
+	var at float32
+	for i := len(kids) - 1; i >= 0; i-- {
+		_, p, _ := kids[i].Sizes(geom.Size{})
+		kids[i].SetFrameRect(geom.NewRect(0, at, p.Width, p.Height))
+		at -= p.Height
+	}
+}
+
+// A Tab stop scrolled out of sight is not compared: from a button over a
+// list read at its foot, Tab goes to the list's first row, above the
+// button but out of sight (KEY-9).
+func TestTheTabOrderCheckLeavesOutWhatIsScrolledAway(t *testing.T) {
+	s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler {
+		list := unison.NewPanel()
+		list.SetLayout(scrolledToFoot{})
+		for _, w := range []string{"Open January", "Open February", "Open March", "Open April"} {
+			list.AddChild(kvitui.NewButton(ui, w))
+		}
+		return kvitui.Column(ui, kvitui.SizeSpace, kvitui.NewButton(ui, "Go to start"), kvitui.Left(list))
+	})
+	var problems []uitest.Problem
+	s.Do(func() { problems = uitest.Labels(s.Window) })
+	if found(problems, "KEY-9", "") {
+		t.Errorf("a row out of sight was compared: %v", problems)
+	}
+}
+
 // Apply is reported outside a properties dialog, and OK or Cancel on a page
 // of settings; a properties dialog's own buttons are not (WIN-23).
 func TestTheApplyChecksFindWhatIsPlanted(t *testing.T) {

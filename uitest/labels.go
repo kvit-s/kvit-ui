@@ -562,7 +562,10 @@ func (c *labelCheck) link(l *kvitui.Link) {
 // unison does, inside the topmost dialog or other popup that keeps the
 // keyboard while one is open and leaving out the other popups, and reports a step that goes back against the
 // reading order (KEY-9): up within the same column, or to the left within
-// the same row. A step to a column further up, as from the sidebar's foot
+// the same row. A stop is compared where it is seen, the part of it its
+// scroll view and the panels around it show, and not at all while it is
+// scrolled out of sight: in a list read at its foot, Tab goes into the list
+// at its first row, wherever that is. A step to a column further up, as from the sidebar's foot
 // to the top of the body, starts the next column and is reading order; a
 // help link may come after the buttons it sits above.
 func (c *labelCheck) tabOrder(w *kvitui.Window) {
@@ -590,7 +593,7 @@ func (c *labelCheck) tabOrder(w *kvitui.Window) {
 			help = true
 		}
 		if p.Focusable() && !help {
-			stops = append(stops, stop{p, p.RectToRoot(p.ContentRect(true))})
+			stops = append(stops, stop{p, shownBox(p)})
 		}
 		for _, ch := range p.Children() {
 			walk(ch, help)
@@ -616,6 +619,17 @@ func (c *labelCheck) tabOrder(w *kvitui.Window) {
 		}
 		c.add("KEY-9", stopName(stops[i].p), what+"; Tab follows the reading order")
 	}
+}
+
+// shownBox is the part of a panel the panels around it show, in the
+// root's coordinates: its bounds cut to those of each panel it is in, which
+// is what unison draws of it. It is empty for a panel scrolled out of sight.
+func shownBox(p *unison.Panel) geom.Rect {
+	box := p.RectToRoot(p.ContentRect(true))
+	for q := p.Parent(); q != nil; q = q.Parent() {
+		box = box.Intersect(q.RectToRoot(q.ContentRect(true)))
+	}
+	return box
 }
 
 // stopName names a Tab stop in a problem: its kind and words.
