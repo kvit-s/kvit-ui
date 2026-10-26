@@ -81,6 +81,16 @@ func switchForms(ui *kvitui.UI) unison.Paneler {
 		kvitui.Left(follow), kvitui.Left(kvitui.NewSwitch(ui, "Reduce motion")), kvitui.Left(cellular))
 }
 
+func switchSmallScope(ui *kvitui.UI) unison.Paneler {
+	// Whether one account syncs governs one thing; the macOS form draws it
+	// as a checkbox, the Windows form as a switch.
+	savings := kvitui.NewSwitch(ui, "Sync savings account")
+	savings.SmallScope, savings.Checked = true, true
+	cards := kvitui.NewSwitch(ui, "Sync credit card")
+	cards.SmallScope = true
+	return kvitui.Column(ui, kvitui.SizeSpaceNear, kvitui.Left(savings), kvitui.Left(cards))
+}
+
 func radioAppearance(ui *kvitui.UI) unison.Paneler {
 	appearance := kvitui.NewRadioGroup(ui, "Appearance",
 		kvitui.RadioOption{Value: "system", Label: "Follow the system",

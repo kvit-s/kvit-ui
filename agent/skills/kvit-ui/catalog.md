@@ -3510,6 +3510,7 @@ func NewSwitch(ui *UI, label string) *Switch
 | `Text` | `string` | Text is what the switch turns on. |
 | `Name` | `string` | Name names the switch for a screen reader where it has no Text, as in a SettingRow, which sets it. |
 | `Checked` | `bool` | Checked is whether it is on. |
+| `SmallScope` | `bool` | SmallScope marks an option of narrow reach, which the macOS form draws as a checkbox, without the On or Off the Windows form says beside a switch; it acts at once either way. |
 | `OnChange` | `func(checked bool)` | OnChange runs after a press, with the new state. |
 
 Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
@@ -3524,6 +3525,20 @@ func switchForms(ui *kvitui.UI) unison.Paneler {
     cellular.SetEnabled(false)
     return kvitui.Column(ui, kvitui.SizeSpaceNear,
         kvitui.Left(follow), kvitui.Left(kvitui.NewSwitch(ui, "Reduce motion")), kvitui.Left(cellular))
+}
+```
+
+*Small scope: a checkbox on the macOS form*
+
+```go
+func switchSmallScope(ui *kvitui.UI) unison.Paneler {
+    // Whether one account syncs governs one thing; the macOS form draws it
+    // as a checkbox, the Windows form as a switch.
+    savings := kvitui.NewSwitch(ui, "Sync savings account")
+    savings.SmallScope, savings.Checked = true, true
+    cards := kvitui.NewSwitch(ui, "Sync credit card")
+    cards.SmallScope = true
+    return kvitui.Column(ui, kvitui.SizeSpaceNear, kvitui.Left(savings), kvitui.Left(cards))
 }
 ```
 

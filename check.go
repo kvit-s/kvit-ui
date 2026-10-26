@@ -89,28 +89,35 @@ func (l checkLayout) PerformLayout(target *unison.Panel) {
 }
 
 func (c *Check) drawBox(gc *unison.Canvas, _ geom.Rect) {
-	ui, t, m := c.ui, c.ui.Theme.Tokens(), c.ui.Interface
+	drawCheckBox(gc, c.ui, c.box.ContentRect(false), c.Checked, c.Partial, c.Enabled())
+}
+
+// drawCheckBox draws a checkbox's box in r: filled with the accent and
+// ticked while checked, a dash while partial, and its mark in the disabled
+// colour while it cannot be pressed. A Switch drawn as a checkbox draws the
+// same box.
+func drawCheckBox(gc *unison.Canvas, ui *UI, r geom.Rect, checked, partial, enabled bool) {
+	t, m := ui.Theme.Tokens(), ui.Interface
 	p := painterFor(gc, ui)
-	r := c.box.ContentRect(false)
 	radius := float32(m.RadiusBar())
-	on := c.Checked || c.Partial
-	if on && c.Enabled() {
+	on := checked || partial
+	if on && enabled {
 		p.round(r, radius, t.Accent)
 	}
 	edge := t.BorderStrong
-	if !c.Enabled() {
+	if !enabled {
 		edge = t.Border
 	}
 	p.outline(r, radius, float32(m.Hairline()), edge)
 	if on {
 		symbol := "check"
-		if c.Partial {
+		if partial {
 			symbol = "minus"
 		}
 		// A disabled box has no fill, so its mark takes the disabled text
 		// colour rather than the colour made for the accent fill.
 		ink := tokens.LabelOn(t.Accent)
-		if !c.Enabled() {
+		if !enabled {
 			ink = t.TextDisabled
 		}
 		if g, ok := icons.Glyph(symbol); ok {

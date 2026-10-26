@@ -1717,7 +1717,7 @@ Choose the control by the choice: a checkbox for one on/off option whose off sta
   - Component: RadioGroup states the limit, two to five, in its doc and in the gallery (`radiogroup.go:22-28`); Switch's doc draws the line between a switch and a checkbox (`switch.go:16-20`).
   - Test, one screen: Fail a RadioGroup with more than five options or fewer than two.
   - Review: Program option or data; a checkbox whose off state is unclear; on Windows and Linux, a checkbox that applies at once.
-- **kvit-ui now:** partly. `uitest.Labels` fails a radio group of fewer than two or more than five options (`uitest/labels.go`); the docs of Segmented, RadioGroup and Select draw the line between them.
+- **kvit-ui now:** partly. `uitest.Labels` fails a radio group of fewer than two or more than five options (`uitest/labels.go`); the docs of Segmented, RadioGroup and Select draw the line between them. A Switch with `SmallScope` is a switch on the Windows form and a checkbox on the macOS form, acting at once on both (`switch.go`).
 
 ### CTL-3
 

@@ -697,6 +697,7 @@ var catalog = []entry{
 		summary: "An option that takes effect the moment it moves — where a checkbox is a value in a form that takes effect on submit. The knob moves and the track fills, so the state is not resting on hue.",
 		specimens: []specimen{
 			{caption: "On, off and disabled", build: switchForms},
+			{caption: "Small scope: a checkbox on the macOS form", build: switchSmallScope},
 		},
 	},
 	{

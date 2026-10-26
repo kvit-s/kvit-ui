@@ -18,6 +18,11 @@ import (
 // submitted: a settings row that applies at once is a switch, and a row of
 // options above a Save button is checkboxes. The knob moves as well as the
 // track filling, so the state is told by position as well as by colour.
+//
+// The macOS form keeps the switch for a setting of large scope and draws any
+// other on/off option as a checkbox, where the Windows form draws a switch
+// for every option that applies at once (CTL-2): set SmallScope on one that
+// governs a single thing, such as whether one agent is offered.
 type Switch struct {
 	control
 	// Text is what the switch turns on.
@@ -27,6 +32,10 @@ type Switch struct {
 	Name string
 	// Checked is whether it is on.
 	Checked bool
+	// SmallScope marks an option of narrow reach, which the macOS form draws
+	// as a checkbox, without the On or Off the Windows form says beside a
+	// switch; it acts at once either way.
+	SmallScope bool
 	// OnChange runs after a press, with the new state.
 	OnChange func(checked bool)
 
@@ -71,11 +80,15 @@ func (s *Switch) target() float32 {
 	return 0
 }
 
+// asCheck reports whether the switch is drawn as a checkbox, as the macOS
+// form draws an option of small scope.
+func (s *Switch) asCheck() bool { return s.SmallScope && s.ui.form == FormMac }
+
 // slide moves the knob to the state over 120 ms, easing out, or at once when
-// motion is reduced.
+// motion is reduced or the switch is drawn as a checkbox.
 func (s *Switch) slide() {
 	scale := s.ui.Theme.MotionScale()
-	if scale == 0 || s.Window() == nil {
+	if scale == 0 || s.Window() == nil || s.asCheck() {
 		s.knob = s.target()
 		s.MarkForRedraw()
 		return
@@ -97,9 +110,22 @@ func (s *Switch) slide() {
 	unison.InvokeTaskAfter(step, 16*time.Millisecond)
 }
 
-// focusRing puts the ring around the track.
+// focusRing puts the ring around the track, or the box.
 func (s *Switch) focusRing() (*unison.Panel, float32, bool) {
+	if s.asCheck() {
+		return s.track, float32(s.ui.Interface.RadiusBar()), s.KeyboardFocus()
+	}
 	return s.track, float32(s.ui.Interface.Px(16)) / 2, s.KeyboardFocus()
+}
+
+// mark is the width of what is drawn before the words, the track or the
+// box, with the space after it.
+func (s *Switch) mark() float32 {
+	m := s.ui.Interface
+	if s.asCheck() {
+		return float32(m.Px(16) + m.SpaceNear())
+	}
+	return float32(m.Px(28) + m.Space())
 }
 
 func (s *Switch) label() *text.Layout {
@@ -133,19 +159,26 @@ type switchLayout struct{ s *Switch }
 func (l switchLayout) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	m := l.s.ui.Interface
 	w, h := l.s.label().Size()
-	size := geom.NewSize(float32(2*checkPadding+m.Px(28)+m.Space())+w, max(float32(m.ControlHeight()), h))
+	size := geom.NewSize(float32(2*checkPadding)+l.s.mark()+w, max(float32(m.ControlHeight()), h))
 	return size, size, geom.NewSize(unison.DefaultMaxSize, size.Height)
 }
 
 func (l switchLayout) PerformLayout(target *unison.Panel) {
 	m := l.s.ui.Interface
 	r := target.ContentRect(false)
-	h := float32(m.Px(16))
-	l.s.track.SetFrameRect(geom.NewRect(r.X+checkPadding, r.Y+(r.Height-h)/2, float32(m.Px(28)), h))
+	h, w := float32(m.Px(16)), float32(m.Px(28))
+	if l.s.asCheck() {
+		w = h
+	}
+	l.s.track.SetFrameRect(geom.NewRect(r.X+checkPadding, r.Y+(r.Height-h)/2, w, h))
 }
 
 func (s *Switch) drawTrack(gc *unison.Canvas, _ geom.Rect) {
 	ui, t, m := s.ui, s.ui.Theme.Tokens(), s.ui.Interface
+	if s.asCheck() {
+		drawCheckBox(gc, ui, s.track.ContentRect(false), s.Checked, false, s.Enabled())
+		return
+	}
 	p := painterFor(gc, ui)
 	r := s.track.ContentRect(false)
 	on := s.Checked && s.Enabled()
@@ -169,11 +202,10 @@ func (s *Switch) drawTrack(gc *unison.Canvas, _ geom.Rect) {
 }
 
 func (s *Switch) drawLabel(gc *unison.Canvas, _ geom.Rect) {
-	m := s.ui.Interface
 	r := s.ContentRect(false)
 	l := s.label()
 	_, h := l.Size()
-	l.Draw(gc, r.X+float32(checkPadding+m.Px(28)+m.Space()), r.Y+(r.Height-h)/2)
+	l.Draw(gc, r.X+float32(checkPadding)+s.mark(), r.Y+(r.Height-h)/2)
 }
 
 // ProvideAccessibility describes the switch as a box that is ticked or not.

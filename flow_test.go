@@ -33,6 +33,43 @@ func TestASwitchTurnsOverAtOnceAndSaysSo(t *testing.T) {
 	}
 }
 
+// A switch of small scope is a checkbox on the macOS form and a switch
+// saying On or Off on the Windows form, and acts at once on both (CTL-2).
+func TestASwitchOfSmallScopeIsACheckboxOnTheMacOSForm(t *testing.T) {
+	var small, plain *kvitui.Switch
+	var box *kvitui.Check
+	var told []bool
+	screen, ui, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		small = kvitui.NewSwitch(ui, "Offered for new agents")
+		small.SmallScope = true
+		small.OnChange = func(on bool) { told = append(told, on) }
+		plain = kvitui.NewSwitch(ui, "Offered for new agents")
+		box = kvitui.NewCheck(ui, "Offered for new agents")
+		return []unison.Paneler{kvitui.Left(small), kvitui.Left(plain), kvitui.Left(box)}
+	})
+	size := func(p unison.Paneler) geom.Size {
+		var out geom.Size
+		screen.Do(func() { _, out, _ = p.AsPanel().Sizes(geom.Size{}) })
+		return out
+	}
+	if size(small) != size(plain) {
+		t.Errorf("on the Windows form the switch of small scope is %v and a switch %v", size(small), size(plain))
+	}
+	screen.Do(func() { ui.SetForm(kvitui.FormMac) })
+	screen.Sync()
+	if size(small) != size(box) || size(plain) == size(box) {
+		t.Errorf("on the macOS form the switch of small scope is %v, a checkbox %v and a switch %v",
+			size(small), size(box), size(plain))
+	}
+	screen.Click(screen.PanelCenter(small))
+	if len(told) != 1 || !told[0] || !small.Checked {
+		t.Errorf("a press told %v", told)
+	}
+	if n := screen.AccessibilityNodeFor(small); n == nil || n.Role != role.CheckBox || n.Checked != check.On {
+		t.Errorf("the switch's node is %+v", n)
+	}
+}
+
 func TestASliderMovesByKeyAndByPointer(t *testing.T) {
 	var s *kvitui.Slider
 	screen, ui, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {

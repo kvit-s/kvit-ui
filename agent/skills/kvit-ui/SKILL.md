@@ -417,7 +417,9 @@ always on screen is read once and then ignored. (WRD-22)
 Windows and Linux (`Page`), a window of panes on macOS, and `Command` shows
 the right one. Each change takes effect as it is made: no OK, Cancel or
 Apply. On Windows a setting that applies at once is a switch, not a
-checkbox. Each setting is a `SettingRow`: its label, a one-line description
+checkbox; on macOS only one of large scope is, so set the Switch's
+`SmallScope` on one that governs a single thing and it is drawn as a
+checkbox there. Each setting is a `SettingRow`: its label, a one-line description
 where needed, and the control. A form's field is a `FormRow`, its label
 above the field on Windows and beside it on macOS, with `Required` for an
 asterisk. (WIN-16, WIN-23, CTL-2, WRD-22, LAY-6)
