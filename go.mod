@@ -10,7 +10,7 @@ require (
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/richardwilkes/canvas v0.3.1
 	github.com/richardwilkes/toolbox/v2 v2.20.0
-	github.com/richardwilkes/unison v0.108.0
+	github.com/richardwilkes/unison v0.108.1
 	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.48.0
 	golang.org/x/text v0.42.0

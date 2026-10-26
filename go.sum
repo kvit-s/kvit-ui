@@ -10,8 +10,8 @@ github.com/richardwilkes/canvas v0.3.1 h1:7POc1c3PXJQ6audGelHNu92+y/mb8qawiYQoXo
 github.com/richardwilkes/canvas v0.3.1/go.mod h1:X7qplRGiM8psD3JGl/YNoCLLpQ6LWV/t/2PAW3UBIwQ=
 github.com/richardwilkes/toolbox/v2 v2.20.0 h1:PeVucrk0nzChcJ+FKfL6bu1g/aNhHZ6uSt+iszkefP4=
 github.com/richardwilkes/toolbox/v2 v2.20.0/go.mod h1:7UgBxfqnGbzSo+Wdkf+RRKM/1YOBilwol6jvjLhwvYE=
-github.com/richardwilkes/unison v0.108.0 h1:IACtyvdGphiOGhhv6IvBqq0Ax33RbIluDgnwVhoAyJ4=
-github.com/richardwilkes/unison v0.108.0/go.mod h1:pTphPK+vLEQYjj3n9C+DdOYEwHUw/NRmV2212OiygUE=
+github.com/richardwilkes/unison v0.108.1 h1:gVNS0BrHur5Ixe7kpQ0v/aQ1XHCHNk5dZYMC+6+Ikys=
+github.com/richardwilkes/unison v0.108.1/go.mod h1:pTphPK+vLEQYjj3n9C+DdOYEwHUw/NRmV2212OiygUE=
 github.com/yuin/goldmark v1.8.6 h1:d0VcaP1sx9GkFVkoW+KtggpGi2KZ965i14b0+bDQST4=
 github.com/yuin/goldmark v1.8.6/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
 github.com/zeebo/assert v1.3.0 h1:g7C04CbJuIDKNPFHmsk4hwZDO5O+kntRxzaUoNXj+IQ=
