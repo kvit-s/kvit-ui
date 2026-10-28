@@ -32,6 +32,7 @@ const (
 	clsctxInprocServer = 0x1
 	sigdnFileSysPath   = 0x80058000
 
+	fosPickFolders      = 0x20
 	fosForceFileSystem  = 0x40
 	fosAllowMultiSelect = 0x200
 	fosPathMustExist    = 0x800
@@ -89,22 +90,21 @@ func (d FileDialog) openNative() []string {
 	if d.Title != "" {
 		dialog.call(dialogSetTitle, uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(d.Title))))
 	}
-	types := d.fileTypes()
-	specs := make([]filterSpec, len(types))
-	for i, t := range types {
-		specs[i] = filterSpec{windows.StringToUTF16Ptr(t[0]), windows.StringToUTF16Ptr(t[1])}
+	// A folder chooser takes no filters (Directories), and the dialog
+	// refuses them once it picks folders.
+	if types := d.fileTypes(); !d.Directories && len(types) > 0 {
+		specs := make([]filterSpec, len(types))
+		for i, t := range types {
+			specs[i] = filterSpec{windows.StringToUTF16Ptr(t[0]), windows.StringToUTF16Ptr(t[1])}
+		}
+		dialog.call(dialogSetFileTypes, uintptr(len(specs)), uintptr(unsafe.Pointer(&specs[0])))
+		dialog.call(dialogSetTypeIndex, 1)
+		runtime.KeepAlive(specs)
 	}
-	dialog.call(dialogSetFileTypes, uintptr(len(specs)), uintptr(unsafe.Pointer(&specs[0])))
-	dialog.call(dialogSetTypeIndex, 1)
-	runtime.KeepAlive(specs)
 
 	var options uint32
 	dialog.call(dialogGetOptions, uintptr(unsafe.Pointer(&options)))
-	options |= fosForceFileSystem | fosPathMustExist | fosFileMustExist
-	if d.Multiple {
-		options |= fosAllowMultiSelect
-	}
-	dialog.call(dialogSetOptions, uintptr(options))
+	dialog.call(dialogSetOptions, uintptr(d.dialogOptions(options)))
 
 	if d.Folder != "" {
 		var folder *comObject
@@ -132,6 +132,24 @@ func (d FileDialog) openNative() []string {
 		return nil
 	}
 	return shownResults(dialog, d.Multiple)
+}
+
+// dialogOptions are the dialog's options added to the ones it has: items of
+// the file system only, in a folder that is there; folders rather than
+// files for a folder chooser (Directories), and otherwise files that are
+// there; and several at once where Multiple asks. Without FOS_PICKFOLDERS
+// the dialog lists files whatever it is for, and a folder cannot be chosen.
+func (d FileDialog) dialogOptions(options uint32) uint32 {
+	options |= fosForceFileSystem | fosPathMustExist
+	if d.Directories {
+		options |= fosPickFolders
+	} else {
+		options |= fosFileMustExist
+	}
+	if d.Multiple {
+		options |= fosAllowMultiSelect
+	}
+	return options
 }
 
 // shownResults are the files the reader chose, as file system paths.
