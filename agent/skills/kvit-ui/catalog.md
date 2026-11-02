@@ -16,7 +16,7 @@ the build.
 
 ## What there is
 
-88 components, grouped by what they are for.
+89 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`, `KvitHistory`
@@ -24,7 +24,7 @@ the build.
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitSignal`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
 **Controls** — `KvitButton`, `KvitChipButton`, `KvitStepper`, `KvitField`, `KvitTextArea`, `KvitSearchField`, `KvitCheck`, `KvitSelect`, `KvitTab`, `KvitFormRow`, `KvitSettingRow`, `KvitSettingsWindow`
-**Commands** — `KvitCommand`, `KvitMenuBar`, `KvitToolbar`, `KvitMenuButton`, `KvitSplitButton`, `KvitUndoStack`
+**Commands** — `KvitCommand`, `KvitMenuBar`, `KvitToolbar`, `KvitMenuButton`, `KvitSplitButton`, `KvitChoiceButton`, `KvitUndoStack`
 **Feedback** — `KvitTooltip`, `KvitPopover`, `KvitHint`, `KvitHoverCard`, `KvitToast`, `KvitNotice`, `KvitDialog`, `KvitTip`, `KvitHelpLink`, `KvitFloatingView`
 **Data** — `KvitBar`, `KvitStackedBar`, `KvitSpark`, `KvitNetFlow`, `KvitTrend`, `KvitDistribution`, `KvitGauge`, `KvitDelta`, `KvitStatTile`, `KvitFigureBlock`, `KvitCell`, `KvitTable`
 **Flow** — `KvitScrollBar`, `KvitMenu`, `KvitMenuItem`, `KvitTree`, `KvitSwitch`, `KvitRadioGroup`, `KvitProgress`, `KvitSlider`, `KvitSplitView`, `KvitSegmented`, `KvitTypeAhead`, `KvitConfirmInPlace`, `KvitTimeline`, `KvitNumberField`, `KvitMoneyField`, `KvitDualList`, `KvitSpotlight`
@@ -2191,7 +2191,7 @@ func menuButtonRefinements(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSplitButton
 
-Variants of one command: the main part runs the variant it shows, the arrow opens them all. On Windows and Linux the main part runs the variant last chosen; on a Mac the likeliest, unless `RememberLast` is set. `NewToggleSplitButton` is for a feature that is on or off and comes in styles: the main part turns it on and off, the menu picks the style, and choosing a style turns it on.
+Variants of one command: the main part runs the variant it shows, the arrow opens them all. On Windows and Linux the main part runs the variant last chosen; on a Mac the likeliest, unless `RememberLast` is set. `NewToggleSplitButton` is for a feature that is on or off and comes in styles: the main part turns it on and off, the menu picks the style, and choosing a style turns it on. `Form` draws both parts in a button's form; a filled split button is the action the screen is for, and a toggle split button stays outlined, since a fill cannot show whether its feature is on.
 
 ```go
 func NewSplitButton(ui *UI, variants ...*Command) *SplitButton
@@ -2205,6 +2205,7 @@ func NewToggleSplitButton(ui *UI, toggle *Command, styles ...*Command) *SplitBut
 | `Toggle` | `*Command` | Toggle is a toggle split button's switch: a command whose Checked says whether the feature is on and whose Run turns it on or off. |
 | `RememberLast` | `bool` | RememberLast makes the main part run the variant last chosen on the macOS form too. |
 | `MenuLabel` | `string` | MenuLabel names the arrow for a screen reader and its tooltip. |
+| `Form` | `ButtonForm` | Form is how both parts look: ordinary, primary, quiet or flat. |
 
 *Three export formats*
 
@@ -2234,6 +2235,78 @@ func toggleSplitButtonStyles(ui *kvitui.UI) unison.Paneler {
         &kvitui.Command{Name: "Dot bullets", Run: run},
         &kvitui.Command{Name: "Dash bullets", Run: run},
         &kvitui.Command{Name: "Arrow bullets", Run: run})
+}
+```
+
+*Filled, for the action the screen is for*
+
+```go
+func splitButtonPrimary(ui *kvitui.UI) unison.Paneler {
+    // Both parts take the fill, parted by a soft line.
+    run := func() {}
+    imports := kvitui.NewSplitButton(ui,
+        &kvitui.Command{Name: "Import from bank", Run: run},
+        &kvitui.Command{Name: "Import from file", Run: run},
+        &kvitui.Command{Name: "Import from clipboard", Run: run})
+    imports.MenuLabel = "Choose source"
+    imports.Form = kvitui.ButtonPrimary
+    return imports
+}
+```
+
+### KvitChoiceButton
+
+A button with a choice of value fused to its right side, drawn as one control: the button runs the action with the value the choice shows, and the choice opens the list of values, where choosing one changes the value without running anything. It is for an action repeated with a setting changed less often, such as how many items Measure takes. When each value is an action of its own, run as it is chosen, KvitSplitButton is right instead.
+
+```go
+func NewChoiceButton(ui *UI, label, choiceLabel string, options ...Option) *ChoiceButton
+```
+
+| Field | Type | |
+|---|---|---|
+| `Command` | `*Command` | Command, when set, is what the button runs, as a Button's is: its words, symbol, explanation and whether it can act come from the command, and its Run reads Current for the value. |
+| `Text` | `string` | Text is what the button says, in sentence case: kvit-ui writes it in title case on the macOS form (WRD-6). |
+| `Form` | `ButtonForm` | Form is how both parts look: ordinary, primary, quiet or flat. |
+| `Danger` | `bool` | Danger draws both parts in the danger colour. |
+| `Symbol` | `string` | Symbol is an optional meaning name drawn before the button's words. |
+| `Busy` | `bool` | Busy says the action is running: the button's words change to BusyText, as a Button's do. |
+| `BusyText` | `string` | BusyText is what the busy button says: an -ing phrase naming the work, such as "Measuring…" (WRD-25). |
+| `Explanation` | `string` | Explanation is one sentence the words cannot say: why the button is disabled, or what pressing it does. |
+| `ChoiceLabel` | `string` | ChoiceLabel names the choice for a screen reader, saying what its values are, such as "How many". |
+| `Options` | `[]Option` | Options are the values to choose from. |
+| `Current` | `string` | Current is the Value of the chosen option. |
+| `OnChoose` | `func(value string)` | OnChoose runs after a value is chosen, with the value. |
+| `OnPress` | `func(value string)` | OnPress runs when the button is pressed, with the value chosen. |
+
+*Measure all, 5, 10 or 25 items*
+
+```go
+func choiceButtonMeasure(ui *kvitui.UI) unison.Paneler {
+    // The button runs Measure with the value the choice shows; choosing a
+    // value from the list changes what the next press measures.
+    measure := kvitui.NewChoiceButton(ui, "Measure", "How many",
+        kvitui.Option{Value: "all", Label: "All"},
+        kvitui.Option{Value: "5", Label: "5"},
+        kvitui.Option{Value: "10", Label: "10"},
+        kvitui.Option{Value: "25", Label: "25"})
+    measure.Form = kvitui.ButtonPrimary
+    measure.OnPress = func(howMany string) {}
+    return kvitui.Left(measure)
+}
+```
+
+*Busy, and disabled with the reason*
+
+```go
+func choiceButtonStates(ui *kvitui.UI) unison.Paneler {
+    values := []kvitui.Option{{Value: "all", Label: "All"}, {Value: "5", Label: "5"}, {Value: "10", Label: "10"}}
+    busy := kvitui.NewChoiceButton(ui, "Measure", "How many", values...)
+    busy.Busy, busy.BusyText = true, "Measuring…"
+    // Disabled as one: a value means nothing apart from its action.
+    disabled := kvitui.NewChoiceButton(ui, "Import", "How many statements", values...)
+    disabled.Explanation = "Connect a bank to import its statements."
+    disabled.SetEnabled(false)
+    return kvitui.Row(ui, kvitui.SizeSpace, busy, disabled)
 }
 ```
 

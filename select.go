@@ -44,6 +44,11 @@ type Select struct {
 	OnChoose func(value string)
 
 	jump typeSelect // choosing an option by typing its words
+	// fusedTo is the button whose right side the select is fused to, as a
+	// ChoiceButton's choice is: drawn in the button's form with a
+	// down-arrow, its left corners square, and the line between the two
+	// along its left edge. nil for a select of its own.
+	fusedTo *Button
 }
 
 // NewSelect returns a choice of options, the first chosen.
@@ -91,6 +96,10 @@ func NewSelect(ui *UI, label string, options ...Option) *Select {
 func (s *Select) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	m := s.ui.Interface
 	h := float32(m.ControlHeight())
+	if s.fusedTo != nil {
+		size := geom.NewSize(s.fusedWidth(), h)
+		return size, size, size
+	}
 	if !s.Compact {
 		return geom.NewSize(float32(m.Px(60)), h), geom.NewSize(float32(m.Px(180)), h), geom.NewSize(unison.DefaultMaxSize, h)
 	}
@@ -146,6 +155,10 @@ func (s *Select) shown() string {
 }
 
 func (s *Select) draw(gc *unison.Canvas, _ geom.Rect) {
+	if s.fusedTo != nil {
+		s.drawFused(gc)
+		return
+	}
 	if s.Compact {
 		s.drawCompact(gc)
 		return
@@ -238,6 +251,51 @@ func (s *Select) drawCompact(gc *unison.Canvas) {
 		text.Options{})
 	_, h := l.Size()
 	l.Draw(gc, x, r.Y+(r.Height-h)/2)
+}
+
+// valueLayout is the words of one option as the fused form draws them, in
+// the button's chrome and ink.
+func (s *Select) valueLayout(words string) *text.Layout {
+	ui := s.ui
+	ink := s.fusedTo.foreground(ui.Theme.Tokens())
+	return ui.Fonts.Layout([]text.Span{{Text: words, Style: ui.Chrome(ui.Size(RoleBody), text.Regular, ink)}}, text.Options{})
+}
+
+// fusedRoom is the fused form's room around its words: the padding before
+// them, the least gap between them and the down-arrow, the arrow's size and
+// the padding after it. The padding is tighter than a button's, since the
+// arrow only marks the part as a list and the value is what the part says.
+func (s *Select) fusedRoom() (before, gap, arrow, after float32) {
+	m := s.ui.Interface
+	return float32(m.Space()), float32(m.SpaceSnug()), float32(fusedArrow.Of(s.ui)), float32(m.SpaceSnug())
+}
+
+// fusedWidth is the fused form's width: the widest option's words, so the
+// pair keeps its width whatever is chosen, and the room around them.
+func (s *Select) fusedWidth() float32 {
+	widest, _ := s.valueLayout(s.Placeholder).Size()
+	for _, o := range s.Options {
+		w, _ := s.valueLayout(o.Label).Size()
+		widest = max(widest, w)
+	}
+	before, gap, arrow, after := s.fusedRoom()
+	return before + widest + gap + arrow + after
+}
+
+// drawFused draws the select as the part fused to a button's right side,
+// with the button's ground and outline, and the chosen option's words at
+// the left and a down-arrow at the right, in the button's ink.
+func (s *Select) drawFused(gc *unison.Canvas) {
+	b := s.fusedTo
+	r := s.ContentRect(false)
+	b.drawFusedPart(gc, r, s.pressed, s.hovered)
+	before, _, arrow, after := s.fusedRoom()
+	l := s.valueLayout(s.shown())
+	_, h := l.Size()
+	l.Draw(gc, r.X+before, r.Y+(r.Height-h)/2)
+	if g, ok := icons.Glyph("chevron-down"); ok {
+		drawGlyph(gc, s.ui, g, arrow, b.foreground(s.ui.Theme.Tokens()), geom.NewRect(r.Right()-after-arrow, r.Y+(r.Height-arrow)/2, arrow, arrow))
+	}
 }
 
 // ProvideAccessibility describes the select as a combo box with its choice

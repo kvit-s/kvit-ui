@@ -429,10 +429,20 @@ var catalog = []entry{
 	{
 		name:    "KvitSplitButton",
 		group:   "Commands",
-		summary: "Variants of one command: the main part runs the variant it shows, the arrow opens them all. On Windows and Linux the main part runs the variant last chosen; on a Mac the likeliest, unless `RememberLast` is set. `NewToggleSplitButton` is for a feature that is on or off and comes in styles: the main part turns it on and off, the menu picks the style, and choosing a style turns it on.",
+		summary: "Variants of one command: the main part runs the variant it shows, the arrow opens them all. On Windows and Linux the main part runs the variant last chosen; on a Mac the likeliest, unless `RememberLast` is set. `NewToggleSplitButton` is for a feature that is on or off and comes in styles: the main part turns it on and off, the menu picks the style, and choosing a style turns it on. `Form` draws both parts in a button's form; a filled split button is the action the screen is for, and a toggle split button stays outlined, since a fill cannot show whether its feature is on.",
 		specimens: []specimen{
 			{caption: "Three export formats", build: splitButtonVariants},
 			{caption: "Bullets, turned on and off, in three styles", build: toggleSplitButtonStyles},
+			{caption: "Filled, for the action the screen is for", build: splitButtonPrimary},
+		},
+	},
+	{
+		name:    "KvitChoiceButton",
+		group:   "Commands",
+		summary: "A button with a choice of value fused to its right side, drawn as one control: the button runs the action with the value the choice shows, and the choice opens the list of values, where choosing one changes the value without running anything. It is for an action repeated with a setting changed less often, such as how many items Measure takes. When each value is an action of its own, run as it is chosen, KvitSplitButton is right instead.",
+		specimens: []specimen{
+			{caption: "Measure all, 5, 10 or 25 items", build: choiceButtonMeasure},
+			{caption: "Busy, and disabled with the reason", build: choiceButtonStates},
 		},
 	},
 	{

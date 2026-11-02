@@ -383,6 +383,14 @@ there reads its value as a command and fails WRD-1; the full-width `Select`
 field is for a choice on a form or in settings, not for a filter bar.
 (WRD-1)
 
+**30. An action run with a chosen value is a `ChoiceButton`.** Where one
+action is repeated with a setting changed less often than the action is
+run, such as Measure taking all the items, or 5, or 10, use
+`NewChoiceButton`: the button and the value it runs with are one control,
+[Measure | All ▾], and choosing a value runs nothing. Where each value is an action of its
+own, run as it is chosen (Export as CSV, Export as PDF), use `SplitButton`.
+(CMD-17)
+
 ### Dialogs and messages
 
 **23. Let Dialog place its buttons.** Give Dialog its ConfirmText, and

@@ -54,10 +54,11 @@ func (b *MenuButton) PerformAccessibilityAction(req accessibility.ActionRequest)
 
 // SplitButton runs one of several variants of a command: its main part runs
 // the variant it shows, and its arrow opens a menu of them all, the one the
-// main part runs marked as the default (CMD-17). On the Windows form the main
-// part runs the variant last chosen (decided Q-46); on the macOS form it
-// runs the likeliest, the first, unless RememberLast is set for a variant
-// people repeat.
+// main part runs marked as the default (CMD-17). On the Windows form the
+// main part runs the variant last chosen (decided Q-46); on the macOS form
+// it runs the likeliest, the first, unless RememberLast is set for a
+// variant people repeat. The two parts are drawn as one control, one
+// outline around both and a line between them, as a ChoiceButton is.
 //
 // Made with NewToggleSplitButton it is a toggle split button instead, for a
 // feature that is on or off and comes in styles, such as bullets: the main
@@ -81,6 +82,10 @@ type SplitButton struct {
 	RememberLast bool
 	// MenuLabel names the arrow for a screen reader and its tooltip.
 	MenuLabel string
+	// Form is how both parts look: ordinary, primary, quiet or flat. A
+	// toggle split button given the primary form is drawn ordinary, since
+	// a filled button cannot show whether its feature is on.
+	Form ButtonForm
 
 	main  *Button
 	arrow *IconButton
@@ -92,22 +97,33 @@ func NewSplitButton(ui *UI, variants ...*Command) *SplitButton {
 	s.Self = s
 	s.main = NewButton(ui, "")
 	s.arrow = NewIconButton(ui, "chevron-down", "")
-	s.arrow.Form = Ordinary
 	s.arrow.OnClick = s.openMenu
+	s.main.fusedRight = true
+	s.arrow.fusedTo = s.main
 	OpensPopup(s.arrow)
 	s.AddChild(s.main)
 	s.AddChild(s.arrow)
-	s.SetLayout(syncing{Layout: splitButtonLayout{s}, sync: func() {
-		s.Current = max(0, min(s.Current, len(s.Variants)-1))
-		switch {
-		case s.Toggle != nil:
-			s.main.Command = s.Toggle
-		case len(s.Variants) > 0:
-			s.main.Command = s.Variants[s.Current]
-		}
-		s.arrow.Label = s.MenuLabel
-	}})
+	s.SetLayout(syncing{Layout: splitButtonLayout{s}, sync: s.sync})
+	// The pair draws before its parts, so each part draws the fields as they
+	// are now, such as a Form the app has just set.
+	s.DrawCallback = func(*unison.Canvas, geom.Rect) { s.sync() }
 	return s
+}
+
+// sync copies the fields into the two parts.
+func (s *SplitButton) sync() {
+	s.Current = max(0, min(s.Current, len(s.Variants)-1))
+	switch {
+	case s.Toggle != nil:
+		s.main.Command = s.Toggle
+	case len(s.Variants) > 0:
+		s.main.Command = s.Variants[s.Current]
+	}
+	s.arrow.Label = s.MenuLabel
+	s.main.Form = s.Form
+	if s.Toggle != nil && s.Form == ButtonPrimary {
+		s.main.Form = ButtonOrdinary
+	}
 }
 
 // NewToggleSplitButton returns a toggle split button: toggle turns the

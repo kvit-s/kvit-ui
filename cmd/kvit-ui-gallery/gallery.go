@@ -31,7 +31,7 @@ var groups = []group{
 	{"Marks", []string{"KvitChip", "KvitTag", "KvitBadge", "KvitSlug", "KvitDot", "KvitSignal", "KvitPip"}},
 	{"Quantities", []string{"KvitFigure", "KvitBeforeAfter"}},
 	{"Controls", []string{"KvitButton", "KvitChipButton", "KvitStepper", "KvitField", "KvitTextArea", "KvitSearchField", "KvitCheck", "KvitSelect", "KvitTab", "KvitFormRow", "KvitSettingRow", "KvitSettingsWindow"}},
-	{"Commands", []string{"KvitCommand", "KvitMenuBar", "KvitToolbar", "KvitMenuButton", "KvitSplitButton", "KvitUndoStack"}},
+	{"Commands", []string{"KvitCommand", "KvitMenuBar", "KvitToolbar", "KvitMenuButton", "KvitSplitButton", "KvitChoiceButton", "KvitUndoStack"}},
 	{"Feedback", []string{"KvitTooltip", "KvitPopover", "KvitHint", "KvitHoverCard", "KvitToast", "KvitNotice", "KvitDialog", "KvitTip", "KvitHelpLink", "KvitFloatingView"}},
 	{"Data", []string{"KvitBar", "KvitStackedBar", "KvitSpark", "KvitNetFlow", "KvitTrend", "KvitDistribution", "KvitGauge", "KvitDelta", "KvitStatTile", "KvitFigureBlock", "KvitCell", "KvitTable"}},
 	{"Flow", []string{"KvitScrollBar", "KvitMenu", "KvitMenuItem", "KvitTree", "KvitSwitch", "KvitRadioGroup", "KvitProgress", "KvitSlider", "KvitSplitView", "KvitSegmented", "KvitTypeAhead", "KvitConfirmInPlace", "KvitTimeline", "KvitNumberField", "KvitMoneyField", "KvitDualList", "KvitSpotlight"}},

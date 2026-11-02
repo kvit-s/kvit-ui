@@ -59,6 +59,12 @@ type IconButton struct {
 	Size Measure
 	// OnClick runs when the button is pressed.
 	OnClick func()
+
+	// fusedTo is the button whose right side the icon button is fused to, as
+	// a SplitButton's arrow is: drawn in the button's form with a small
+	// down-arrow, its left corners square, and the line between the two
+	// along its left edge. nil for an icon button of its own.
+	fusedTo *Button
 }
 
 // NewIconButton returns a quiet icon button.
@@ -69,6 +75,12 @@ func NewIconButton(ui *UI, symbol, label string) *IconButton {
 	b.pressKeys = buttonKeys
 	b.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
 		s := float32(ui.Interface.ControlHeight())
+		if b.fusedTo != nil {
+			// The narrowest a symbol button may be (PTR-14), the arrow
+			// centred in it.
+			size := geom.NewSize(float32(ui.Interface.Px(20)), s)
+			return size, size, size
+		}
 		if b.Size != nil {
 			s = float32(b.Size.Of(ui))
 		}
@@ -147,6 +159,16 @@ func (b *IconButton) click() {
 }
 
 func (b *IconButton) draw(gc *unison.Canvas, _ geom.Rect) {
+	if f := b.fusedTo; f != nil {
+		r := b.ContentRect(false)
+		f.drawFusedPart(gc, r, b.pressed, b.hovered)
+		arrow := float32(fusedArrow.Of(b.ui))
+		if g, ok := icons.Glyph("chevron-down"); ok {
+			drawGlyph(gc, b.ui, g, arrow, f.foreground(b.ui.Theme.Tokens()),
+				geom.NewRect(r.X+(r.Width-arrow)/2, r.Y+(r.Height-arrow)/2, arrow, arrow))
+		}
+		return
+	}
 	b.sync()
 	ui := b.ui
 	t := ui.Theme.Tokens()

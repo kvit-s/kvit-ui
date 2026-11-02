@@ -1,10 +1,12 @@
 package kvitui_test
 
 import (
+	"image"
 	"slices"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/check"
@@ -307,4 +309,221 @@ func TestAToggleSplitButtonTurnsOnAndPicksAStyle(t *testing.T) {
 	if style != "Dash bullets" || !on || split.Current != 1 {
 		t.Errorf("choosing Dash bullets left the style %q, the bullets on %v and Current %d", style, on, split.Current)
 	}
+}
+
+// A split button is drawn as one control: its arrow part sits against the
+// main part, as narrow as a symbol button may be, and its outline is the
+// main part's, which a toggle split button turns to the accent while the
+// feature is on. The arrow is drawn before the main part, and follows a
+// change at once rather than a frame later.
+func TestASplitButtonIsDrawnAsOneControl(t *testing.T) {
+	on := false
+	bullets := &kvitui.Command{Name: "Bullets", Checked: func() bool { return on }, Run: func() { on = !on }}
+	var split *kvitui.SplitButton
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		split = kvitui.NewToggleSplitButton(ui, bullets,
+			&kvitui.Command{Name: "Dot bullets", Run: func() {}},
+			&kvitui.Command{Name: "Dash bullets", Run: func() {}})
+		return []unison.Paneler{split}
+	})
+	var main, arrow geom.Rect
+	screen.Do(func() {
+		main = split.Children()[0].RectToRoot(split.Children()[0].ContentRect(true))
+		arrow = split.Children()[1].RectToRoot(split.Children()[1].ContentRect(true))
+	})
+	if arrow.X != main.Right() || arrow.Width != float32(ui.Interface.Px(20)) {
+		t.Fatalf("the main part is %v and the arrow part %v", main, arrow)
+	}
+	edge := func() unison.Color {
+		pr, pg, pb, _ := screen.Capture().At(int(arrow.X+arrow.Width/2), int(arrow.Y)).RGBA()
+		return unison.RGB(int(pr>>8), int(pg>>8), int(pb>>8))
+	}
+	if got, want := edge(), kvitui.Color(ui.Theme.Tokens().BorderStrong); got != want {
+		t.Errorf("off, the arrow part's top edge is %v, want the strong border %v", got, want)
+	}
+	screen.Do(func() {
+		on = true
+		split.MarkForRedraw()
+	})
+	screen.Sync()
+	if got, want := edge(), kvitui.Color(ui.Theme.Tokens().Accent); got != want {
+		t.Errorf("on, the arrow part's top edge is %v, want the accent %v", got, want)
+	}
+}
+
+// A choice button's button runs the action with the value chosen, and its
+// choice changes the value without running it. The pair keeps its width
+// whatever is chosen, and a screen reader reads the button and the choice
+// with its value.
+func TestAChoiceButtonRunsWithTheValueChosen(t *testing.T) {
+	var pressed, chosen []string
+	var measure *kvitui.ChoiceButton
+	screen, _, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		measure = kvitui.NewChoiceButton(ui, "Measure", "How many",
+			kvitui.Option{Value: "all", Label: "All"}, kvitui.Option{Value: "5", Label: "5"},
+			kvitui.Option{Value: "10", Label: "10"})
+		measure.OnPress = func(v string) { pressed = append(pressed, v) }
+		measure.OnChoose = func(v string) { chosen = append(chosen, v) }
+		return []unison.Paneler{measure}
+	})
+	button, choice := measure.Children()[0], measure.Children()[1]
+	var before geom.Rect
+	screen.Do(func() { before = measure.FrameRect() })
+	screen.Click(screen.PanelCenter(button))
+	if !slices.Equal(pressed, []string{"all"}) {
+		t.Fatalf("the button ran with %v", pressed)
+	}
+	screen.Click(screen.PanelCenter(choice))
+	lines := nodes(screen, w, role.MenuItem)
+	if len(lines) != 3 || lines[0].Name != "All" || lines[0].Checked != check.On || lines[2].Checked != check.Off {
+		t.Fatalf("the choice's lines are %+v", lines)
+	}
+	screen.Click(lines[2].Bounds.Center())
+	if measure.Current != "10" || !slices.Equal(chosen, []string{"10"}) || len(pressed) != 1 {
+		t.Errorf("choosing 10 left %q, reported %v and ran %v", measure.Current, chosen, pressed)
+	}
+	screen.Do(func() {
+		if after := measure.FrameRect(); after != before {
+			t.Errorf("choosing 10 moved the pair from %v to %v", before, after)
+		}
+	})
+	screen.Click(screen.PanelCenter(button))
+	if !slices.Equal(pressed, []string{"all", "10"}) {
+		t.Errorf("after 10 was chosen the button ran with %v", pressed)
+	}
+	// Up changes the value without opening the list.
+	screen.Do(func() { choice.RequestFocus() })
+	screen.KeyPress(unison.KeyUp, 0)
+	if measure.Current != "5" || len(nodes(screen, w, role.MenuItem)) != 0 {
+		t.Errorf("Up on the choice left %q", measure.Current)
+	}
+	if n := screen.AccessibilityNodeFor(measure); n == nil || n.Role != role.Group || n.Name != "Measure" {
+		t.Errorf("the pair's node: %+v", n)
+	}
+	if n := screen.AccessibilityNodeFor(button); n == nil || n.Role != role.Button || n.Name != "Measure" {
+		t.Errorf("the button's node: %+v", n)
+	}
+	if n := screen.AccessibilityNodeFor(choice); n == nil || n.Role != role.ComboBox || n.Name != "How many" || n.Value != "5" {
+		t.Errorf("the choice's node: %+v", n)
+	}
+}
+
+// A choice button is enabled and disabled as one: by its command when it has
+// one, and by SetEnabled when it has none.
+func TestAChoiceButtonIsDisabledAsOne(t *testing.T) {
+	ready := false
+	var byCommand, bySetting *kvitui.ChoiceButton
+	pressed := 0
+	screen, _, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		values := []kvitui.Option{{Value: "all", Label: "All"}, {Value: "5", Label: "5"}}
+		byCommand = kvitui.NewChoiceButton(ui, "", "How many", values...)
+		byCommand.Command = &kvitui.Command{Name: "Measure", Enabled: func() bool { return ready }, Run: func() { pressed++ }}
+		bySetting = kvitui.NewChoiceButton(ui, "Export", "How many", values...)
+		bySetting.SetEnabled(false)
+		return []unison.Paneler{byCommand, bySetting}
+	})
+	enabled := func(c *kvitui.ChoiceButton) (button, choice bool) {
+		screen.Do(func() { button, choice = c.Children()[0].Enabled(), c.Children()[1].Enabled() })
+		return button, choice
+	}
+	if b, c := enabled(byCommand); b || c {
+		t.Errorf("with its command unable to act, the button is enabled %v and the choice %v", b, c)
+	}
+	if b, c := enabled(bySetting); b || c {
+		t.Errorf("disabled, the button is enabled %v and the choice %v", b, c)
+	}
+	screen.Do(func() {
+		ready = true
+		byCommand.MarkForRedraw()
+		bySetting.SetEnabled(true)
+	})
+	screen.Sync()
+	if b, c := enabled(byCommand); !b || !c {
+		t.Errorf("with its command able to act, the button is enabled %v and the choice %v", b, c)
+	}
+	if b, c := enabled(bySetting); !b || !c {
+		t.Errorf("enabled again, the button is enabled %v and the choice %v", b, c)
+	}
+	screen.Click(screen.PanelCenter(byCommand.Children()[0]))
+	if pressed != 1 {
+		t.Errorf("pressing the button ran its command %d times", pressed)
+	}
+}
+
+// On a filled pair, a choice button or a split button, the line between the
+// parts is the words' colour at a fifth of its strength, so it parts the two
+// without cutting across the fill; the high-contrast theme keeps it at full
+// strength. A toggle split button given the filled form stays ordinary,
+// since a fill cannot show whether its feature is on.
+func TestAFilledPairIsPartedByASoftLine(t *testing.T) {
+	var measure *kvitui.ChoiceButton
+	var export, bullets *kvitui.SplitButton
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		measure = kvitui.NewChoiceButton(ui, "Measure", "How many",
+			kvitui.Option{Value: "all", Label: "All"}, kvitui.Option{Value: "5", Label: "5"})
+		measure.Form = kvitui.ButtonPrimary
+		run := func() {}
+		export = kvitui.NewSplitButton(ui, &kvitui.Command{Name: "Export as CSV", Run: run},
+			&kvitui.Command{Name: "Export as PDF", Run: run})
+		export.Form = kvitui.ButtonPrimary
+		bullets = kvitui.NewToggleSplitButton(ui, &kvitui.Command{Name: "Bullets", Checked: func() bool { return false }, Run: run},
+			&kvitui.Command{Name: "Dot bullets", Run: run})
+		bullets.Form = kvitui.ButtonPrimary
+		return []unison.Paneler{measure, export, bullets}
+	})
+	// at is the colour at a point of the screen.
+	at := func(img image.Image, x, y int) [3]int {
+		pr, pg, pb, _ := img.At(x, y).RGBA()
+		return [3]int{int(pr >> 8), int(pg >> 8), int(pb >> 8)}
+	}
+	// line is the colour across a pair's meeting that differs most from the
+	// fill, the colour inside the second part, and the fill and the words'
+	// colour.
+	line := func(pair unison.Paneler) (got, inside, fill, ink [3]int) {
+		var r geom.Rect
+		screen.Do(func() {
+			part := pair.AsPanel().Children()[1]
+			r = part.RectToRoot(part.ContentRect(true))
+		})
+		img := screen.Capture()
+		fr, fg, fb := ui.Theme.Tokens().Accent.RGBA8()
+		ir, ig, ib := tokens.LabelOn(ui.Theme.Tokens().Accent).RGBA8()
+		fill, ink = [3]int{int(fr), int(fg), int(fb)}, [3]int{int(ir), int(ig), int(ib)}
+		far := -1
+		for x := int(r.X) - 1; x <= int(r.X)+1; x++ {
+			if c := at(img, x, int(r.Y+r.Height/2)); apart(c, fill) > far {
+				got, far = c, apart(c, fill)
+			}
+		}
+		// Inside, past the down-arrow and short of the rounded corner.
+		return got, at(img, int(r.Right())-3, int(r.Y+r.Height/2)), fill, ink
+	}
+	for _, pair := range []unison.Paneler{measure, export} {
+		got, inside, fill, ink := line(pair)
+		if apart(inside, fill) > 2 {
+			t.Errorf("%T: the second part is %v inside, want the fill %v", pair, inside, fill)
+		}
+		if apart(got, fill) < 16 || apart(got, ink) < 16 {
+			t.Errorf("%T: the line is %v on the fill %v with words in %v; want a mix of the two", pair, got, fill, ink)
+		}
+	}
+	if _, inside, fill, _ := line(bullets); apart(inside, fill) <= 2 {
+		t.Errorf("the toggle split button given the filled form is filled, %v", inside)
+	}
+	screen.Do(func() { ui.Theme.SetThemeID(tokens.HighContrast) })
+	screen.Sync()
+	for _, pair := range []unison.Paneler{measure, export} {
+		if got, _, _, ink := line(pair); apart(got, ink) > 16 {
+			t.Errorf("%T: in the high-contrast theme the line is %v, want the words' colour %v", pair, got, ink)
+		}
+	}
+}
+
+// apart is the largest difference between two colours' channels.
+func apart(a, b [3]int) int {
+	d := 0
+	for i := range a {
+		d = max(d, a[i]-b[i], b[i]-a[i])
+	}
+	return d
 }

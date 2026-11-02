@@ -118,6 +118,42 @@ func toggleSplitButtonStyles(ui *kvitui.UI) unison.Paneler {
 		&kvitui.Command{Name: "Arrow bullets", Run: run})
 }
 
+func splitButtonPrimary(ui *kvitui.UI) unison.Paneler {
+	// Both parts take the fill, parted by a soft line.
+	run := func() {}
+	imports := kvitui.NewSplitButton(ui,
+		&kvitui.Command{Name: "Import from bank", Run: run},
+		&kvitui.Command{Name: "Import from file", Run: run},
+		&kvitui.Command{Name: "Import from clipboard", Run: run})
+	imports.MenuLabel = "Choose source"
+	imports.Form = kvitui.ButtonPrimary
+	return imports
+}
+
+func choiceButtonMeasure(ui *kvitui.UI) unison.Paneler {
+	// The button runs Measure with the value the choice shows; choosing a
+	// value from the list changes what the next press measures.
+	measure := kvitui.NewChoiceButton(ui, "Measure", "How many",
+		kvitui.Option{Value: "all", Label: "All"},
+		kvitui.Option{Value: "5", Label: "5"},
+		kvitui.Option{Value: "10", Label: "10"},
+		kvitui.Option{Value: "25", Label: "25"})
+	measure.Form = kvitui.ButtonPrimary
+	measure.OnPress = func(howMany string) {}
+	return kvitui.Left(measure)
+}
+
+func choiceButtonStates(ui *kvitui.UI) unison.Paneler {
+	values := []kvitui.Option{{Value: "all", Label: "All"}, {Value: "5", Label: "5"}, {Value: "10", Label: "10"}}
+	busy := kvitui.NewChoiceButton(ui, "Measure", "How many", values...)
+	busy.Busy, busy.BusyText = true, "Measuring…"
+	// Disabled as one: a value means nothing apart from its action.
+	disabled := kvitui.NewChoiceButton(ui, "Import", "How many statements", values...)
+	disabled.Explanation = "Connect a bank to import its statements."
+	disabled.SetEnabled(false)
+	return kvitui.Row(ui, kvitui.SizeSpace, busy, disabled)
+}
+
 func menuItemStates(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
 	whenShown(stage, func() {

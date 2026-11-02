@@ -43,7 +43,7 @@ var Verbs = wordSet(`accept add allow decrease increase pull push renew apply ap
 cancel capture change check choose clear close collapse collect compare connect continue copy create cut decline
 delete deny deselect detach disable discard dismiss done download draw duplicate edit email empty enable end enter
 erase exit expand explain export fetch filter find finish fix flag follow format forward generate get go group hide
-highlight hold ignore import insert install invite join keep label launch leave link list load lock log mark merge
+highlight hold ignore import insert install invite join keep label launch leave link list load lock log mark measure merge
 minimize move mute narrow new next note notify open order paste pause pick pin play post preview print publish
 quit quote rate read reconcile reconnect record redo refresh refuse reject reload remove rename reopen reorder
 repeat replace reply report request reset resize restore resume retry return reveal review revert rotate run save

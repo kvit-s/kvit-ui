@@ -82,6 +82,10 @@ type Button struct {
 	// trailing is a symbol drawn after the words, as a menu button's
 	// down-arrow is.
 	trailing string
+	// fusedRight says a part is fused to the button's right side, as a
+	// ChoiceButton's choice is: the corners there are square and the
+	// outline open, and the part draws the line between them.
+	fusedRight bool
 	// warnedBusy is set once a busy button without BusyText was warned about.
 	warnedBusy bool
 }
@@ -236,47 +240,113 @@ func (b *Button) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	return size, size, size
 }
 
+// ground is the fill under a part of the button's form, or false for none:
+// the button itself, or a part fused to it, pressed or under the pointer, in
+// the button's form, danger and enabled state.
+func (b *Button) ground(t tokens.Tokens, pressed, hovered, checked bool) (palette.Color, bool) {
+	primary := b.Form == ButtonPrimary
+	switch {
+	case !b.Enabled():
+		return t.ChipBackground, primary
+	case primary && pressed:
+		return b.fill(t).Darker(1.15), true
+	case primary:
+		return b.fill(t), true
+	case pressed, checked:
+		return t.SelectionTint, true
+	case hovered:
+		return t.HoverTint, true
+	case b.Form == ButtonQuiet:
+		return t.ChipBackground, true
+	}
+	return palette.Color{}, false
+}
+
+// edge is the colour of the button's outline, or false for none: a primary
+// button has its fill instead, and a flat one has none unless it is on.
+func (b *Button) edge(t tokens.Tokens) (palette.Color, bool) {
+	if b.Form == ButtonPrimary || (b.Form == ButtonFlat && !b.Checked) {
+		return palette.Color{}, false
+	}
+	switch {
+	case !b.Enabled():
+		return t.Border, true
+	case b.Checked:
+		return t.Accent, true
+	case b.Danger:
+		return t.Danger, true
+	case b.Form == ButtonQuiet:
+		return t.Border, true
+	}
+	return t.BorderStrong, true
+}
+
+// shape is the box the button's ground and outline are drawn in: its own,
+// reaching past a fused right side by the corner radius, so the panel's clip
+// squares the corners there and cuts the outline open.
+func (b *Button) shape(r geom.Rect, radius float32) geom.Rect {
+	if b.fusedRight {
+		r.Width += radius
+	}
+	return r
+}
+
+// fusedArrow is the size of the down-arrow on a part fused to a button's
+// right side: smaller than a symbol beside words, since it only marks the
+// part as opening a list.
+var fusedArrow = Px(10)
+
+// drawFusedPart draws the ground and outline of a part fused to the
+// button's right side, as a ChoiceButton's choice and a SplitButton's arrow
+// are, whose box is r: the button's ground for the part's own press and
+// hover, the button's outline around both, open on the left, and the line
+// between the two along the part's left edge.
+func (b *Button) drawFusedPart(gc *unison.Canvas, r geom.Rect, pressed, hovered bool) {
+	// unison draws a panel's children last first, so the part is drawn
+	// before the button and reads the button's command itself.
+	b.sync()
+	ui, t, m := b.ui, b.ui.Theme.Tokens(), b.ui.Interface
+	p := painterFor(gc, ui)
+	radius := float32(m.RadiusControl())
+	hairline := float32(m.Hairline())
+	// Drawn past the left side by the corner radius, where the panel's clip
+	// squares the corners and cuts the outline open.
+	shape := r
+	shape.X -= radius
+	shape.Width += radius
+	if ground, ok := b.ground(t, pressed, hovered, false); ok {
+		p.round(shape, radius, ground)
+	}
+	line, share := t.Border, float32(1)
+	if edge, ok := b.edge(t); ok {
+		line = edge
+		p.outline(shape, radius, hairline, line)
+	} else if b.Form == ButtonPrimary && b.Enabled() {
+		// A filled pair has no outline: the line between the parts is the
+		// ink of the words on the fill, at a fifth of its strength, which
+		// parts the two without cutting across the fill. The high-contrast
+		// theme keeps it at full strength, since its edges are there to be
+		// seen.
+		line = b.foreground(t)
+		if ui.Theme.ResolvedTheme() != tokens.HighContrast {
+			share = 0.2
+		}
+	}
+	p.fillTint(geom.NewRect(r.X, r.Y, hairline, r.Height), line, share)
+}
+
 func (b *Button) draw(gc *unison.Canvas, _ geom.Rect) {
 	b.sync()
 	ui, t, m := b.ui, b.ui.Theme.Tokens(), b.ui.Interface
 	p := painterFor(gc, ui)
 	r := b.ContentRect(false)
 	radius := float32(m.RadiusControl())
-	primary := b.Form == ButtonPrimary
-	var ground *palette.Color
-	set := func(c palette.Color) { ground = &c }
-	switch {
-	case !b.Enabled():
-		if primary {
-			set(t.ChipBackground)
-		}
-	case primary && b.pressed:
-		set(b.fill(t).Darker(1.15))
-	case primary:
-		set(b.fill(t))
-	case b.pressed, b.Checked:
-		set(t.SelectionTint)
-	case b.hovered:
-		set(t.HoverTint)
-	case b.Form == ButtonQuiet:
-		set(t.ChipBackground)
+	shape := b.shape(r, radius)
+	if ground, ok := b.ground(t, b.pressed, b.hovered, b.Checked); ok {
+		p.round(shape, radius, ground)
 	}
-	if ground != nil {
-		p.round(r, radius, *ground)
-	}
-	if !primary && (b.Form != ButtonFlat || b.Checked) {
-		edge := t.BorderStrong
-		switch {
-		case !b.Enabled():
-			edge = t.Border
-		case b.Checked:
-			edge = t.Accent
-		case b.Danger:
-			edge = t.Danger
-		case b.Form == ButtonQuiet:
-			edge = t.Border
-		}
-		p.outline(r, radius, float32(m.Hairline()), edge)
+	if edge, ok := b.edge(t); ok {
+		p.outline(shape, radius, float32(m.Hairline()), edge)
 	}
 	w, _, l := b.content()
 	x := r.X + (r.Width-w)/2
