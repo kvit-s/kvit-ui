@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"math"
+
 	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
@@ -293,4 +295,34 @@ func (s syncing) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, pre
 func (s syncing) PerformLayout(target *unison.Panel) {
 	s.sync()
 	s.Layout.PerformLayout(target)
+}
+
+// onWholePixels is the largest box inside r, in target's coordinates, whose
+// edges fall on whole pixels of the window. A line one pixel wide along such
+// an edge is drawn on one row of pixels, where at a parent's half-pixel
+// position it is spread over two half-lit rows. The box stays inside r, so a
+// clip at target's edges cuts none of it off, however it is rounded.
+func onWholePixels(target *unison.Panel, r geom.Rect) geom.Rect {
+	o := target.PointToRoot(geom.Point{})
+	// A hair of slack, so a position a rounding error off a whole pixel
+	// keeps that pixel.
+	const slack = 0.001
+	left := float32(math.Ceil(float64(o.X+r.X-slack))) - o.X
+	top := float32(math.Ceil(float64(o.Y+r.Y-slack))) - o.Y
+	right := float32(math.Floor(float64(o.X+r.Right()+slack))) - o.X
+	bottom := float32(math.Floor(float64(o.Y+r.Bottom()+slack))) - o.Y
+	if right <= left || bottom <= top {
+		return r
+	}
+	return geom.NewRect(left, top, right-left, bottom-top)
+}
+
+// wholeWidth is a width rounded up to whole pixels.
+func wholeWidth(w float32) float32 { return float32(math.Ceil(float64(w))) }
+
+// relayoutWhenMoved lays a panel out again when its parent moves it without
+// resizing it, which unison does not, so a layout that places the panel's
+// parts on whole pixels of the window follows the move.
+func relayoutWhenMoved(p *unison.Panel) {
+	p.FrameChangeCallback = func() { p.NeedsLayout = true }
 }

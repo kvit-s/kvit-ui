@@ -332,7 +332,10 @@ func (b *Button) drawFusedPart(gc *unison.Canvas, r geom.Rect, pressed, hovered 
 			share = 0.2
 		}
 	}
-	p.fillTint(geom.NewRect(r.X, r.Y, hairline, r.Height), line, share)
+	// From inside the outline's top edge to inside its bottom one, so the
+	// line meets the outline rather than poking past it, wherever the
+	// pixels round.
+	p.fillTint(geom.NewRect(r.X, r.Y+hairline, hairline, r.Height-2*hairline), line, share)
 }
 
 func (b *Button) draw(gc *unison.Canvas, _ geom.Rect) {

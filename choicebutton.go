@@ -90,6 +90,7 @@ func NewChoiceButton(ui *UI, label, choiceLabel string, options ...Option) *Choi
 	c.AddChild(c.main)
 	c.AddChild(c.choice)
 	c.SetLayout(syncing{Layout: choiceButtonLayout{c}, sync: c.sync})
+	relayoutWhenMoved(c.AsPanel())
 	// The pair draws before its parts, so each part draws the fields as they
 	// are now, such as a Current the app has just set.
 	c.DrawCallback = func(*unison.Canvas, geom.Rect) { c.sync() }
@@ -113,18 +114,22 @@ func (c *ChoiceButton) sync() {
 
 type choiceButtonLayout struct{ c *ChoiceButton }
 
+// The parts are whole pixels wide and placed on whole pixels of the window,
+// so the line between them is one column of pixels and the outline one row,
+// wherever the parent puts the pair.
 func (l choiceButtonLayout) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	_, bp, _ := l.c.main.Sizes(geom.Size{})
 	_, sp, _ := l.c.choice.Sizes(geom.Size{})
-	size := geom.NewSize(bp.Width+sp.Width, max(bp.Height, sp.Height))
+	size := geom.NewSize(wholeWidth(bp.Width)+wholeWidth(sp.Width), max(bp.Height, sp.Height))
 	return size, size, size
 }
 
 func (l choiceButtonLayout) PerformLayout(target *unison.Panel) {
-	r := target.ContentRect(false)
+	r := onWholePixels(target, target.ContentRect(false))
 	_, sp, _ := l.c.choice.Sizes(geom.Size{})
-	l.c.main.SetFrameRect(geom.NewRect(r.X, r.Y, r.Width-sp.Width, r.Height))
-	l.c.choice.SetFrameRect(geom.NewRect(r.Right()-sp.Width, r.Y, sp.Width, r.Height))
+	w := wholeWidth(sp.Width)
+	l.c.main.SetFrameRect(geom.NewRect(r.X, r.Y, r.Width-w, r.Height))
+	l.c.choice.SetFrameRect(geom.NewRect(r.Right()-w, r.Y, w, r.Height))
 }
 
 // ProvideAccessibility names the pair as a group, by the button's words; a

@@ -283,16 +283,19 @@ func (s *Select) fusedWidth() float32 {
 }
 
 // drawFused draws the select as the part fused to a button's right side,
-// with the button's ground and outline, and the chosen option's words at
-// the left and a down-arrow at the right, in the button's ink.
+// with the button's ground and outline, the chosen option's words, and a
+// down-arrow at the right, in the button's ink. The words are centred in
+// the room the widest option takes, as a button's are in its box, so a short
+// value such as All does not sit against the line with a gap after it.
 func (s *Select) drawFused(gc *unison.Canvas) {
 	b := s.fusedTo
 	r := s.ContentRect(false)
 	b.drawFusedPart(gc, r, s.pressed, s.hovered)
-	before, _, arrow, after := s.fusedRoom()
+	before, gap, arrow, after := s.fusedRoom()
 	l := s.valueLayout(s.shown())
-	_, h := l.Size()
-	l.Draw(gc, r.X+before, r.Y+(r.Height-h)/2)
+	w, h := l.Size()
+	room := r.Width - before - gap - arrow - after
+	l.Draw(gc, r.X+before+max(0, room-w)/2, r.Y+(r.Height-h)/2)
 	if g, ok := icons.Glyph("chevron-down"); ok {
 		drawGlyph(gc, s.ui, g, arrow, b.foreground(s.ui.Theme.Tokens()), geom.NewRect(r.Right()-after-arrow, r.Y+(r.Height-arrow)/2, arrow, arrow))
 	}

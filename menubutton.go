@@ -104,6 +104,7 @@ func NewSplitButton(ui *UI, variants ...*Command) *SplitButton {
 	s.AddChild(s.main)
 	s.AddChild(s.arrow)
 	s.SetLayout(syncing{Layout: splitButtonLayout{s}, sync: s.sync})
+	relayoutWhenMoved(s.AsPanel())
 	// The pair draws before its parts, so each part draws the fields as they
 	// are now, such as a Form the app has just set.
 	s.DrawCallback = func(*unison.Canvas, geom.Rect) { s.sync() }
@@ -166,18 +167,21 @@ func (s *SplitButton) openMenu() {
 
 type splitButtonLayout struct{ s *SplitButton }
 
+// The parts are whole pixels wide and placed on whole pixels of the window,
+// as a ChoiceButton's are.
 func (l splitButtonLayout) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	_, mp, _ := l.s.main.Sizes(geom.Size{})
 	_, ap, _ := l.s.arrow.Sizes(geom.Size{})
-	size := geom.NewSize(mp.Width+ap.Width, max(mp.Height, ap.Height))
+	size := geom.NewSize(wholeWidth(mp.Width)+wholeWidth(ap.Width), max(mp.Height, ap.Height))
 	return size, size, size
 }
 
 func (l splitButtonLayout) PerformLayout(target *unison.Panel) {
-	r := target.ContentRect(false)
+	r := onWholePixels(target, target.ContentRect(false))
 	_, ap, _ := l.s.arrow.Sizes(geom.Size{})
-	l.s.main.SetFrameRect(geom.NewRect(r.X, r.Y, r.Width-ap.Width, r.Height))
-	l.s.arrow.SetFrameRect(geom.NewRect(r.Right()-ap.Width, r.Y, ap.Width, r.Height))
+	w := wholeWidth(ap.Width)
+	l.s.main.SetFrameRect(geom.NewRect(r.X, r.Y, r.Width-w, r.Height))
+	l.s.arrow.SetFrameRect(geom.NewRect(r.Right()-w, r.Y, w, r.Height))
 }
 
 // ProvideAccessibility names the pair as a group.

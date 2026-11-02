@@ -527,3 +527,112 @@ func apart(a, b [3]int) int {
 	}
 	return d
 }
+
+// placedAt is a layout that puts its one child at a position between
+// pixels, as a parent that centres a control often does.
+type placedAt struct{ x, y float32 }
+
+func (placedAt) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	size := geom.NewSize(400, 60)
+	return size, size, size
+}
+
+func (l placedAt) PerformLayout(target *unison.Panel) {
+	child := target.Children()[0]
+	_, p, _ := child.Sizes(geom.Size{})
+	child.SetFrameRect(geom.NewRect(l.x, l.y, p.Width, p.Height))
+}
+
+// A pair put between pixels by its parent still draws its parts on whole
+// pixels of the window, inside the box it was given, so its outline is one
+// row of pixels and the line between the parts one column, and the line
+// stops at the outline rather than poking past it.
+func TestAPairBetweenPixelsIsDrawnOnWholePixels(t *testing.T) {
+	var pairs []unison.Paneler
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		measure := kvitui.NewChoiceButton(ui, "Measure", "How many",
+			kvitui.Option{Value: "all", Label: "All"}, kvitui.Option{Value: "5", Label: "5 days"})
+		run := func() {}
+		export := kvitui.NewSplitButton(ui, &kvitui.Command{Name: "Export as CSV", Run: run},
+			&kvitui.Command{Name: "Export as PDF", Run: run})
+		pairs = []unison.Paneler{measure, export}
+		var out []unison.Paneler
+		for _, p := range pairs {
+			holder := unison.NewPanel()
+			holder.AddChild(p)
+			holder.SetLayout(placedAt{4.3, 10.5})
+			out = append(out, holder)
+		}
+		return out
+	})
+	whole := func(v float32) bool { return v == float32(int(v)) }
+	img := screen.Capture()
+	at := func(x, y int) [3]int {
+		pr, pg, pb, _ := img.At(x, y).RGBA()
+		return [3]int{int(pr >> 8), int(pg >> 8), int(pb >> 8)}
+	}
+	er, eg, eb := ui.Theme.Tokens().BorderStrong.RGBA8()
+	edge := [3]int{int(er), int(eg), int(eb)}
+	for _, pair := range pairs {
+		var box, first, second geom.Rect
+		screen.Do(func() {
+			kids := pair.AsPanel().Children()
+			box = pair.AsPanel().RectToRoot(pair.AsPanel().ContentRect(true))
+			first = kids[0].RectToRoot(kids[0].ContentRect(true))
+			second = kids[1].RectToRoot(kids[1].ContentRect(true))
+		})
+		for _, r := range []geom.Rect{first, second} {
+			if !whole(r.X) || !whole(r.Y) || !whole(r.Right()) || !whole(r.Bottom()) || !box.Contains(r) {
+				t.Errorf("%T in %v has a part at %v, off whole pixels or outside the pair", pair, box, r)
+			}
+		}
+		top, mid := int(first.Y), int(first.X+first.Width/2)
+		if got := at(mid, top); apart(got, edge) > 2 {
+			t.Errorf("%T: the outline's top row is %v, want the whole edge colour %v", pair, got, edge)
+		}
+		if got, ground := at(int(second.X), top-1), at(mid, top-1); apart(got, ground) > 2 {
+			t.Errorf("%T: above the outline the line's column is %v where the ground is %v", pair, got, ground)
+		}
+	}
+}
+
+// A value shorter than the widest sits in the middle of the room the widest
+// takes, as a button's words sit in its box, rather than against the line
+// between the parts with a gap before the down-arrow.
+func TestAShortValueIsCentredInTheChoice(t *testing.T) {
+	var measure *kvitui.ChoiceButton
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		measure = kvitui.NewChoiceButton(ui, "Measure", "How many",
+			kvitui.Option{Value: "all", Label: "All"}, kvitui.Option{Value: "5", Label: "5 days"})
+		return []unison.Paneler{measure}
+	})
+	var r geom.Rect
+	screen.Do(func() { r = measure.Children()[1].RectToRoot(measure.Children()[1].ContentRect(true)) })
+	m := ui.Interface
+	left := r.X + float32(m.Space())
+	right := r.Right() - float32(2*m.SpaceSnug()+m.Px(10))
+	img := screen.Capture()
+	pr, pg, pb, _ := img.At(int(r.X)+2, int(r.Y)+3).RGBA()
+	ground := [3]int{int(pr >> 8), int(pg >> 8), int(pb >> 8)}
+	// The words' ink: the columns of the room with anything drawn on them.
+	inkLeft, inkRight := -1, -1
+	for x := int(r.X) + 1; x < int(right); x++ {
+		for y := int(r.Y) + 3; y < int(r.Bottom())-3; y++ {
+			cr, cg, cb, _ := img.At(x, y).RGBA()
+			if apart([3]int{int(cr >> 8), int(cg >> 8), int(cb >> 8)}, ground) > 40 {
+				if inkLeft < 0 {
+					inkLeft = x
+				}
+				inkRight = x
+				break
+			}
+		}
+	}
+	if inkLeft < 0 {
+		t.Fatal("no words drawn in the choice")
+	}
+	before, after := float32(inkLeft)-left, right-float32(inkRight+1)
+	if d := before - after; d > 2 || d < -2 {
+		t.Errorf("All has %.1f pixels of room before it and %.1f after it", before, after)
+	}
+}
