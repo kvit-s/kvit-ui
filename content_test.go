@@ -102,8 +102,8 @@ func TestAPanelsRulesDrawOverWhatIsInIt(t *testing.T) {
 }
 
 func TestAListRowActsOnlyWhenItSaysItDoes(t *testing.T) {
-	var opens, layout *kvitui.ListRow
-	var inside *kvitui.IconButton
+	var opens, layout, holding *kvitui.ListRow
+	var inside, held *kvitui.IconButton
 	opened, pressed := 0, 0
 	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
 		inside = kvitui.NewIconButton(ui, "pencil", "Edit")
@@ -113,10 +113,13 @@ func TestAListRowActsOnlyWhenItSaysItDoes(t *testing.T) {
 		opens.OnActivate = func() { opened++ }
 		layout = kvitui.NewListRow(ui, kvitui.NewLabel(ui, "layout only"))
 		layout.Label = "Amount"
-		for _, r := range []*kvitui.ListRow{opens, layout} {
+		held = kvitui.NewIconButton(ui, "pencil", "Rename")
+		holding = kvitui.NewListRow(ui, held)
+		holding.Label = "Payee"
+		for _, r := range []*kvitui.ListRow{opens, layout, holding} {
 			r.SetLayoutData(&unison.FlexLayoutData{SizeHint: geom.NewSize(300, 0)})
 		}
-		return []unison.Paneler{opens, layout}
+		return []unison.Paneler{opens, layout, holding}
 	})
 	n := screen.AccessibilityNodeFor(opens)
 	if n == nil || n.Role != role.ListItem || n.Name != "Groceries" || n.Description != "Opens the transaction" {
@@ -124,6 +127,13 @@ func TestAListRowActsOnlyWhenItSaysItDoes(t *testing.T) {
 	}
 	if n := screen.AccessibilityNodeFor(layout); n == nil || n.Role != role.Label || n.Name != "Amount" {
 		t.Errorf("a row that only lays things out: %+v", n)
+	}
+	// A row holding a control is a grouping, so the control is still reached.
+	if n := screen.AccessibilityNodeFor(holding); n == nil || n.Role != role.Group || n.Name != "Payee" {
+		t.Errorf("a row holding a control: %+v", n)
+	}
+	if n := screen.AccessibilityNodeFor(held); n == nil || n.Role != role.Button {
+		t.Errorf("the control in a row with a label: %+v", n)
 	}
 	// A click on a row that opens nothing does nothing; on one that opens
 	// something it opens it once.

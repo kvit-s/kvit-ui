@@ -244,7 +244,7 @@ func (c *labelCheck) walk(p *unison.Panel, region *unison.Panel, inDialog bool) 
 		c.optionLabel("switch", v.Text)
 	case *kvitui.Select:
 		// A select's words are the value in force, read as a value and never
-		// as a command: no WRD-1, in either form.
+		// as a command: no WRD-1, in any form.
 	case *kvitui.Link:
 		c.link(v)
 	case *kvitui.HelpLink:

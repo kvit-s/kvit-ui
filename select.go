@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"runtime"
+
 	"github.com/kvit-s/kvit-ui/icons"
 	"github.com/kvit-s/kvit-ui/palette"
 	"github.com/kvit-s/kvit-ui/text"
@@ -22,6 +24,13 @@ import (
 // that states its value, such as a ledger's period reading All history, where
 // the full-width field would take the room the list it filters needs. Its
 // words are read as a value, never as a command.
+//
+// Plain draws the same choice as words in a row of a list, with a small arrow
+// after them and a ground only under the pointer. It is the control for a
+// value repeated down a list, where each row states one answer that reads with
+// the row's name as a sentence and few rows get changed: there, Segmented
+// repeats every answer on every row, outlined fields are heavier than what
+// they say, and compact selects read as a column of buttons.
 type Select struct {
 	control
 	// Label names the choice for a screen reader.
@@ -40,16 +49,29 @@ type Select struct {
 	// words, for a filter stating its value, rather than as a full-width
 	// field.
 	Compact bool
+	// Plain draws the select as the chosen option's words and a small arrow,
+	// with no ground or border until the pointer is on it, for a value
+	// repeated down a list. It takes the width its layout gives it, its words
+	// stand PlainSelectInset in from its left edge, and words too long for the
+	// width are cut, with the arrow still shown. It wins over Compact.
+	Plain bool
 	// OnChoose runs after an option is chosen, with its value.
 	OnChoose func(value string)
 
-	jump typeSelect // choosing an option by typing its words
+	jump       typeSelect // choosing an option by typing its words
+	systemMenu bool       // the system's own menu is open, holding the program
 	// fusedTo is the button whose right side the select is fused to, as a
 	// ChoiceButton's choice is: drawn in the button's form with a
 	// down-arrow, its left corners square, and the line between the two
 	// along its left edge. nil for a select of its own.
 	fusedTo *Button
 }
+
+// PlainSelectInset is how far a plain Select's words stand in from its left
+// edge, which gives the ground under the pointer room around them. A list that
+// names the column above its selects insets the name by this much, so the name
+// stands over the words.
+var PlainSelectInset = SizeSpaceNear
 
 // NewSelect returns a choice of options, the first chosen.
 func NewSelect(ui *UI, label string, options ...Option) *Select {
@@ -85,20 +107,32 @@ func NewSelect(ui *UI, label string, options ...Option) *Select {
 		}
 		return true
 	}
+	// Words cut short show whole where the pointer rests on them (PTR-12).
+	s.tip = func() string {
+		if s.Plain && s.plainWordsCut() && !s.menuOpen() {
+			return s.shown()
+		}
+		return ""
+	}
 	s.SetSizer(s.sizes)
 	s.DrawCallback = s.draw
 	return s
 }
 
 // sizes is the select's size: a full-width field in the field form, its
-// natural width as a quiet button in the compact form, read at layout time so
-// it follows the interface size.
+// natural width as a quiet button in the compact form, the width its layout
+// gives it in the plain form, read at layout time so it follows the interface
+// size.
 func (s *Select) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	m := s.ui.Interface
 	h := float32(m.ControlHeight())
 	if s.fusedTo != nil {
 		size := geom.NewSize(s.fusedWidth(), h)
 		return size, size, size
+	}
+	if s.Plain {
+		pref := s.plainWidth()
+		return geom.NewSize(min(float32(m.Px(60)), pref), h), geom.NewSize(pref, h), geom.NewSize(unison.DefaultMaxSize, h)
 	}
 	if !s.Compact {
 		return geom.NewSize(float32(m.Px(60)), h), geom.NewSize(float32(m.Px(180)), h), geom.NewSize(unison.DefaultMaxSize, h)
@@ -143,7 +177,29 @@ func (s *Select) open() {
 	for _, o := range s.Options {
 		items = append(items, MenuItem{Text: PlainMenuText(o.Label), Verbatim: true, Radio: true, Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
 	}
+	if s.Plain && runtime.GOOS == "darwin" {
+		// The system's menu holds the program until it closes, so the ground
+		// that marks the row has to be drawn before it opens.
+		s.systemMenu = true
+		s.MarkForRedraw()
+		if w := s.Window(); w != nil {
+			w.FlushDrawing()
+		}
+		defer func() {
+			s.systemMenu = false
+			s.MarkForRedraw()
+		}()
+	}
 	s.ui.ShowMenu(s, s.Label, items)
+}
+
+// menuOpen reports whether the select's list is open now.
+func (s *Select) menuOpen() bool {
+	if s.systemMenu {
+		return true
+	}
+	w := s.ui.windowOf(s)
+	return w != nil && w.menuFrom(s)
 }
 
 // shown is the chosen option's label.
@@ -157,6 +213,10 @@ func (s *Select) shown() string {
 func (s *Select) draw(gc *unison.Canvas, _ geom.Rect) {
 	if s.fusedTo != nil {
 		s.drawFused(gc)
+		return
+	}
+	if s.Plain {
+		s.drawPlain(gc)
 		return
 	}
 	if s.Compact {
@@ -253,6 +313,84 @@ func (s *Select) drawCompact(gc *unison.Canvas) {
 	l.Draw(gc, x, r.Y+(r.Height-h)/2)
 }
 
+// plainRoom is the plain form's room around its words: the inset before them,
+// the gap between them and the arrow, the arrow's size and the space after it.
+func (s *Select) plainRoom() (before, gap, arrow, after float32) {
+	m := s.ui.Interface
+	inset := float32(PlainSelectInset.Of(s.ui))
+	return inset, float32(m.SpaceNear()), float32(m.IconSizeSmall()), inset
+}
+
+// plainLayout is words as the plain form draws them.
+func (s *Select) plainLayout(words string, ink palette.Color, opt text.Options) *text.Layout {
+	return s.ui.Fonts.Layout([]text.Span{{Text: words, Style: s.ui.Chrome(s.ui.Size(RoleBody), text.Regular, ink)}}, opt)
+}
+
+// plainWidth is the plain form's preferred width: the widest option's words,
+// so the select keeps its width whatever is chosen, and the room around them.
+func (s *Select) plainWidth() float32 {
+	ink := s.ui.Theme.Tokens().TextPrimary
+	widest := s.widestWords(func(words string) *text.Layout { return s.plainLayout(words, ink, text.Options{}) })
+	before, gap, arrow, after := s.plainRoom()
+	return before + wholeWidth(widest) + gap + arrow + after
+}
+
+// plainWordsRoom is the width the plain form has for its words now.
+func (s *Select) plainWordsRoom() float32 {
+	before, gap, arrow, after := s.plainRoom()
+	return s.ContentRect(false).Width - before - gap - arrow - after
+}
+
+// plainWordsCut reports whether the chosen option's words are too long for the
+// plain form's width now.
+func (s *Select) plainWordsCut() bool {
+	w, _ := s.plainLayout(s.shown(), s.ui.Theme.Tokens().TextPrimary, text.Options{}).Size()
+	return w > s.plainWordsRoom()
+}
+
+// drawPlain draws the select as words in a row of a list: the chosen option's
+// words and, directly after them, a small arrow that says a press opens a
+// choice. There is no ground and no border at rest, so the control repeated
+// down a column weighs no more than the words. Under the pointer the whole
+// control tints, and while pressed or with its list open it takes the
+// selection's tint, which marks the row the open list belongs to.
+func (s *Select) drawPlain(gc *unison.Canvas) {
+	ui, t, m := s.ui, s.ui.Theme.Tokens(), s.ui.Interface
+	r := s.ContentRect(false)
+	ink, mark := t.TextPrimary, t.TextMuted
+	switch {
+	case !s.Enabled():
+		ink, mark = t.TextDisabled, t.TextDisabled
+	case s.pressed || s.menuOpen():
+		painterFor(gc, ui).round(r, float32(m.RadiusControl()), t.SelectionTint)
+	case s.hovered:
+		painterFor(gc, ui).round(r, float32(m.RadiusControl()), t.HoverTint)
+	}
+	before, gap, arrow, after := s.plainRoom()
+	// At least 1, since a width of 0 would be no limit at all.
+	l := s.plainLayout(s.shown(), ink, text.Options{MaxWidth: max(1, s.plainWordsRoom()), Elide: true})
+	w, h := l.Size()
+	x := r.X + before
+	l.Draw(gc, x, r.Y+(r.Height-h)/2)
+	if g, ok := icons.Glyph("chevron-down"); ok {
+		// A whole number of pixels after the words, so the arrow draws the same
+		// on every row, and never past the room kept for it.
+		at := min(x+wholeWidth(w)+gap, r.Right()-after-arrow)
+		drawGlyph(gc, ui, g, arrow, mark, geom.NewRect(at, r.Y+(r.Height-arrow)/2, arrow, arrow))
+	}
+}
+
+// widestWords is the width of the widest words the select can show: each
+// option's, and the placeholder's, as layout lays them out.
+func (s *Select) widestWords(layout func(words string) *text.Layout) float32 {
+	widest, _ := layout(s.Placeholder).Size()
+	for _, o := range s.Options {
+		w, _ := layout(o.Label).Size()
+		widest = max(widest, w)
+	}
+	return widest
+}
+
 // valueLayout is the words of one option as the fused form draws them, in
 // the button's chrome and ink.
 func (s *Select) valueLayout(words string) *text.Layout {
@@ -273,13 +411,8 @@ func (s *Select) fusedRoom() (before, gap, arrow, after float32) {
 // fusedWidth is the fused form's width: the widest option's words, so the
 // pair keeps its width whatever is chosen, and the room around them.
 func (s *Select) fusedWidth() float32 {
-	widest, _ := s.valueLayout(s.Placeholder).Size()
-	for _, o := range s.Options {
-		w, _ := s.valueLayout(o.Label).Size()
-		widest = max(widest, w)
-	}
 	before, gap, arrow, after := s.fusedRoom()
-	return before + widest + gap + arrow + after
+	return before + s.widestWords(s.valueLayout) + gap + arrow + after
 }
 
 // drawFused draws the select as the part fused to a button's right side,

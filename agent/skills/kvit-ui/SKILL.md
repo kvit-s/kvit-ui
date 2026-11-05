@@ -383,6 +383,12 @@ there reads its value as a command and fails WRD-1; the full-width `Select`
 field is for a choice on a form or in settings, not for a filter bar.
 (WRD-1)
 
+A value repeated down a list, one per row, is `Select` with `Plain`: the
+words and a small arrow, with a ground only under the pointer, taking the
+width of its cell. `Compact` is for a filter that states its value, and down
+a list it reads as a column of buttons. A column's name above the list stands
+`PlainSelectInset` in from the cell's edge, over the words.
+
 **30. An action run with a chosen value is a `ChoiceButton`.** Where one
 action is repeated with a setting changed less often than the action is
 run, such as Measure taking all the items, or 5, or 10, use

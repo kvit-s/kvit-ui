@@ -1,6 +1,7 @@
 package kvitui
 
 import (
+	"math"
 	"runtime"
 	"slices"
 	"strings"
@@ -401,6 +402,12 @@ func nativeItem(f unison.MenuFactory, form Form, it MenuItem) unison.MenuItem {
 	return mi
 }
 
+// menuBullet is the width of the dot marking the chosen one of a set of options
+// on the Windows form. It is painted rather than taken from the symbol font,
+// whose own dot is a speck two or three pixels wide that a reader scanning the
+// column of marks does not find.
+var menuBullet = Px(7)
+
 // menu is the Kvit menu: a list of commands in the window's popup layer. It
 // takes the keyboard focus while open and gives it back when it closes.
 type menu struct {
@@ -677,6 +684,14 @@ func (w *Window) ShownMenus() []ShownMenu {
 	return out
 }
 
+// menuFrom reports whether a Kvit menu hanging from owner is open now.
+func (w *Window) menuFrom(owner unison.Paneler) bool {
+	return slices.ContainsFunc(w.popups, func(p *Popup) bool {
+		_, isMenu := p.Panel.(*menu)
+		return isMenu && p.Anchor == owner
+	})
+}
+
 // root is the menu a chain of submenus opened from.
 func (m *menu) root() *menu {
 	for m.parent != nil {
@@ -883,11 +898,12 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 			p.fill(box, t.HoverTint)
 		}
 		symbol, ink, picture := it.Symbol, t.TextMuted, it.Picture
+		bullet := false
 		switch {
 		case it.Checked && it.Radio && !ui.Mac():
 			// The chosen one of a set of options has a bullet on the Windows
 			// form, a tick on the macOS form.
-			symbol, ink, picture = "dot", t.Accent, nil
+			bullet = true
 		case it.Checked:
 			// The entry in use is marked as such whatever else it would show,
 			// since the state is what the reader is scanning for.
@@ -901,9 +917,15 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 		}
 		s := float32(i.IconSizeSmall())
 		column := geom.NewRect(box.X+float32(i.Space()), box.Y+(box.Height-s)/2, s, s)
-		if hasPicture(picture) {
+		switch {
+		case bullet:
+			// On whole pixels, so its two sides are drawn alike.
+			d := float32(menuBullet.Of(ui))
+			at := geom.NewRect(float32(math.Round(float64(column.X+(s-d)/2))), float32(math.Round(float64(column.Y+(s-d)/2))), d, d)
+			p.round(at, d/2, t.Accent)
+		case hasPicture(picture):
 			drawPicture(gc, m.AsPanel(), picture, column, it.Disabled)
-		} else if symbol != "" {
+		case symbol != "":
 			if g, ok := icons.Glyph(symbol); ok {
 				drawGlyph(gc, ui, g, s, ink, column)
 			}

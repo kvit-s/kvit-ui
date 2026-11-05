@@ -267,3 +267,36 @@ func selectCompact(ui *kvitui.UI) unison.Paneler {
 	period.Symbol, period.Compact = "calendar", true
 	return kvitui.Left(period)
 }
+
+func selectPlainRows(ui *kvitui.UI) unison.Paneler {
+	// One value repeated down a list: each row reads along as a sentence, the
+	// arrow says a press opens the list, and a press anywhere in the cell does.
+	// The name of the column stands over the words, inset by as much as they
+	// are. Words too long for the cell are cut, with the arrow still shown.
+	options := []kvitui.Option{
+		{Value: "project", Label: "Project"},
+		{Value: "none", Label: "Not a project"},
+		{Value: "home", Label: "Part of home-auto"},
+		{Value: "accounts", Label: "Part of the household accounts archive"},
+	}
+	cell := kvitui.Px(160)
+	row := func(name, current string) *kvitui.ListRow {
+		what := kvitui.NewSelect(ui, name, options...)
+		what.Plain, what.Current = true, current
+		r := kvitui.NewListRow(ui, kvitui.FullWidth(kvitui.NewLabel(ui, name)), kvitui.Width(ui, cell, what))
+		r.Label = name
+		return r
+	}
+	heading := func(words string) *kvitui.Label {
+		l := kvitui.NewLabel(ui, words)
+		l.Role, l.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+		return l
+	}
+	whatItIs := heading("What it is")
+	whatItIs.SetBorder(kvitui.Insets(ui, nil, kvitui.PlainSelectInset, nil, nil))
+	head := kvitui.NewListRow(ui, kvitui.FullWidth(heading("Folder")), kvitui.Width(ui, cell, whatItIs))
+	head.Label = "Folder, What it is"
+	return kvitui.Width(ui, kvitui.Px(420), kvitui.Column(ui, kvitui.Px(0), head,
+		row("photo-sync", "project"), row("recipes", "project"), row("old-backups", "none"),
+		row("thermostat-logs", "home"), row("ledger-exports", "accounts")))
+}

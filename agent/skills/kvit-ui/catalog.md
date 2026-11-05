@@ -1992,7 +1992,7 @@ func checkStates(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSelect
 
-A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form.
+A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form. Plain draws it as the value's words and a small arrow, with a ground only under the pointer, for a value repeated down a list, where each row states one answer and few rows get changed.
 
 ```go
 func NewSelect(ui *UI, label string, options ...Option) *Select
@@ -2006,6 +2006,7 @@ func NewSelect(ui *UI, label string, options ...Option) *Select
 | `Placeholder` | `string` | Placeholder is what the select says while no option is chosen. |
 | `Symbol` | `string` | Symbol is an optional meaning name drawn before the chosen option's words in the compact form, naming what the choice is about, such as calendar for a period. |
 | `Compact` | `bool` | Compact draws the select as a quiet button with the chosen option's words, for a filter stating its value, rather than as a full-width field. |
+| `Plain` | `bool` | Plain draws the select as the chosen option's words and a small arrow, with no ground or border until the pointer is on it, for a value repeated down a list. |
 | `OnChoose` | `func(value string)` | OnChoose runs after an option is chosen, with its value. |
 
 Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
@@ -2034,6 +2035,43 @@ func selectCompact(ui *kvitui.UI) unison.Paneler {
         kvitui.Option{Value: "custom", Label: "1–31 Jan 2026"})
     period.Symbol, period.Compact = "calendar", true
     return kvitui.Left(period)
+}
+```
+
+*Plain, a value repeated down a list*
+
+```go
+func selectPlainRows(ui *kvitui.UI) unison.Paneler {
+    // One value repeated down a list: each row reads along as a sentence, the
+    // arrow says a press opens the list, and a press anywhere in the cell does.
+    // The name of the column stands over the words, inset by as much as they
+    // are. Words too long for the cell are cut, with the arrow still shown.
+    options := []kvitui.Option{
+        {Value: "project", Label: "Project"},
+        {Value: "none", Label: "Not a project"},
+        {Value: "home", Label: "Part of home-auto"},
+        {Value: "accounts", Label: "Part of the household accounts archive"},
+    }
+    cell := kvitui.Px(160)
+    row := func(name, current string) *kvitui.ListRow {
+        what := kvitui.NewSelect(ui, name, options...)
+        what.Plain, what.Current = true, current
+        r := kvitui.NewListRow(ui, kvitui.FullWidth(kvitui.NewLabel(ui, name)), kvitui.Width(ui, cell, what))
+        r.Label = name
+        return r
+    }
+    heading := func(words string) *kvitui.Label {
+        l := kvitui.NewLabel(ui, words)
+        l.Role, l.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+        return l
+    }
+    whatItIs := heading("What it is")
+    whatItIs.SetBorder(kvitui.Insets(ui, nil, kvitui.PlainSelectInset, nil, nil))
+    head := kvitui.NewListRow(ui, kvitui.FullWidth(heading("Folder")), kvitui.Width(ui, cell, whatItIs))
+    head.Label = "Folder, What it is"
+    return kvitui.Width(ui, kvitui.Px(420), kvitui.Column(ui, kvitui.Px(0), head,
+        row("photo-sync", "project"), row("recipes", "project"), row("old-backups", "none"),
+        row("thermostat-logs", "home"), row("ledger-exports", "accounts")))
 }
 ```
 

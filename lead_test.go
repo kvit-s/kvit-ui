@@ -667,3 +667,68 @@ func TestAnOptionLineDrawsItsPictureUntilItIsChosen(t *testing.T) {
 		})
 	}
 }
+
+// On the Windows form the chosen option's bullet is a solid dot in the accent,
+// large enough to find while scanning the column of marks: at least half the
+// column's width at every interface size, round, and in the column's middle.
+func TestTheChosenOptionsBulletIsLargeEnoughToSee(t *testing.T) {
+	for _, theme := range tokens.BuiltInThemes() {
+		for _, size := range []int{tokens.MinInterfaceSize, tokens.DefaultInterfaceSize, tokens.MaxInterfaceSize} {
+			t.Run(fmt.Sprintf("%s-%d", theme, size), func(t *testing.T) {
+				var button *kvitui.Button
+				s := uitest.Open(t, uitest.Options{Theme: theme, InterfaceSize: size}, func(ui *kvitui.UI) unison.Paneler {
+					button = kvitui.NewButton(ui, "Move into")
+					return kvitui.Left(button)
+				})
+				lines := []kvitui.MenuItem{
+					{Text: "Chosen", Verbatim: true, Radio: true, Checked: true},
+					{Text: "Other", Verbatim: true, Radio: true},
+				}
+				s.Do(func() { s.UI.ShowMenu(button, "Move into", lines) })
+				s.WaitFor("the menu's lines", func() bool { return len(s.Nodes(role.MenuItem)) == len(lines) })
+				items := s.Nodes(role.MenuItem)
+				slices.SortFunc(items, func(a, b *accessibility.Node) int { return cmp.Compare(a.Bounds.Y, b.Bounds.Y) })
+				img := s.Capture()
+				s.Do(func() {
+					m, line := s.UI.Interface, items[0].Bounds
+					column := m.IconSizeSmall()
+					x0 := int(line.X) + m.Space()
+					ground := img.At(x0, int(line.Y)+1)
+					left, right, top, bottom := math.MaxInt, -1, math.MaxInt, -1
+					// Across the column and past it, up to where the words start,
+					// and the line's whole height.
+					for y := int(line.Y); y < int(line.Bottom()); y++ {
+						for x := int(line.X); x < x0+column+m.Space(); x++ {
+							if !samePixel(img.At(x, y), ground) {
+								left, right = min(left, x), max(right, x)
+								top, bottom = min(top, y), max(bottom, y)
+							}
+						}
+					}
+					if right < 0 {
+						t.Fatal("the chosen line has no bullet")
+					}
+					wide, high := right-left+1, bottom-top+1
+					if wide*2 < column || high*2 < column {
+						t.Errorf("the bullet is %d by %d in a column %d wide", wide, high, column)
+					}
+					if wide != high {
+						t.Errorf("the bullet is %d by %d, not round", wide, high)
+					}
+					middleX, middleY := float64(left+right+1)/2, float64(top+bottom+1)/2
+					if want := float64(x0) + float64(column)/2; math.Abs(middleX-want) > 1 {
+						t.Errorf("the bullet's middle is at x %v, the column's at %v", middleX, want)
+					}
+					if want := float64(line.Y) + float64(line.Height)/2; math.Abs(middleY-want) > 1 {
+						t.Errorf("the bullet's middle is at y %v, the line's at %v", middleY, want)
+					}
+					accent := kvitui.Color(s.UI.Theme.Tokens().Accent)
+					if c := img.At((left+right)/2, (top+bottom)/2); !samePixel(c, accent) {
+						t.Errorf("the bullet's middle is %v, the accent is %v", c, accent)
+					}
+				})
+				s.CheckNamed()
+			})
+		}
+	}
+}

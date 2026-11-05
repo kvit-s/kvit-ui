@@ -379,10 +379,11 @@ var catalog = []entry{
 	{
 		name:    "KvitSelect",
 		group:   "Controls",
-		summary: "A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form.",
+		summary: "A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form. Plain draws it as the value's words and a small arrow, with a ground only under the pointer, for a value repeated down a list, where each row states one answer and few rows get changed.",
 		specimens: []specimen{
 			{caption: "A currency picker", build: selectCurrency},
 			{caption: "Compact, a filter stating its value", build: selectCompact},
+			{caption: "Plain, a value repeated down a list", build: selectPlainRows},
 		},
 	},
 	{

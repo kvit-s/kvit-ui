@@ -1110,7 +1110,7 @@ Hovering over text that is cut short shows the whole text.
 - **Enforce:**
   - Component: Label shows its full text as a tooltip when elided, as table cells already do.
   - Test, one screen: Every elided Label has a tooltip with the full text.
-- **kvit-ui now:** enforces it. A Label cut short shows its whole text as its tooltip (`label.go`); table cells and FloatingView titles disclose cut text as before.
+- **kvit-ui now:** enforces it. A Label cut short shows its whole text as its tooltip (`label.go`), and so does a plain Select (`select.go`); table cells and FloatingView titles disclose cut text as before.
 
 ### PTR-13
 

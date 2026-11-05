@@ -233,14 +233,16 @@ func (r *ListRow) drawMarks(gc *unison.Canvas, _ geom.Rect) {
 
 // ProvideAccessibility describes the row by what it does: a list item when
 // it can be pressed, its line of text when it has a label, and otherwise a
-// grouping of what it holds.
+// grouping of what it holds. A row holding a control is a grouping too, label
+// or not, since a screen reader is told nothing of what is inside a line of
+// text, and the control would be gone from what it can reach.
 func (r *ListRow) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	n := b.Node()
 	if n.Role == role.Auto {
 		switch {
 		case r.Interactive:
 			n.Role = role.ListItem
-		case r.Label != "":
+		case r.Label != "" && !holdsControl(r.AsPanel()):
 			n.Role = role.Label
 		default:
 			n.Role = role.Group
@@ -255,6 +257,18 @@ func (r *ListRow) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	if r.Interactive && r.Enabled() {
 		n.Actions = n.Actions.With(accessibility.Press)
 	}
+}
+
+// holdsControl reports whether a control sits anywhere inside a panel. A Kvit
+// control counts while disabled, when it cannot take the focus, so a row does
+// not change what it is as its control comes and goes.
+func holdsControl(p *unison.Panel) bool {
+	for _, c := range p.Children() {
+		if _, kvit := c.Self.(ringed); kvit || c.Focusable() || holdsControl(c) {
+			return true
+		}
+	}
+	return false
 }
 
 // PerformAccessibilityAction opens the row for a screen reader, which names
