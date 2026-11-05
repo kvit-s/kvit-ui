@@ -688,10 +688,10 @@ var catalog = []entry{
 	{
 		name:    "KvitMenuItem",
 		group:   "Flow",
-		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac. `Picture` draws a picture of the line's own in the symbol's column, fitted inside it with its shape kept, in place of `Symbol`; the system's own menu on a Mac draws no symbols and no pictures.",
+		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac. `Picture` draws a picture of the line's own in the symbol's column, fitted inside it with its shape kept, in place of `Symbol`, and one of a set of options draws its picture or symbol until it is chosen, when its bullet or tick takes the column; the system's own menu on a Mac draws no symbols and no pictures.",
 		specimens: []specimen{
 			{caption: "Ordinary, disabled and destructive", build: menuItemForms},
-			{caption: "A picture in the symbol's column: an SVG, a PNG and a wide PNG, beside a symbol", build: menuItemPictures},
+			{caption: "A picture in the symbol's column: an SVG, a PNG and a wide PNG, beside a symbol, and on a set of options", build: menuItemPictures},
 			{caption: "Lines that open a submenu", build: menuItemSubmenu},
 			{caption: "A switch, a set of options and an option on for part of the selection", build: menuItemStates},
 		},

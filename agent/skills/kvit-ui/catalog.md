@@ -2090,7 +2090,7 @@ One thing the app can do, made once and offered on a menu line, a button, a symb
 |---|---|---|
 | `Name` | `string` | Name is what the command is called everywhere: a verb first, in sentence case, "Export…" with the ellipsis left to Asks. |
 | `Std` | `StdCommand` | Std names a standard command, StdNone for the app's own. |
-| `Symbol` | `string` | Symbol is the meaning name of its symbol, drawn on a symbol button and before the words in a menu on the Windows form; a standard command has its standard one unless set. |
+| `Symbol` | `string` | Symbol is the meaning name of its symbol, drawn on a symbol button and before the words in a menu on the Windows form, unless the menu line is one of a set of options (MenuItem.Radio); a standard command has its standard one unless set. |
 | `Shortcut` | `Shortcut` | Shortcut is the app's own key for the command; a standard command's keys are the form's standard ones, and this adds one more. |
 | `Asks` | `bool` | Asks marks a command that asks for more before it acts, a dialog, a chooser or a confirmation: its name gains "…" on both forms (WRD-4). |
 | `OpensWindow` | `bool` | OpensWindow marks a command whose whole job is to show a window, such as Settings: "…" on the macOS form only (WRD-4). |
@@ -3501,7 +3501,7 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
 
 ### KvitMenuItem
 
-One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac. `Picture` draws a picture of the line's own in the symbol's column, fitted inside it with its shape kept, in place of `Symbol`; the system's own menu on a Mac draws no symbols and no pictures.
+One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac. `Picture` draws a picture of the line's own in the symbol's column, fitted inside it with its shape kept, in place of `Symbol`, and one of a set of options draws its picture or symbol until it is chosen, when its bullet or tick takes the column; the system's own menu on a Mac draws no symbols and no pictures.
 
 | Field | Type | |
 |---|---|---|
@@ -3542,16 +3542,17 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
-*A picture in the symbol's column: an SVG, a PNG and a wide PNG, beside a symbol*
+*A picture in the symbol's column: an SVG, a PNG and a wide PNG, beside a symbol, and on a set of options*
 
 ```go
 func menuItemPictures(ui *kvitui.UI) unison.Paneler {
-    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(200), unison.NewPanel()))
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(300), unison.NewPanel()))
     // A line naming something with a picture of its own: the picture stands in
     // the symbol's column, fitted inside it with its shape kept, and the words
     // line up. Words that are not the app's own are Verbatim. A tick takes the
-    // column from a picture as it does from a symbol, and a line that cannot
-    // act dims its picture.
+    // column from a picture as it does from a symbol, and so does the bullet of
+    // the chosen one of a set of options, while the others of the set have no
+    // mark and draw theirs. A line that cannot act dims its picture.
     whenShown(stage, func() {
         ui.ShowMenuAt(stage, geom.Rect{}, "Add to project", []kvitui.MenuItem{
             {Text: "An SVG picture", Verbatim: true, Picture: svgPicture()},
@@ -3560,6 +3561,10 @@ func menuItemPictures(ui *kvitui.UI) unison.Paneler {
             {Text: "The folder symbol", Verbatim: true, Symbol: "folder"},
             {Text: "A picture, ticked", Verbatim: true, Picture: pngPicture(), Checked: true},
             {Text: "A picture, disabled", Verbatim: true, Picture: pngPicture(), Disabled: true},
+            {Separator: true},
+            {Text: "An option with a picture", Verbatim: true, Radio: true, Picture: svgPicture()},
+            {Text: "An option with a symbol", Verbatim: true, Radio: true, Symbol: "folder"},
+            {Text: "An option chosen", Verbatim: true, Radio: true, Checked: true, Picture: pngPicture()},
         })
     })
     return stage

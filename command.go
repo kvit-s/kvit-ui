@@ -24,8 +24,9 @@ type Command struct {
 	// Std names a standard command, StdNone for the app's own.
 	Std StdCommand
 	// Symbol is the meaning name of its symbol, drawn on a symbol button and
-	// before the words in a menu on the Windows form; a standard command has
-	// its standard one unless set.
+	// before the words in a menu on the Windows form, unless the menu line is
+	// one of a set of options (MenuItem.Radio); a standard command has its
+	// standard one unless set.
 	Symbol string
 	// Shortcut is the app's own key for the command; a standard command's
 	// keys are the form's standard ones, and this adds one more. Give new

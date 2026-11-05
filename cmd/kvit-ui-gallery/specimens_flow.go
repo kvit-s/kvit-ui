@@ -227,12 +227,13 @@ func dualListColumns(ui *kvitui.UI) unison.Paneler {
 }
 
 func menuItemPictures(ui *kvitui.UI) unison.Paneler {
-	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(200), unison.NewPanel()))
+	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(300), unison.NewPanel()))
 	// A line naming something with a picture of its own: the picture stands in
 	// the symbol's column, fitted inside it with its shape kept, and the words
 	// line up. Words that are not the app's own are Verbatim. A tick takes the
-	// column from a picture as it does from a symbol, and a line that cannot
-	// act dims its picture.
+	// column from a picture as it does from a symbol, and so does the bullet of
+	// the chosen one of a set of options, while the others of the set have no
+	// mark and draw theirs. A line that cannot act dims its picture.
 	whenShown(stage, func() {
 		ui.ShowMenuAt(stage, geom.Rect{}, "Add to project", []kvitui.MenuItem{
 			{Text: "An SVG picture", Verbatim: true, Picture: svgPicture()},
@@ -241,6 +242,10 @@ func menuItemPictures(ui *kvitui.UI) unison.Paneler {
 			{Text: "The folder symbol", Verbatim: true, Symbol: "folder"},
 			{Text: "A picture, ticked", Verbatim: true, Picture: pngPicture(), Checked: true},
 			{Text: "A picture, disabled", Verbatim: true, Picture: pngPicture(), Disabled: true},
+			{Separator: true},
+			{Text: "An option with a picture", Verbatim: true, Radio: true, Picture: svgPicture()},
+			{Text: "An option with a symbol", Verbatim: true, Radio: true, Symbol: "folder"},
+			{Text: "An option chosen", Verbatim: true, Radio: true, Checked: true, Picture: pngPicture()},
 		})
 	})
 	return stage

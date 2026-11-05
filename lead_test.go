@@ -15,6 +15,7 @@ import (
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
+	"github.com/richardwilkes/unison/enums/check"
 	"github.com/richardwilkes/unison/enums/paintstyle"
 	"github.com/richardwilkes/unison/enums/role"
 )
@@ -398,8 +399,10 @@ func (p *recordedPicture) DrawInRect(gc *unison.Canvas, r geom.Rect, _ *unison.S
 // A menu line's picture goes in the symbol's column, fitted inside it with its
 // shape kept, in place of the symbol, and the words stay where they are, at the
 // smallest and largest interface sizes. A line's state takes the column from
-// it, a destructive line leaves its colours alone, a disabled one dims it, and
-// a nil image counts as no picture.
+// it: a tick, and the bullet of the chosen one of a set of options, while the
+// others of the set have no mark and draw their pictures. A destructive line
+// leaves its colours alone, a disabled one dims it, and a nil image counts as
+// no picture.
 func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 	for _, size := range leadSizes {
 		t.Run(fmt.Sprintf("%dpx", size), func(t *testing.T) {
@@ -409,6 +412,7 @@ func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 			same := &recordedPicture{natural: geom.NewSize(16, 16)}
 			both := &recordedPicture{natural: geom.NewSize(16, 16)}
 			ticked := &recordedPicture{natural: geom.NewSize(16, 16)}
+			option := &recordedPicture{natural: geom.NewSize(16, 16)}
 			bullet := &recordedPicture{natural: geom.NewSize(16, 16)}
 			danger := &recordedPicture{natural: geom.NewSize(16, 16)}
 			dimmed := &recordedPicture{natural: geom.NewSize(16, 16)}
@@ -426,9 +430,10 @@ func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 				{Text: "The same words", Verbatim: true, Symbol: "folder"},
 				{Text: "The same words", Verbatim: true, Symbol: "folder", Picture: both},
 				{Text: "Ticked", Verbatim: true, Picture: ticked, Checked: true},
-				{Text: "Not chosen", Verbatim: true, Picture: bullet, Radio: true},
+				{Text: "Not chosen", Verbatim: true, Picture: option, Radio: true},
 				{Text: "No image", Verbatim: true, Picture: nilImage, Symbol: "folder"},
 				{Text: "Dimmed", Verbatim: true, Picture: dimmed, Disabled: true},
+				{Text: "Chosen", Verbatim: true, Picture: bullet, Radio: true, Checked: true},
 				{Separator: true},
 				{Text: "Danger", Verbatim: true, Picture: danger, Danger: true},
 			}
@@ -457,6 +462,7 @@ func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 					{"the same size as a symbol's", same, iconSize, iconSize},
 					{"with a symbol", both, iconSize, iconSize},
 					{"disabled", dimmed, iconSize, iconSize},
+					{"unchosen option's", option, iconSize, iconSize},
 					{"destructive", danger, iconSize, iconSize},
 				} {
 					if len(c.p.at) == 0 {
@@ -481,7 +487,7 @@ func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 					t.Errorf("%d px: a tall picture is %v off the column's middle", size, d)
 				}
 				if len(ticked.at) != 0 || len(bullet.at) != 0 {
-					t.Errorf("%d px: a line's state left its picture drawn: ticked %d, radio %d", size, len(ticked.at), len(bullet.at))
+					t.Errorf("%d px: a line's state left its picture drawn: ticked %d, chosen option %d", size, len(ticked.at), len(bullet.at))
 				}
 				// The words of the line with a picture and the line with a symbol
 				// match pixel for pixel.
@@ -503,8 +509,18 @@ func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 				middle := func(i int) color.Color {
 					return img.At(int(line(i).X)+m.Space()+int(iconSize)/2, int(line(i).Y)+int(line(i).Height)/2)
 				}
-				if c := middle(10); !isLeadColour(c) {
+				if c := middle(11); !isLeadColour(c) {
 					t.Errorf("%d px: the destructive line's picture is %v", size, c)
+				}
+				if c := middle(7); !isLeadColour(c) {
+					t.Errorf("%d px: the unchosen option's picture is %v", size, c)
+				}
+				// The chosen option draws its mark there, which is not the tick
+				// of the line above it.
+				column := func(i int) image.Point { return image.Pt(int(line(i).X)+m.Space(), int(line(i).Y)) }
+				mark := image.Pt(m.IconSizeSmall(), int(line(10).Height))
+				if differ, drawn := sameStretch(img, column(10), column(6), mark); differ == 0 || drawn == 0 {
+					t.Errorf("%d px: the chosen option's bullet and a tick differ in %d pixels, with %d drawn", size, differ, drawn)
 				}
 				if c := middle(9); isLeadColour(c) {
 					t.Errorf("%d px: the disabled line's picture is not dimmed: %v", size, c)
@@ -525,6 +541,126 @@ func TestAMenuLinesPictureStandsInTheSymbolsColumn(t *testing.T) {
 				// The screen reader hears the words.
 				if items[3].Name != "The same words" {
 					t.Errorf("%d px: a picture's line is read as %q", size, items[3].Name)
+				}
+			})
+			s.CheckNamed()
+		})
+	}
+}
+
+// An option of a set draws its own picture or symbol until it is chosen, when
+// its mark takes the column: a bullet on the Windows form and a tick on the
+// macOS form. It takes no symbol from its command, so a set of options made
+// from commands stays as plain as its neighbours, whereas an ordinary line
+// does. A line on for part of the selection draws no picture or symbol on
+// either form, and a screen reader is told the same in every case.
+func TestAnOptionLineDrawsItsPictureUntilItIsChosen(t *testing.T) {
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		t.Run(form.String(), func(t *testing.T) {
+			option := &recordedPicture{natural: geom.NewSize(16, 16)}
+			chosen := &recordedPicture{natural: geom.NewSize(16, 16)}
+			mixed := &recordedPicture{natural: geom.NewSize(16, 16)}
+			run := func() {}
+			var button *kvitui.Button
+			s := uitest.Open(t, uitest.Options{Form: form}, func(ui *kvitui.UI) unison.Paneler {
+				button = kvitui.NewButton(ui, "Move into")
+				return kvitui.Left(button)
+			})
+			const (
+				plain = iota
+				ordinarySymbol
+				optionPicture
+				optionSymbol
+				chosenPicture
+				chosenSymbol
+				chosenBare
+				ticked
+				mixedPicture
+				mixedBare
+				optionCommand
+				optionCommandOwn
+				ordinaryCommand
+			)
+			lines := []kvitui.MenuItem{
+				plain:            {Text: "Words", Verbatim: true},
+				ordinarySymbol:   {Text: "Words", Verbatim: true, Symbol: "folder"},
+				optionPicture:    {Text: "Words", Verbatim: true, Radio: true, Picture: option},
+				optionSymbol:     {Text: "Words", Verbatim: true, Radio: true, Symbol: "folder"},
+				chosenPicture:    {Text: "Words", Verbatim: true, Radio: true, Checked: true, Picture: chosen},
+				chosenSymbol:     {Text: "Words", Verbatim: true, Radio: true, Checked: true, Symbol: "folder"},
+				chosenBare:       {Text: "Words", Verbatim: true, Radio: true, Checked: true},
+				ticked:           {Text: "Words", Verbatim: true, Checked: true},
+				mixedPicture:     {Text: "Words", Verbatim: true, Mixed: true, Picture: mixed, Symbol: "folder"},
+				mixedBare:        {Text: "Words", Verbatim: true, Mixed: true},
+				optionCommand:    {Radio: true, Command: &kvitui.Command{Name: "Words", Symbol: "folder", Run: run}},
+				optionCommandOwn: {Radio: true, Symbol: "folder", Command: &kvitui.Command{Name: "Words", Symbol: "search", Run: run}},
+				ordinaryCommand:  {Command: &kvitui.Command{Name: "Words", Symbol: "folder", Run: run}},
+			}
+			s.Do(func() { s.UI.ShowMenu(button, "Move into", lines) })
+			s.WaitFor("the menu's lines", func() bool { return len(s.Nodes(role.MenuItem)) == len(lines) })
+			items := s.Nodes(role.MenuItem)
+			slices.SortFunc(items, func(a, b *accessibility.Node) int { return cmp.Compare(a.Bounds.Y, b.Bounds.Y) })
+			img := s.Capture()
+			s.Do(func() {
+				m := s.UI.Interface
+				column := func(i int) image.Point {
+					return image.Pt(int(items[i].Bounds.X)+m.Space(), int(items[i].Bounds.Y))
+				}
+				size := image.Pt(m.IconSizeSmall(), int(items[plain].Bounds.Height))
+				same := func(what string, a, b int) {
+					t.Helper()
+					if differ, drawn := sameStretch(img, column(a), column(b), size); differ != 0 || drawn == 0 {
+						t.Errorf("%s: %d pixels differ from what it should match, with %d drawn", what, differ, drawn)
+					}
+				}
+				blank := func(what string, i int) {
+					t.Helper()
+					if _, drawn := sameStretch(img, column(i), column(plain), size); drawn != 0 {
+						t.Errorf("%s: the column has %d pixels drawn, want none", what, drawn)
+					}
+				}
+				blank("a line with nothing to draw", plain)
+				if len(option.at) == 0 {
+					t.Error("an unchosen option did not draw its picture")
+				}
+				same("an unchosen option's symbol", optionSymbol, ordinarySymbol)
+				if len(chosen.at) != 0 {
+					t.Error("the chosen option drew its picture")
+				}
+				same("the chosen option in place of a picture", chosenPicture, chosenBare)
+				same("the chosen option in place of a symbol", chosenSymbol, chosenBare)
+				differ, drawn := sameStretch(img, column(chosenBare), column(ticked), size)
+				if form == kvitui.FormMac && (differ != 0 || drawn == 0) {
+					t.Errorf("the chosen option differs from a tick in %d pixels on the macOS form, with %d drawn", differ, drawn)
+				}
+				if form == kvitui.FormWindows && (differ == 0 || drawn == 0) {
+					t.Errorf("the chosen option differs from a tick in %d pixels on the Windows form, with %d drawn", differ, drawn)
+				}
+				if len(mixed.at) != 0 {
+					t.Error("a line on for part of the selection drew its picture")
+				}
+				if form == kvitui.FormMac {
+					same("a dash in place of a mixed line's picture", mixedPicture, mixedBare)
+				} else {
+					blank("a mixed line on the Windows form", mixedPicture)
+				}
+				blank("an option made from a command with a symbol", optionCommand)
+				same("an option's own symbol over its command's", optionCommandOwn, ordinarySymbol)
+				same("an ordinary line made from a command with a symbol", ordinaryCommand, ordinarySymbol)
+				for _, c := range []struct {
+					name     string
+					i        int
+					hasCheck bool
+					checked  check.Enum
+				}{
+					{"an unchosen option", optionPicture, true, check.Off},
+					{"the chosen option", chosenPicture, true, check.On},
+					{"a mixed line", mixedPicture, true, check.Mixed},
+					{"a plain line", plain, false, check.Off},
+				} {
+					if n := items[c.i]; n.Name != "Words" || n.HasCheck != c.hasCheck || n.Checked != c.checked {
+						t.Errorf("%s is told to a screen reader as %+v", c.name, n)
+					}
 				}
 			})
 			s.CheckNamed()

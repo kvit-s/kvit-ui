@@ -44,14 +44,19 @@ type MenuItem struct {
 	// Key is a shortcut given as unison's key binding, shown as unison
 	// writes it; Shortcut is the form-aware way.
 	Key unison.KeyBinding
-	// Symbol is an optional meaning name drawn before the words.
+	// Symbol is an optional meaning name drawn before the words. A line made
+	// from a Command takes the command's symbol if it has none, except a Radio
+	// line, which draws only a symbol set here.
 	Symbol string
 	// Picture is drawn before the words in place of Symbol, fitted inside the
 	// symbol's column with its shape kept: a line naming something with a
 	// picture of its own, such as a project's icon. It keeps its own colours,
 	// so a destructive line does not tint it, and a disabled line dims it. A
-	// mark that says a line's state takes its place, as it does a symbol's. The
-	// system's own menu on macOS draws no symbols and no pictures.
+	// mark that says a line's state takes its place, as it does a symbol's: a
+	// tick, the bullet or tick of the chosen Radio line, and a Mixed line's
+	// mark, or its lack of one on the Windows form. An unchosen Radio line has
+	// no mark, so it draws its picture. The system's own menu on macOS draws no
+	// symbols and no pictures.
 	Picture unison.Drawable
 	// Explanation is one sentence saying what choosing the line does, for a
 	// line whose words cannot say it: shown as its tooltip and told to a
@@ -66,7 +71,10 @@ type MenuItem struct {
 	Checked bool
 	// Radio marks the line as one of a set of options of which one is chosen:
 	// the chosen one, Checked, has a bullet on the Windows form and a tick on
-	// the macOS form (CMD-15).
+	// the macOS form (CMD-15). The bullet or tick stands in place of its Picture
+	// or Symbol, and the others, with no mark to show, draw theirs. A Radio line
+	// made from a Command does not take the command's symbol, so a set of options
+	// used as a list of places stays plain.
 	Radio bool
 	// Mixed marks an option that is on for only part of the selection: no
 	// mark on the Windows form, a dash on the macOS form (CMD-15).
@@ -230,7 +238,7 @@ func (u *UI) menuLine(it MenuItem, context bool, focus *unison.Panel) MenuItem {
 		} else if it.Asks || c.asks(u.form) {
 			it.Text += "…"
 		}
-		if it.Symbol == "" {
+		if it.Symbol == "" && !it.Radio {
 			it.Symbol = c.SymbolName()
 		}
 		if it.Explanation == "" {
@@ -886,7 +894,7 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 			symbol, ink, picture = "check", t.Accent, nil
 		case it.Mixed && ui.Mac():
 			symbol, ink, picture = "minus", t.Accent, nil
-		case it.Mixed || it.Radio:
+		case it.Mixed:
 			symbol, picture = "", nil
 		case it.Danger:
 			ink = t.Danger
