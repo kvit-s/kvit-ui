@@ -120,9 +120,9 @@ func (s *Sidebar) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 // SidebarItem is one place in the sidebar. The selected item is marked by a
 // bar down its leading edge as well as by a tint: in the high-contrast theme
 // the tint alone is a two-percent difference in lightness, invisible in a
-// screenshot. The symbol is required because of the rail: collapsed, the
-// label is gone and the symbol is the whole item, and an item with only
-// words would vanish.
+// screenshot. The symbol, or a lead in its place (SetLead), is required
+// because of the rail: collapsed, the label is gone and the symbol is the
+// whole item, and an item with only words would vanish.
 type SidebarItem struct {
 	control
 	// Text names the place.
@@ -158,6 +158,7 @@ type SidebarItem struct {
 	Command *Command
 
 	badge *Badge
+	lead  unison.Paneler // drawn in place of the symbol (SetLead)
 }
 
 // NewSidebarCommand returns an item that runs a command, named and drawn by
@@ -216,6 +217,25 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem {
 	return it
 }
 
+// SetLead draws p in place of the item's symbol: a picture of the place's own,
+// such as a project's icon. It is part of the item: a press on it presses the
+// item, the pointer resting on it rests on the item, and a screen reader hears
+// the item's label and nothing of p. Centred on where the symbol stands, in the
+// sidebar and in the rail, it may be larger than the symbol and the label stays
+// where it is, so names with a picture and names with a symbol line up; one too
+// large to stop short of the label is drawn smaller. Each item needs a panel of
+// its own. nil gives the place back to the symbol.
+func (it *SidebarItem) SetLead(p unison.Paneler) {
+	it.swapLead(it.lead, p)
+	it.lead = p
+	if p != nil {
+		silenceLead(p.AsPanel())
+	}
+}
+
+// Lead is the panel SetLead gave, nil for none.
+func (it *SidebarItem) Lead() unison.Paneler { return it.lead }
+
 // sync hands the count to the badge while it is to be drawn, and none
 // otherwise.
 func (it *SidebarItem) sync() {
@@ -244,8 +264,34 @@ func (l sidebarItemLayout) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefS
 	return geom.NewSize(float32(m.RailWidth()), h), geom.NewSize(float32(m.SidebarWidth()), h), geom.NewSize(unison.DefaultMaxSize, h)
 }
 
-// PerformLayout puts the badge at the right, centred on the row, or on the
-// symbol's upper corner in the rail.
+// symbolBox is where the symbol stands in the item's content rectangle r, and
+// what a lead is centred on.
+func (it *SidebarItem) symbolBox(r geom.Rect) geom.Rect {
+	m := it.ui.Interface
+	s := float32(m.IconSizeSmall())
+	x := r.X + float32(m.SpaceLoose())
+	if it.Collapsed {
+		x = r.X + (r.Width-s)/2
+	}
+	return geom.NewRect(x, r.Y+(r.Height-s)/2, s, s)
+}
+
+// placeLead centres the lead on the symbol's place, reaching at most to a tight
+// space short of the label.
+func (it *SidebarItem) placeLead(r geom.Rect) {
+	if it.lead == nil {
+		return
+	}
+	m := it.ui.Interface
+	box := it.symbolBox(r)
+	lead := it.lead.AsPanel()
+	size := leadSize(lead, geom.NewSize(box.Width+2*float32(m.Space()-m.SpaceTight()), r.Height))
+	at := geom.NewRect(box.CenterX()-size.Width/2, box.CenterY()-size.Height/2, size.Width, size.Height)
+	lead.SetFrameRect(toWholePixels(it.AsPanel(), at))
+}
+
+// PerformLayout puts the lead where the symbol stands, and the badge at the
+// right, centred on the row, or on the symbol's upper corner in the rail.
 func (l sidebarItemLayout) PerformLayout(target *unison.Panel) {
 	it := l.it
 	r := target.ContentRect(false)
@@ -255,6 +301,7 @@ func (l sidebarItemLayout) PerformLayout(target *unison.Panel) {
 		y -= float32(it.ui.Interface.SpaceNear())
 	}
 	it.badge.SetFrameRect(geom.NewRect(r.Right()-it.badgeRight()-bp.Width, r.Y+y, bp.Width, bp.Height))
+	it.placeLead(r)
 }
 
 func (it *SidebarItem) draw(gc *unison.Canvas, _ geom.Rect) {
@@ -268,17 +315,13 @@ func (it *SidebarItem) draw(gc *unison.Canvas, _ geom.Rect) {
 	case it.hovered:
 		p.fill(r, t.HoverTint)
 	}
-	s := float32(m.IconSizeSmall())
-	x := r.X + float32(m.SpaceLoose())
-	if it.Collapsed {
-		x = r.X + (r.Width-s)/2
-	}
+	box := it.symbolBox(r)
 	ink := t.TextMuted
 	if it.Selected {
 		ink = t.Accent
 	}
-	if g, ok := icons.Glyph(it.Symbol); ok {
-		drawGlyph(gc, ui, g, s, ink, geom.NewRect(x, r.Y+(r.Height-s)/2, s, s))
+	if g, ok := icons.Glyph(it.Symbol); ok && it.lead == nil {
+		drawGlyph(gc, ui, g, box.Width, ink, box)
 	}
 	if it.Collapsed {
 		return
@@ -287,7 +330,7 @@ func (it *SidebarItem) draw(gc *unison.Canvas, _ geom.Rect) {
 	if it.Selected {
 		weight, ink = text.Bold, t.TextPrimary
 	}
-	left := x + s + float32(m.Space())
+	left := box.Right() + float32(m.Space())
 	// The label stops short of where a badge goes whether or not one is
 	// drawn, so a label does not reach further on an item with no count.
 	_, bp, _ := it.badge.Sizes(geom.Size{})

@@ -72,6 +72,7 @@ kerning, emoji sequences or right-to-left ordering.
   A component that has to, as a trend's axis values and a gauge's pace tick
   do, implements `drawSpill` and draws it itself only when `UI.spillHosted`
   says nothing above it will (`spill.go`).
+- **A picture in front of the words.** `Link`, `SidebarItem` and `SectionHeading` take a panel with `SetLead`, and `lead.go` holds what they share: the panel's pointer callbacks pass to the component, so a press and the pointer resting on it count as being on the component. `MenuItem.Picture` is a `unison.Drawable`, since a menu's lines are drawn in one panel. Draw a picture with no paint, because a paint replaces an SVG's own colours with one.
 - **Many parts, one panel.** A component that draws many similar parts, such as a table's cells, draws them with detached components as stamps
   (`stampAt` in `cell.go`) rather than a panel per part, and shows a tooltip or hover card for the part under the pointer with `partTip`.
 - **Screen readers:** unison folds the children of a text node (`Label`, `Heading`, `SpinButton`, `TextField` and the other roles

@@ -94,6 +94,21 @@ func sectionHeadingForms(ui *kvitui.UI) unison.Paneler {
 	return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, mine, sams, archived))
 }
 
+func sectionHeadingPictures(ui *kvitui.UI) unison.Paneler {
+	// A group with a picture of its own: after the chevron, before the name.
+	// Pressing the picture opens and closes the group, as pressing the bar
+	// does, and a screen reader hears the name alone.
+	svg := kvitui.NewSectionHeading(ui, "An SVG picture")
+	svg.Counted, svg.Count, svg.Collapsible = "decision", 4, true
+	svg.SetLead(pictureLead(ui, svgPicture()))
+	png := kvitui.NewSectionHeading(ui, "A PNG picture")
+	png.Counted, png.Count, png.Collapsible, png.Expanded = "decision", 1, true, false
+	png.SetLead(pictureLead(ui, pngPicture()))
+	fixed := kvitui.NewSectionHeading(ui, "A picture, and no chevron")
+	fixed.SetLead(pictureLead(ui, pngPicture()))
+	return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, svg, png, fixed))
+}
+
 func sectionHeadingKeyboard(ui *kvitui.UI) unison.Paneler {
 	// The ring says the heading has the keyboard; Return, Enter and Space
 	// open and close it. The action beside it is a Link, which takes its own

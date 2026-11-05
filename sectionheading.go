@@ -65,6 +65,7 @@ type SectionHeading struct {
 
 	link   *Link
 	button *IconButton
+	lead   unison.Paneler // drawn after the chevron, before the name (SetLead)
 }
 
 // NewSectionHeading returns an open heading that does not collapse.
@@ -114,6 +115,23 @@ func NewSectionHeading(ui *UI, label string) *SectionHeading {
 	}
 	return h
 }
+
+// SetLead draws p after the chevron and before the name: a picture of the
+// group's own, such as a project's icon. It is part of the heading: a press on
+// it presses the heading, the pointer resting on it rests on the heading, and a
+// screen reader hears the heading's name and nothing of p. One taller than the
+// bar is drawn smaller. Each heading needs a panel of its own. nil takes the
+// lead away.
+func (h *SectionHeading) SetLead(p unison.Paneler) {
+	h.swapLead(h.lead, p)
+	h.lead = p
+	if p != nil {
+		silenceLead(p.AsPanel())
+	}
+}
+
+// Lead is the panel SetLead gave, nil for none.
+func (h *SectionHeading) Lead() unison.Paneler { return h.lead }
 
 func (h *SectionHeading) toggle() {
 	if !h.Collapsible {
@@ -175,7 +193,7 @@ func (h *SectionHeading) texts() (name, countText, kind, count *text.Layout) {
 
 // headingParts is where each part of the bar goes.
 type headingParts struct {
-	chevron, name, countText, kind, count, action geom.Rect
+	chevron, lead, name, countText, kind, count, action geom.Rect
 }
 
 // arrange lays the bar out: a space in from each end, parts a stack gap
@@ -211,6 +229,12 @@ func (h *SectionHeading) arrange(b geom.Rect) headingParts {
 		out.chevron = mid(s, s)
 		out.chevron.X = x
 		x += s + gap
+	}
+	if h.lead != nil {
+		size := leadSize(h.lead.AsPanel(), geom.NewSize(max(0, right-x), b.Height))
+		out.lead = mid(size.Width, size.Height)
+		out.lead.X = x
+		x += size.Width + gap
 	}
 	nw, nh := name.Size()
 	var tw, th float32
@@ -252,6 +276,9 @@ func (l headingLayout) PerformLayout(target *unison.Panel) {
 	at := l.h.arrange(target.ContentRect(false))
 	l.h.link.SetFrameRect(at.action)
 	l.h.button.SetFrameRect(at.action)
+	if l.h.lead != nil {
+		l.h.lead.AsPanel().SetFrameRect(toWholePixels(target, at.lead))
+	}
 }
 
 func (h *SectionHeading) draw(gc *unison.Canvas, _ geom.Rect) {

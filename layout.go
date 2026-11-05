@@ -317,6 +317,19 @@ func onWholePixels(target *unison.Panel, r geom.Rect) geom.Rect {
 	return geom.NewRect(left, top, right-left, bottom-top)
 }
 
+// toWholePixels moves r onto whole pixels of the window, keeping its size, as
+// a picture's edges blur between pixels. A half pixel goes up and towards the
+// leading edge.
+func toWholePixels(target *unison.Panel, r geom.Rect) geom.Rect {
+	o := target.PointToRoot(geom.Point{})
+	// A hair of slack, so a position a rounding error off a whole pixel
+	// keeps that pixel.
+	const slack = 0.001
+	r.X = float32(math.Floor(float64(o.X+r.X+slack))) - o.X
+	r.Y = float32(math.Floor(float64(o.Y+r.Y+slack))) - o.Y
+	return r
+}
+
 // wholeWidth is a width rounded up to whole pixels.
 func wholeWidth(w float32) float32 { return float32(math.Ceil(float64(w))) }
 

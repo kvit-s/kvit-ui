@@ -348,7 +348,7 @@ func sidebarFooter(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSidebarItem
 
-One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number.
+One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number. `SetLead` draws a picture of the place's own in place of the symbol: a press on it presses the item, a screen reader hears the label alone, and the label stays where it is, so names with a picture and names with a symbol line up.
 
 ```go
 func NewSidebarCommand(ui *UI, c *Command) *SidebarItem
@@ -369,7 +369,7 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem
 | `OnClick` | `func()` | OnClick runs when the item is pressed. |
 | `Command` | `*Command` | Command, when set, is what the item runs, and gives its words and symbol where they are empty: the settings command at the foot of the sidebar is one. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Name`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Name`, `Pressed`, `SetLead`, `TooltipWords`.
 
 *Selected, hovered and counted*
 
@@ -403,6 +403,28 @@ func sidebarItemRail(ui *kvitui.UI) unison.Paneler {
     counted := kvitui.NewSidebar(ui, backlog, kvitui.NewSidebarItem(ui, "Accounts", "bank"))
     counted.Collapsed = true
     return kvitui.Row(ui, kvitui.SizeColumnGap, plain, counted)
+}
+```
+
+*A picture in place of the symbol: an SVG and a PNG, beside a symbol, in the sidebar and the rail*
+
+```go
+func sidebarItemPictures(ui *kvitui.UI) unison.Paneler {
+    // A place with a picture of its own: the picture stands where the symbol
+    // stands, larger than the symbol or not, and the labels line up. The
+    // symbol is what the item goes back to without one.
+    places := func(collapsed bool) *kvitui.Sidebar {
+        svg := kvitui.NewSidebarItem(ui, "An SVG picture", "folder")
+        svg.SetLead(pictureLead(ui, svgPicture()))
+        svg.Selected = true
+        png := kvitui.NewSidebarItem(ui, "A PNG picture", "folder")
+        png.SetLead(pictureLead(ui, pngPicture()))
+        png.Count, png.CountInRail = 3, true
+        sidebar := kvitui.NewSidebar(ui, svg, png, kvitui.NewSidebarItem(ui, "The folder symbol", "folder"))
+        sidebar.Collapsed = collapsed
+        return sidebar
+    }
+    return kvitui.Row(ui, kvitui.SizeColumnGap, places(false), places(true))
 }
 ```
 
@@ -741,7 +763,7 @@ func historyBack(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSectionHeading
 
-A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.
+A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group. `SetLead` draws a picture of the group's own after the chevron and before the name: a press on it presses the heading, and a screen reader hears the name alone.
 
 ```go
 func NewSectionHeading(ui *UI, label string) *SectionHeading
@@ -764,7 +786,7 @@ func NewSectionHeading(ui *UI, label string) *SectionHeading
 | `OnToggle` | `func(expanded bool)` | OnToggle runs after the heading opened or closed, with the new state. |
 | `OnAction` | `func()` | OnAction runs when the hoisted action is taken. |
 
-Methods: `CountPhrase`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `CountPhrase`, `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`, `TooltipWords`.
 
 *Collapsible, counted, with an action*
 
@@ -781,6 +803,25 @@ func sectionHeadingForms(ui *kvitui.UI) unison.Paneler {
     archived.Kind = "closed last quarter"
     archived.Collapsible, archived.Expanded, archived.Strong = true, false, true
     return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, mine, sams, archived))
+}
+```
+
+*A picture before the name: an SVG and a PNG*
+
+```go
+func sectionHeadingPictures(ui *kvitui.UI) unison.Paneler {
+    // A group with a picture of its own: after the chevron, before the name.
+    // Pressing the picture opens and closes the group, as pressing the bar
+    // does, and a screen reader hears the name alone.
+    svg := kvitui.NewSectionHeading(ui, "An SVG picture")
+    svg.Counted, svg.Count, svg.Collapsible = "decision", 4, true
+    svg.SetLead(pictureLead(ui, svgPicture()))
+    png := kvitui.NewSectionHeading(ui, "A PNG picture")
+    png.Counted, png.Count, png.Collapsible, png.Expanded = "decision", 1, true, false
+    png.SetLead(pictureLead(ui, pngPicture()))
+    fixed := kvitui.NewSectionHeading(ui, "A picture, and no chevron")
+    fixed.SetLead(pictureLead(ui, pngPicture()))
+    return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, svg, png, fixed))
 }
 ```
 
@@ -3460,7 +3501,7 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
 
 ### KvitMenuItem
 
-One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac.
+One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac. `Picture` draws a picture of the line's own in the symbol's column, fitted inside it with its shape kept, in place of `Symbol`; the system's own menu on a Mac draws no symbols and no pictures.
 
 | Field | Type | |
 |---|---|---|
@@ -3471,6 +3512,7 @@ One line of a menu, carrying its shortcut on the right — which is how a menu t
 | `Shortcut` | `Shortcut` | Shortcut is the key shown at the right of the line, which is how a menu teaches that there is a faster way; the zero value shows none. |
 | `Key` | `unison.KeyBinding` | Key is a shortcut given as unison's key binding, shown as unison writes it; Shortcut is the form-aware way. |
 | `Symbol` | `string` | Symbol is an optional meaning name drawn before the words. |
+| `Picture` | `unison.Drawable` | Picture is drawn before the words in place of Symbol, fitted inside the symbol's column with its shape kept: a line naming something with a picture of its own, such as a project's icon. |
 | `Explanation` | `string` | Explanation is one sentence saying what choosing the line does, for a line whose words cannot say it: shown as its tooltip and told to a screen reader, never in place of the words. |
 | `Danger` | `bool` | Danger draws a destructive line in the danger colour. |
 | `Checked` | `bool` | Checked marks an option that is on with a tick in place of its symbol. |
@@ -3494,6 +3536,30 @@ func menuItemForms(ui *kvitui.UI) unison.Paneler {
             {Text: "Reconcile", Symbol: "check", Shortcut: command(unison.KeyR)},
             {Text: "Split", Symbol: "split", Disabled: true},
             {Text: "Delete", Symbol: "trash", Danger: true},
+        })
+    })
+    return stage
+}
+```
+
+*A picture in the symbol's column: an SVG, a PNG and a wide PNG, beside a symbol*
+
+```go
+func menuItemPictures(ui *kvitui.UI) unison.Paneler {
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(200), unison.NewPanel()))
+    // A line naming something with a picture of its own: the picture stands in
+    // the symbol's column, fitted inside it with its shape kept, and the words
+    // line up. Words that are not the app's own are Verbatim. A tick takes the
+    // column from a picture as it does from a symbol, and a line that cannot
+    // act dims its picture.
+    whenShown(stage, func() {
+        ui.ShowMenuAt(stage, geom.Rect{}, "Add to project", []kvitui.MenuItem{
+            {Text: "An SVG picture", Verbatim: true, Picture: svgPicture()},
+            {Text: "A PNG picture", Verbatim: true, Picture: pngPicture()},
+            {Text: "A wide PNG picture", Verbatim: true, Picture: widePicture()},
+            {Text: "The folder symbol", Verbatim: true, Symbol: "folder"},
+            {Text: "A picture, ticked", Verbatim: true, Picture: pngPicture(), Checked: true},
+            {Text: "A picture, disabled", Verbatim: true, Picture: pngPicture(), Disabled: true},
         })
     })
     return stage

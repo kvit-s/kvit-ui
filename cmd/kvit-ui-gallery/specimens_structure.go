@@ -77,6 +77,24 @@ func sidebarItemRail(ui *kvitui.UI) unison.Paneler {
 	return kvitui.Row(ui, kvitui.SizeColumnGap, plain, counted)
 }
 
+func sidebarItemPictures(ui *kvitui.UI) unison.Paneler {
+	// A place with a picture of its own: the picture stands where the symbol
+	// stands, larger than the symbol or not, and the labels line up. The
+	// symbol is what the item goes back to without one.
+	places := func(collapsed bool) *kvitui.Sidebar {
+		svg := kvitui.NewSidebarItem(ui, "An SVG picture", "folder")
+		svg.SetLead(pictureLead(ui, svgPicture()))
+		svg.Selected = true
+		png := kvitui.NewSidebarItem(ui, "A PNG picture", "folder")
+		png.SetLead(pictureLead(ui, pngPicture()))
+		png.Count, png.CountInRail = 3, true
+		sidebar := kvitui.NewSidebar(ui, svg, png, kvitui.NewSidebarItem(ui, "The folder symbol", "folder"))
+		sidebar.Collapsed = collapsed
+		return sidebar
+	}
+	return kvitui.Row(ui, kvitui.SizeColumnGap, places(false), places(true))
+}
+
 func regionScrolling(ui *kvitui.UI) unison.Paneler {
 	rows := make([]unison.Paneler, 12)
 	for i := range rows {

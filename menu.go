@@ -46,6 +46,13 @@ type MenuItem struct {
 	Key unison.KeyBinding
 	// Symbol is an optional meaning name drawn before the words.
 	Symbol string
+	// Picture is drawn before the words in place of Symbol, fitted inside the
+	// symbol's column with its shape kept: a line naming something with a
+	// picture of its own, such as a project's icon. It keeps its own colours,
+	// so a destructive line does not tint it, and a disabled line dims it. A
+	// mark that says a line's state takes its place, as it does a symbol's. The
+	// system's own menu on macOS draws no symbols and no pictures.
+	Picture unison.Drawable
 	// Explanation is one sentence saying what choosing the line does, for a
 	// line whose words cannot say it: shown as its tooltip and told to a
 	// screen reader, never in place of the words.
@@ -867,27 +874,30 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 		if j == m.lit {
 			p.fill(box, t.HoverTint)
 		}
-		symbol, ink := it.Symbol, t.TextMuted
+		symbol, ink, picture := it.Symbol, t.TextMuted, it.Picture
 		switch {
 		case it.Checked && it.Radio && !ui.Mac():
 			// The chosen one of a set of options has a bullet on the Windows
 			// form, a tick on the macOS form.
-			symbol, ink = "dot", t.Accent
+			symbol, ink, picture = "dot", t.Accent, nil
 		case it.Checked:
 			// The entry in use is marked as such whatever else it would show,
 			// since the state is what the reader is scanning for.
-			symbol, ink = "check", t.Accent
+			symbol, ink, picture = "check", t.Accent, nil
 		case it.Mixed && ui.Mac():
-			symbol, ink = "minus", t.Accent
+			symbol, ink, picture = "minus", t.Accent, nil
 		case it.Mixed || it.Radio:
-			symbol = ""
+			symbol, picture = "", nil
 		case it.Danger:
 			ink = t.Danger
 		}
-		if symbol != "" {
-			s := float32(i.IconSizeSmall())
+		s := float32(i.IconSizeSmall())
+		column := geom.NewRect(box.X+float32(i.Space()), box.Y+(box.Height-s)/2, s, s)
+		if hasPicture(picture) {
+			drawPicture(gc, m.AsPanel(), picture, column, it.Disabled)
+		} else if symbol != "" {
 			if g, ok := icons.Glyph(symbol); ok {
-				drawGlyph(gc, ui, g, s, ink, geom.NewRect(box.X+float32(i.Space()), box.Y+(box.Height-s)/2, s, s))
+				drawGlyph(gc, ui, g, s, ink, column)
 			}
 		}
 		right := box.Right() - float32(i.Space())

@@ -226,6 +226,26 @@ func dualListColumns(ui *kvitui.UI) unison.Paneler {
 		columns("Payee", "Account", "Tags", "Note"), columns("Date", "Description", "Amount", "Balance"))))
 }
 
+func menuItemPictures(ui *kvitui.UI) unison.Paneler {
+	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(200), unison.NewPanel()))
+	// A line naming something with a picture of its own: the picture stands in
+	// the symbol's column, fitted inside it with its shape kept, and the words
+	// line up. Words that are not the app's own are Verbatim. A tick takes the
+	// column from a picture as it does from a symbol, and a line that cannot
+	// act dims its picture.
+	whenShown(stage, func() {
+		ui.ShowMenuAt(stage, geom.Rect{}, "Add to project", []kvitui.MenuItem{
+			{Text: "An SVG picture", Verbatim: true, Picture: svgPicture()},
+			{Text: "A PNG picture", Verbatim: true, Picture: pngPicture()},
+			{Text: "A wide PNG picture", Verbatim: true, Picture: widePicture()},
+			{Text: "The folder symbol", Verbatim: true, Symbol: "folder"},
+			{Text: "A picture, ticked", Verbatim: true, Picture: pngPicture(), Checked: true},
+			{Text: "A picture, disabled", Verbatim: true, Picture: pngPicture(), Disabled: true},
+		})
+	})
+	return stage
+}
+
 func menuItemSubmenu(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(80), unison.NewPanel()))
 	// A line with items of its own opens them beside it, and draws a

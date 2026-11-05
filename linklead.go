@@ -3,7 +3,6 @@ package kvitui
 import (
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
-	"github.com/richardwilkes/unison/enums/mod"
 )
 
 // SetLead draws p before the link's words in place of its symbol: a mark the
@@ -13,30 +12,15 @@ import (
 // over p's pointer callbacks. Each link needs a panel of its own. nil takes
 // the lead away.
 func (l *Link) SetLead(p unison.Paneler) {
-	l.RemoveAllChildren()
-	l.lead = p
-	if p == nil {
-		l.SetLayout(nil)
-		l.MarkForLayoutAndRedraw()
-		return
-	}
-	lp := p.AsPanel()
-	l.AddChild(lp)
-	// A press needs nothing here: unison offers it to the panel's parents
-	// until one takes it, and the link does.
-	here := func(where geom.Point) geom.Point { return l.PointFromRoot(lp.PointToRoot(where)) }
-	lp.MouseEnterCallback = func(where geom.Point, mods mod.Modifiers) bool {
-		return l.MouseEnterCallback(here(where), mods)
-	}
-	lp.MouseMoveCallback = func(where geom.Point, mods mod.Modifiers) bool {
-		return l.MouseMoveCallback(here(where), mods)
-	}
-	lp.MouseExitCallback = func() bool { return l.MouseExitCallback() }
-	lp.UpdateCursorCallback = l.UpdateCursorCallback
 	// A panel with a layout ignores its sizer, so the layout gives the
 	// sizer's answer and places the lead.
-	l.SetLayout(linkLayout{l})
-	l.MarkForLayoutAndRedraw()
+	if p == nil {
+		l.SetLayout(nil)
+	} else {
+		l.SetLayout(linkLayout{l})
+	}
+	l.swapLead(l.lead, p)
+	l.lead = p
 }
 
 // Lead is the panel SetLead gave, nil for none.

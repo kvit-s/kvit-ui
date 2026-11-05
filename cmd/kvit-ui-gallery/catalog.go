@@ -94,10 +94,11 @@ var catalog = []entry{
 	{
 		name:    "KvitSidebarItem",
 		group:   "Structure",
-		summary: "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number.",
+		summary: "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number. `SetLead` draws a picture of the place's own in place of the symbol: a press on it presses the item, a screen reader hears the label alone, and the label stays where it is, so names with a picture and names with a symbol line up.",
 		specimens: []specimen{
 			{caption: "Selected, hovered and counted", build: sidebarItemStates},
 			{caption: "The rail, with and without its counts", build: sidebarItemRail},
+			{caption: "A picture in place of the symbol: an SVG and a PNG, beside a symbol, in the sidebar and the rail", build: sidebarItemPictures},
 		},
 	},
 	{
@@ -156,9 +157,10 @@ var catalog = []entry{
 	{
 		name:    "KvitSectionHeading",
 		group:   "Content",
-		summary: "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group.",
+		summary: "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group. `SetLead` draws a picture of the group's own after the chevron and before the name: a press on it presses the heading, and a screen reader hears the name alone.",
 		specimens: []specimen{
 			{caption: "Collapsible, counted, with an action", build: sectionHeadingForms},
+			{caption: "A picture before the name: an SVG and a PNG", build: sectionHeadingPictures},
 			{caption: "Reached by tab, opened by Return", build: sectionHeadingKeyboard},
 			{caption: "A written count, and an action drawn as a symbol", build: sectionHeadingWrittenCount},
 			{caption: "What the action does, in a sentence", build: sectionHeadingExplanation},
@@ -686,9 +688,10 @@ var catalog = []entry{
 	{
 		name:    "KvitMenuItem",
 		group:   "Flow",
-		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac.",
+		summary: "One line of a menu, carrying its shortcut on the right — which is how a menu teaches a faster route to a reader who keeps using it. A line made from a `Command` takes its words, key and state from it. A switch keeps its name and a tick on Windows and Linux and swaps its words on a Mac; one of a set of options has a bullet on Windows and Linux and a tick on a Mac. `Picture` draws a picture of the line's own in the symbol's column, fitted inside it with its shape kept, in place of `Symbol`; the system's own menu on a Mac draws no symbols and no pictures.",
 		specimens: []specimen{
 			{caption: "Ordinary, disabled and destructive", build: menuItemForms},
+			{caption: "A picture in the symbol's column: an SVG, a PNG and a wide PNG, beside a symbol", build: menuItemPictures},
 			{caption: "Lines that open a submenu", build: menuItemSubmenu},
 			{caption: "A switch, a set of options and an option on for part of the selection", build: menuItemStates},
 		},
