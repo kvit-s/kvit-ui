@@ -36,10 +36,12 @@ type Tokens struct {
 	// Accent and meaning.
 	Accent, Danger, DangerBright, Success, Warning, PinColor palette.Color
 
-	// Inline styling.
+	// Inline styling. AddedText and RemovedText are the figures of a diff,
+	// always read beside their sign; they are not Success and Danger, because a
+	// removed line is not an error.
 	Marker, InlineCodeBackground, HighlightBackground, Link, SearchMatchBackground,
 	SearchCurrentBackground, ChangedTextBackground, AddedTextBackground,
-	RemovedTextBackground palette.Color
+	RemovedTextBackground, AddedText, RemovedText palette.Color
 
 	// Code highlighting.
 	CodeKeyword, CodeType, CodeString, CodeComment, CodeNumber palette.Color

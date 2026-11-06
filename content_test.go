@@ -1,9 +1,16 @@
 package kvitui_test
 
 import (
+	"fmt"
+	"image"
+	"image/color"
+	"math"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/palette"
+	"github.com/kvit-s/kvit-ui/tokens"
+	"github.com/kvit-s/kvit-ui/uitest"
 	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/align"
@@ -248,6 +255,206 @@ func TestASectionHeadingOpensAndItsActionStaysItsOwn(t *testing.T) {
 	screen.KeyPress(unison.KeySpace, 0)
 	if actions != 1 || len(toggles) != 1 {
 		t.Errorf("Space on the action: %d actions, toggles %v", actions, toggles)
+	}
+}
+
+// diffCount is a Changes heading's written count, with the given inks on its
+// two figures, and the same words as diffCountWords.
+func diffCount(added, removed kvitui.Ink) []kvitui.CountPart {
+	return []kvitui.CountPart{{Text: "3 · "}, {Text: "+128", Ink: added}, {Text: " "}, {Text: "−24", Ink: removed}}
+}
+
+const diffCountWords = "3 · +128 −24"
+
+// nearInk says whether a drawn pixel is the ink itself, allowing for rounding
+// where a glyph's edge meets the ground.
+func nearInk(c color.Color, ink palette.Color) bool {
+	r, g, b, _ := c.RGBA()
+	close := func(got uint32, want float64) bool {
+		return math.Abs(float64(got>>8)-want*255) <= 8
+	}
+	return close(r, ink.R) && close(g, ink.G) && close(b, ink.B)
+}
+
+// inkSpan is the leftmost and rightmost column of a box holding the ink, and
+// false when none does.
+func inkSpan(img image.Image, box geom.Rect, ink palette.Color) (left, right int, found bool) {
+	for y := int(box.Y); y < int(box.Bottom()); y++ {
+		for x := int(box.X); x < int(box.Right()); x++ {
+			if !nearInk(img.At(x, y), ink) {
+				continue
+			}
+			if !found || x < left {
+				left = x
+			}
+			right = max(right, x)
+			found = true
+		}
+	}
+	return left, right, found
+}
+
+// Each part of a count is drawn in its own ink, in the order of the parts, in
+// every theme. The largest interface size is the one whose strokes are thick
+// enough to reach their ink.
+func TestAHeadingDrawsItsCountPartsInTheirInks(t *testing.T) {
+	for _, theme := range tokens.BuiltInThemes() {
+		t.Run(theme, func(t *testing.T) {
+			var h *kvitui.SectionHeading
+			s := uitest.Open(t, uitest.Options{Theme: theme, InterfaceSize: tokens.MaxInterfaceSize}, func(ui *kvitui.UI) unison.Paneler {
+				h = kvitui.NewSectionHeading(ui, "Changes")
+				h.CountParts = diffCount(kvitui.InkAddedText, kvitui.InkRemovedText)
+				return kvitui.FullWidth(h)
+			})
+			k := tokens.TokensFor(theme)
+			img, box := s.Capture(), rootRect(h)
+			_, addedEnd, added := inkSpan(img, box, k.AddedText)
+			removedStart, _, removed := inkSpan(img, box, k.RemovedText)
+			if !added || !removed {
+				t.Fatalf("drawn in added ink: %v, in removed ink: %v", added, removed)
+			}
+			if addedEnd >= removedStart {
+				t.Errorf("the added figure ends at %d and the removed one starts at %d", addedEnd, removedStart)
+			}
+		})
+	}
+}
+
+// A part with no ink is drawn in the faint ink: pixel for pixel what naming
+// that ink draws, and not what naming another draws.
+func TestACountPartWithNoInkIsFaint(t *testing.T) {
+	var none, faint, other *kvitui.SectionHeading
+	s := uitest.Open(t, uitest.Options{InterfaceSize: tokens.MaxInterfaceSize}, func(ui *kvitui.UI) unison.Paneler {
+		made := func(ink kvitui.Ink) *kvitui.SectionHeading {
+			h := kvitui.NewSectionHeading(ui, "Changes")
+			h.CountParts = []kvitui.CountPart{{Text: "+128", Ink: ink}}
+			return h
+		}
+		none, faint, other = made(nil), made(kvitui.InkTextFaint), made(kvitui.InkAddedText)
+		return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, kvitui.FullWidth(none), kvitui.FullWidth(faint), kvitui.FullWidth(other)))
+	})
+	img := s.Capture()
+	box := rootRect(none)
+	at := func(h *kvitui.SectionHeading) image.Point {
+		r := rootRect(h)
+		return image.Pt(int(r.X), int(r.Y))
+	}
+	size := image.Pt(int(box.Width), int(box.Height))
+	if differ, drawn := sameStretch(img, at(none), at(faint), size); differ != 0 || drawn == 0 {
+		t.Errorf("no ink and the faint ink: %d pixels differ, %d drawn", differ, drawn)
+	}
+	if differ, _ := sameStretch(img, at(none), at(other), size); differ == 0 {
+		t.Error("the added ink drew the same as no ink, so the comparison shows nothing")
+	}
+	if _, _, found := inkSpan(img, box, tokens.TokensFor(tokens.Light).TextFaint); !found {
+		t.Error("no pixel of the part is in the faint ink")
+	}
+}
+
+// Parts with no ink of their own take the place of the same words in CountText
+// and push what follows just as far, whether the bar has room or the name has
+// to give way; the count is never cut. A Count beside them draws nothing, as it
+// draws nothing beside CountText. Pixel for pixel covers all of it.
+func TestCountPartsTakeThePlaceOfTheSameWords(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		width int
+	}{{"room for all", 600}, {"the name gives way", 170}, {"no room for the name", 60}} {
+		for _, size := range leadSizes {
+			t.Run(fmt.Sprintf("%s/%dpx", c.name, size), func(t *testing.T) {
+				var written, parted *kvitui.SectionHeading
+				s := uitest.Open(t, uitest.Options{InterfaceSize: size}, func(ui *kvitui.UI) unison.Paneler {
+					made := func() *kvitui.SectionHeading {
+						h := kvitui.NewSectionHeading(ui, "A long name for a group of changes")
+						h.Kind, h.Count, h.Counted = "files", 7, "file"
+						h.Collapsible, h.Action = true, "Review all"
+						return h
+					}
+					written, parted = made(), made()
+					written.CountText = diffCountWords
+					parted.CountParts = diffCount(nil, nil)
+					return kvitui.Column(ui, kvitui.SizeSpace,
+						kvitui.Width(ui, kvitui.Px(c.width), written), kvitui.Width(ui, kvitui.Px(c.width), parted))
+				})
+				a, b := rootRect(written), rootRect(parted)
+				if a.Width != b.Width || a.Height != b.Height {
+					t.Fatalf("the bars are %v and %v", a, b)
+				}
+				if written.CountPhrase() != "" || parted.CountPhrase() != "" {
+					t.Errorf("a written count left the phrases %q and %q", written.CountPhrase(), parted.CountPhrase())
+				}
+				differ, drawn := sameStretch(s.Capture(), image.Pt(int(a.X), int(a.Y)), image.Pt(int(b.X), int(b.Y)),
+					image.Pt(int(a.Width), int(a.Height)))
+				if differ != 0 || drawn == 0 {
+					t.Errorf("%d pixels differ, %d drawn", differ, drawn)
+				}
+			})
+		}
+	}
+}
+
+// A screen reader hears the parts joined, as it hears CountText, after what it
+// hears of the state and with the name left as the group's own. Parts with no
+// words are no count at all, so a Count beside them still counts.
+func TestAScreenReaderHearsACountPartsWordsJoined(t *testing.T) {
+	var fixed, withAction, opens, written, both, emptied, plain, plainOpens *kvitui.SectionHeading
+	s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler {
+		made := func(name string) *kvitui.SectionHeading {
+			h := kvitui.NewSectionHeading(ui, name)
+			h.CountParts = diffCount(kvitui.InkAddedText, kvitui.InkRemovedText)
+			return h
+		}
+		fixed = made("Fixed")
+		withAction = made("With an action")
+		withAction.Action = "Review all"
+		opens = made("Opens")
+		opens.Collapsible = true
+		written = kvitui.NewSectionHeading(ui, "Written")
+		written.CountText = diffCountWords
+		written.Collapsible = true
+		both = made("Both")
+		both.CountText = "not heard"
+		emptied = kvitui.NewSectionHeading(ui, "Emptied")
+		emptied.CountParts = []kvitui.CountPart{{Text: ""}}
+		emptied.Count, emptied.Counted = 2, "file"
+		plain = kvitui.NewSectionHeading(ui, "Plain")
+		plainOpens = kvitui.NewSectionHeading(ui, "Plain and opens")
+		plainOpens.Count, plainOpens.Counted, plainOpens.Collapsible = 2, "file", true
+		col := kvitui.Column(ui, kvitui.SizeSpace)
+		for _, h := range []*kvitui.SectionHeading{fixed, withAction, opens, written, both, emptied, plain, plainOpens} {
+			col.AddChild(kvitui.FullWidth(h))
+		}
+		return kvitui.FullWidth(col)
+	})
+	for _, c := range []struct {
+		h           *kvitui.SectionHeading
+		role        role.Enum
+		name, heard string
+	}{
+		{fixed, role.Heading, "Fixed", diffCountWords},
+		{withAction, role.Group, "With an action", diffCountWords},
+		{opens, role.Button, "Opens", "Expanded, " + diffCountWords},
+		{written, role.Button, "Written", "Expanded, " + diffCountWords},
+		{both, role.Heading, "Both", diffCountWords},
+		{emptied, role.Heading, "Emptied", ""},
+		{plain, role.Heading, "Plain", ""},
+		{plainOpens, role.Button, "Plain and opens", "Expanded"},
+	} {
+		n := s.Node(c.h)
+		if n == nil || n.Role != c.role || n.Name != c.name || n.Description != c.heard {
+			t.Errorf("%s: the node is %+v, want the description %q", c.name, n, c.heard)
+		}
+	}
+	if got := emptied.CountPhrase(); got != "2 files" {
+		t.Errorf("parts with no words left the count reading %q", got)
+	}
+	s.Do(func() {
+		opens.Expanded = false
+		opens.MarkForRedraw()
+	})
+	s.Sync()
+	if n := s.Node(opens); n == nil || n.Description != "Collapsed, "+diffCountWords {
+		t.Errorf("closed: %+v", n)
 	}
 }
 

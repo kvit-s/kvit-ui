@@ -141,7 +141,10 @@ differs from another version without saying in which direction;
 a diff. They are not `Success` and `Danger` — a removed line is not an error.
 All three are close in luminance so text stays equally legible on any of
 them, which means they separate by hue alone and are never the only mark: a
-diff draws the `+` or `-` in the gutter and tints the line behind it.
+diff draws the `+` or `-` in the gutter and tints the line behind it. `AddedText`
+and `RemovedText` are the figures of a diff, such as `+5 −0`, and are always
+drawn beside their sign, which is their second channel; they too are not
+`Success` and `Danger`.
 
 **The portfolio vocabulary**, used by kvit-hub and available to anything
 else: `AxisAttention` is the reader's own time and `AxisAgent` is agent time,

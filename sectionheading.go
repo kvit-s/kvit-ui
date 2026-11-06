@@ -1,6 +1,8 @@
 package kvitui
 
 import (
+	"strings"
+
 	"github.com/kvit-s/kvit-ui/icons"
 	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/toolbox/v2/geom"
@@ -41,6 +43,11 @@ type SectionHeading struct {
 	// that is not a number, such as "1 · +0 −0". It is drawn as written,
 	// beside the name, and replaces Count.
 	CountText string
+	// CountParts is a written count in inks of its own, such as the "+5" and
+	// "−0" of "+5 −0". The parts' words, joined as they are, take the place of
+	// CountText, and replace it when there are any; a part holds its own
+	// spaces.
+	CountParts []CountPart
 	// Kind says what sort of thing the group holds, beside the name. It is
 	// the part that gives way first when the bar is narrow.
 	Kind string
@@ -66,6 +73,14 @@ type SectionHeading struct {
 	link   *Link
 	button *IconButton
 	lead   unison.Paneler // drawn after the chevron, before the name (SetLead)
+}
+
+// CountPart is one stretch of a SectionHeading's written count.
+type CountPart struct {
+	// Text is drawn as written.
+	Text string
+	// Ink is the part's colour; nil is the faint ink of a written count.
+	Ink Ink
 }
 
 // NewSectionHeading returns an open heading that does not collapse.
@@ -158,15 +173,28 @@ func (h *SectionHeading) sync() {
 
 // CountPhrase is the count at the right end: "1 account", "1,200 accounts",
 // the grouped number alone when nothing was named, and "" when there is no
-// count or the caller wrote one out in CountText.
+// count or the caller wrote one out in CountText or CountParts.
 func (h *SectionHeading) CountPhrase() string {
 	switch {
-	case h.CountText != "" || h.Count < 0:
+	case h.writtenCount() != "" || h.Count < 0:
 		return ""
 	case h.Counted == "":
 		return h.ui.Number(h.Count)
 	}
 	return h.ui.CountPhrase(h.Count, h.Counted, h.CountedPlural)
+}
+
+// writtenCount is the count the caller wrote out, in words: the parts joined,
+// or else CountText. "" when the caller wrote none.
+func (h *SectionHeading) writtenCount() string {
+	var b strings.Builder
+	for _, part := range h.CountParts {
+		b.WriteString(part.Text)
+	}
+	if b.Len() > 0 {
+		return b.String()
+	}
+	return h.CountText
 }
 
 // nameStyle is the name's style: the small role, bold when strong.
@@ -182,13 +210,30 @@ func (h *SectionHeading) nameStyle() text.Style {
 // their natural widths.
 func (h *SectionHeading) texts() (name, countText, kind, count *text.Layout) {
 	ui := h.ui
-	lay := func(s string, ink Ink, tabular bool) *text.Layout {
+	span := func(s string, ink Ink, tabular bool) text.Span {
 		st := ui.Chrome(ui.Size(RoleSmall), text.Regular, ink.Of(ui))
 		st.Tabular = tabular
-		return ui.Fonts.Layout([]text.Span{{Text: s, Style: st}}, text.Options{})
+		return text.Span{Text: s, Style: st}
+	}
+	lay := func(s string, ink Ink, tabular bool) *text.Layout {
+		return ui.Fonts.Layout([]text.Span{span(s, ink, tabular)}, text.Options{})
+	}
+	var parts []text.Span
+	for _, part := range h.CountParts {
+		if part.Text == "" {
+			continue
+		}
+		ink := part.Ink
+		if ink == nil {
+			ink = InkTextFaint
+		}
+		parts = append(parts, span(part.Text, ink, true))
+	}
+	if len(parts) == 0 {
+		parts = []text.Span{span(h.CountText, InkTextFaint, true)}
 	}
 	name = ui.Fonts.Layout([]text.Span{{Text: h.Text, Style: h.nameStyle()}}, text.Options{})
-	return name, lay(h.CountText, InkTextFaint, true), lay(h.Kind, InkTextMuted, false), lay(h.CountPhrase(), InkTextFaint, true)
+	return name, ui.Fonts.Layout(parts, text.Options{}), lay(h.Kind, InkTextMuted, false), lay(h.CountPhrase(), InkTextFaint, true)
 }
 
 // headingParts is where each part of the bar goes.
@@ -203,6 +248,7 @@ func (h *SectionHeading) arrange(b geom.Rect) headingParts {
 	m := h.ui.Interface
 	gap := float32(m.StackGap())
 	name, countText, _, count := h.texts()
+	written := h.writtenCount() != ""
 	var out headingParts
 	x, right := b.X+float32(m.Space()), b.Right()-float32(m.Space())
 	mid := func(w, hgt float32) geom.Rect { return geom.NewRect(0, b.Y+(b.Height-hgt)/2, w, hgt) }
@@ -238,13 +284,13 @@ func (h *SectionHeading) arrange(b geom.Rect) headingParts {
 	}
 	nw, nh := name.Size()
 	var tw, th float32
-	if h.CountText != "" {
+	if written {
 		tw, th = countText.Size()
 	}
 	// The room left is shared by the kind and the empty room; the kind takes
 	// all of it and is cut short, then the name gives way.
 	fixed := nw
-	if h.CountText != "" {
+	if written {
 		fixed += gap + tw
 	}
 	room := right - x - fixed - gap
@@ -255,7 +301,7 @@ func (h *SectionHeading) arrange(b geom.Rect) headingParts {
 	out.name = mid(nw, nh)
 	out.name.X = x
 	x += nw + gap
-	if h.CountText != "" {
+	if written {
 		out.countText = mid(tw, th)
 		out.countText.X = x
 		x += tw + gap
@@ -311,7 +357,7 @@ func (h *SectionHeading) draw(gc *unison.Canvas, _ geom.Rect) {
 		l.Draw(gc, box.X, b.Y+(b.Height-hgt)/2)
 	}
 	put(ui.Fonts.Layout([]text.Span{{Text: h.Text, Style: h.nameStyle()}}, text.Options{MaxWidth: at.name.Width, Elide: true}), at.name)
-	if h.CountText != "" {
+	if h.writtenCount() != "" {
 		put(countText, at.countText)
 	}
 	if h.Kind != "" && at.kind.Width > 0 {
@@ -328,7 +374,9 @@ func (h *SectionHeading) draw(gc *unison.Canvas, _ geom.Rect) {
 // action cannot be one: a heading that opens and closes is a button with its
 // expanded state, the usual form of a disclosure, and a fixed heading with an
 // action is a group named by the heading. Only a fixed heading with no action
-// is a heading.
+// is a heading. A written count is spoken in the description, because Windows
+// gives a button or a heading no value pattern, so a node's Value would never be
+// read there.
 func (h *SectionHeading) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	n := b.Node()
 	if n.Role == role.Auto {
@@ -349,6 +397,12 @@ func (h *SectionHeading) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 			n.Description = "Expanded"
 		}
 		n.Actions = n.Actions.With(accessibility.Press)
+	}
+	if words := h.writtenCount(); words != "" {
+		if n.Description != "" {
+			n.Description += ", "
+		}
+		n.Description += words
 	}
 }
 

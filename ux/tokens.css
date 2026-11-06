@@ -70,6 +70,8 @@
   --changed-text-background: #3d3060;
   --added-text-background: #1d3a26;
   --removed-text-background: #45211f;
+  --added-text: #6cc086;
+  --removed-text: #f0847a;
   --callout-tip: #4db6ac;
 
   /* code, for a mockup that shows a document */
@@ -170,6 +172,8 @@
   --changed-text-background: #e4d7f2;
   --added-text-background: #d3edd8;
   --removed-text-background: #f6d5d2;
+  --added-text: #1f7a3d;
+  --removed-text: #b42318;
   --callout-tip: #2a9d8f;
 
   /* code, for a mockup that shows a document */
@@ -270,6 +274,8 @@
   --changed-text-background: #ded0e0;
   --added-text-background: #d5e6c9;
   --removed-text-background: #f2d6c8;
+  --added-text: #3e6e2d;
+  --removed-text: #9c3a2b;
   --callout-tip: #3a8a7a;
 
   /* code, for a mockup that shows a document */
@@ -370,6 +376,8 @@
   --changed-text-background: #4b0082;
   --added-text-background: #00420f;
   --removed-text-background: #5c0000;
+  --added-text: #66ff99;
+  --removed-text: #ff8080;
   --callout-tip: #33ffdd;
 
   /* code, for a mockup that shows a document */

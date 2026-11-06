@@ -157,12 +157,13 @@ var catalog = []entry{
 	{
 		name:    "KvitSectionHeading",
 		group:   "Content",
-		summary: "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group. `SetLead` draws a picture of the group's own after the chevron and before the name: a press on it presses the heading, and a screen reader hears the name alone.",
+		summary: "A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written, or in `CountParts` where its parts have inks of their own, such as `AddedText` and `RemovedText` for the lines of a diff; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group. `SetLead` draws a picture of the group's own after the chevron and before the name: a press on it presses the heading, and a screen reader hears the name alone.",
 		specimens: []specimen{
 			{caption: "Collapsible, counted, with an action", build: sectionHeadingForms},
 			{caption: "A picture before the name: an SVG and a PNG", build: sectionHeadingPictures},
 			{caption: "Reached by tab, opened by Return", build: sectionHeadingKeyboard},
 			{caption: "A written count, and an action drawn as a symbol", build: sectionHeadingWrittenCount},
+			{caption: "A written count in parts of their own inks", build: sectionHeadingCountParts},
 			{caption: "What the action does, in a sentence", build: sectionHeadingExplanation},
 		},
 	},

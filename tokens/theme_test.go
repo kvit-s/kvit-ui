@@ -139,6 +139,15 @@ func TestTablesAreCompleteAndDistinct(t *testing.T) {
 				}
 			}
 		}
+		// A diff's figures are not finished and stalled, whatever their hue.
+		figures := []palette.Color{tk.AddedText, tk.RemovedText, tk.Success, tk.Danger}
+		for i := range figures {
+			for j := i + 1; j < len(figures); j++ {
+				if figures[i].Equal(figures[j]) {
+					t.Errorf("%s: diff figure colours %d and %d are the same colour", id, i, j)
+				}
+			}
+		}
 	}
 	bg := func(id string) palette.Color { return tokens.TokensFor(id).WindowBackground }
 	if bg(tokens.Light).Equal(bg(tokens.Dark)) || bg(tokens.Light).Equal(bg(tokens.Sepia)) || bg(tokens.Dark).Equal(bg(tokens.Sepia)) {
@@ -187,6 +196,15 @@ func TestEveryTokenPairMeetsItsFloor(t *testing.T) {
 		{"textPrimary on changed text", func(k tokens.Tokens) palette.Color { return k.TextPrimary }, func(k tokens.Tokens) palette.Color { return k.ChangedTextBackground }, 4.5},
 		{"textPrimary on an added line", func(k tokens.Tokens) palette.Color { return k.TextPrimary }, func(k tokens.Tokens) palette.Color { return k.AddedTextBackground }, 4.5},
 		{"textPrimary on a removed line", func(k tokens.Tokens) palette.Color { return k.TextPrimary }, func(k tokens.Tokens) palette.Color { return k.RemovedTextBackground }, 4.5},
+		// A collapsible heading's count stands on the hover tint under the pointer.
+		{"addedText on window", func(k tokens.Tokens) palette.Color { return k.AddedText }, func(k tokens.Tokens) palette.Color { return k.WindowBackground }, 4.5},
+		{"addedText on panel", func(k tokens.Tokens) palette.Color { return k.AddedText }, func(k tokens.Tokens) palette.Color { return k.PanelBackground }, 4.5},
+		{"addedText on list", func(k tokens.Tokens) palette.Color { return k.AddedText }, func(k tokens.Tokens) palette.Color { return k.ListBackground }, 4.5},
+		{"addedText on hover", func(k tokens.Tokens) palette.Color { return k.AddedText }, func(k tokens.Tokens) palette.Color { return k.HoverTint }, 4.5},
+		{"removedText on window", func(k tokens.Tokens) palette.Color { return k.RemovedText }, func(k tokens.Tokens) palette.Color { return k.WindowBackground }, 4.5},
+		{"removedText on panel", func(k tokens.Tokens) palette.Color { return k.RemovedText }, func(k tokens.Tokens) palette.Color { return k.PanelBackground }, 4.5},
+		{"removedText on list", func(k tokens.Tokens) palette.Color { return k.RemovedText }, func(k tokens.Tokens) palette.Color { return k.ListBackground }, 4.5},
+		{"removedText on hover", func(k tokens.Tokens) palette.Color { return k.RemovedText }, func(k tokens.Tokens) palette.Color { return k.HoverTint }, 4.5},
 		{"borderStrong on window", func(k tokens.Tokens) palette.Color { return k.BorderStrong }, func(k tokens.Tokens) palette.Color { return k.WindowBackground }, 3},
 		{"mutedGlyph on panel", func(k tokens.Tokens) palette.Color { return k.MutedGlyph }, func(k tokens.Tokens) palette.Color { return k.PanelBackground }, 3},
 		{"quoteBar on window", func(k tokens.Tokens) palette.Color { return k.QuoteBar }, func(k tokens.Tokens) palette.Color { return k.WindowBackground }, 3},
@@ -282,6 +300,13 @@ func TestHighContrastMeetsStricterFloor(t *testing.T) {
 	}
 	if r := wcag20Ratio(tk.FocusRing, tk.WindowBackground); r < 4.5 {
 		t.Errorf("high contrast focus ring is only %.2f:1 (need 4.5:1)", r)
+	}
+	for _, fg := range []palette.Color{tk.AddedText, tk.RemovedText} {
+		for _, bg := range []palette.Color{tk.WindowBackground, tk.PanelBackground, tk.ListBackground} {
+			if r := wcag20Ratio(fg, bg); r < 7 {
+				t.Errorf("high contrast diff figure %s on %s is only %.2f:1 (need 7:1)", fg, bg, r)
+			}
+		}
 	}
 	th := tokens.NewTheme()
 	th.SetThemeID(tokens.HighContrast)

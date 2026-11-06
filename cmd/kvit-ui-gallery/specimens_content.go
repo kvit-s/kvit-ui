@@ -144,6 +144,30 @@ func sectionHeadingWrittenCount(ui *kvitui.UI) unison.Paneler {
 	return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, changes, agents, terminal))
 }
 
+func sectionHeadingCountParts(ui *kvitui.UI) unison.Paneler {
+	// The lines added and removed are a diff's figures, in inks of their own
+	// beside their signs. The parts stand where CountText stands and are cut
+	// the same way; a screen reader hears them joined. A part with no ink is
+	// drawn in the faint ink the written count has.
+	changes := kvitui.NewSectionHeading(ui, "Changes")
+	changes.CountParts = []kvitui.CountPart{
+		{Text: "3 · "},
+		{Text: "+128", Ink: kvitui.InkAddedText},
+		{Text: " "},
+		{Text: "−24", Ink: kvitui.InkRemovedText},
+	}
+	changes.Collapsible = true
+	changes.Action, changes.ActionSymbol = "Open diff", "diff"
+	added := kvitui.NewSectionHeading(ui, "Only added")
+	added.CountParts = []kvitui.CountPart{
+		{Text: "+5", Ink: kvitui.InkAddedText},
+		{Text: " "},
+		{Text: "−0"},
+	}
+	added.Kind = "one file"
+	return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, changes, added))
+}
+
 func sectionHeadingExplanation(ui *kvitui.UI) unison.Paneler {
 	// ActionExplanation is the sentence beside the action's name, on the
 	// action rather than on the heading: a heading is not something a reader

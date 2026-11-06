@@ -47,6 +47,8 @@ var lightTable = Tokens{
 	ChangedTextBackground:   palette.Hex("#e4d7f2"),
 	AddedTextBackground:     palette.Hex("#d3edd8"),
 	RemovedTextBackground:   palette.Hex("#f6d5d2"),
+	AddedText:               palette.Hex("#1f7a3d"),
+	RemovedText:             palette.Hex("#b42318"),
 	CodeKeyword:             palette.Hex("#a626a4"),
 	CodeType:                palette.Hex("#2967f0"),
 	CodeString:              palette.Hex("#3f7e3e"),
@@ -108,6 +110,8 @@ var darkTable = Tokens{
 	ChangedTextBackground:   palette.Hex("#3d3060"),
 	AddedTextBackground:     palette.Hex("#1d3a26"),
 	RemovedTextBackground:   palette.Hex("#45211f"),
+	AddedText:               palette.Hex("#6cc086"),
+	RemovedText:             palette.Hex("#f0847a"),
 	CodeKeyword:             palette.Hex("#c678dd"),
 	CodeType:                palette.Hex("#61afef"),
 	CodeString:              palette.Hex("#98c379"),
@@ -169,6 +173,8 @@ var sepiaTable = Tokens{
 	ChangedTextBackground:   palette.Hex("#ded0e0"),
 	AddedTextBackground:     palette.Hex("#d5e6c9"),
 	RemovedTextBackground:   palette.Hex("#f2d6c8"),
+	AddedText:               palette.Hex("#3e6e2d"),
+	RemovedText:             palette.Hex("#9c3a2b"),
 	CodeKeyword:             palette.Hex("#9a2f8a"),
 	CodeType:                palette.Hex("#2f69af"),
 	CodeString:              palette.Hex("#497236"),
@@ -230,6 +236,8 @@ var highContrastTable = Tokens{
 	ChangedTextBackground:   palette.Hex("#4b0082"),
 	AddedTextBackground:     palette.Hex("#00420f"),
 	RemovedTextBackground:   palette.Hex("#5c0000"),
+	AddedText:               palette.Hex("#66ff99"),
+	RemovedText:             palette.Hex("#ff8080"),
 	CodeKeyword:             palette.Hex("#ff99ff"),
 	CodeType:                palette.Hex("#99ddff"),
 	CodeString:              palette.Hex("#99ff99"),
@@ -250,4 +258,4 @@ var highContrastTable = Tokens{
 	DivergingRamp:           []palette.Color{palette.Hex("#89dd76"), palette.Hex("#8ac07f"), palette.Hex("#89a384"), palette.Hex("#868686"), palette.Hex("#ae8faa"), palette.Hex("#d596cf"), palette.Hex("#fd9cf5")},
 }
 
-var tokenNames = []string{"WindowBackground", "PanelBackground", "ListBackground", "FooterBackground", "PopupBackground", "ChipBackground", "BannerBackground", "CodePanelBackground", "TextPrimary", "TextSecondary", "TextMuted", "TextFaint", "TextDisabled", "BannerText", "Border", "BorderStrong", "QuoteBar", "MutedGlyph", "HoverTint", "BlockHoverTint", "FocusTint", "FocusRing", "SelectionTint", "SelectionActiveTint", "BlockSelectionTint", "Accent", "Danger", "DangerBright", "Success", "Warning", "PinColor", "Marker", "InlineCodeBackground", "HighlightBackground", "Link", "SearchMatchBackground", "SearchCurrentBackground", "ChangedTextBackground", "AddedTextBackground", "RemovedTextBackground", "CodeKeyword", "CodeType", "CodeString", "CodeComment", "CodeNumber", "CalloutTip", "AxisAttention", "AxisAttentionText", "AxisAgent", "AxisAgentText", "ScopeDiscovered", "SignalHard", "SignalSoft", "SignalHygiene", "HatchAlt"}
+var tokenNames = []string{"WindowBackground", "PanelBackground", "ListBackground", "FooterBackground", "PopupBackground", "ChipBackground", "BannerBackground", "CodePanelBackground", "TextPrimary", "TextSecondary", "TextMuted", "TextFaint", "TextDisabled", "BannerText", "Border", "BorderStrong", "QuoteBar", "MutedGlyph", "HoverTint", "BlockHoverTint", "FocusTint", "FocusRing", "SelectionTint", "SelectionActiveTint", "BlockSelectionTint", "Accent", "Danger", "DangerBright", "Success", "Warning", "PinColor", "Marker", "InlineCodeBackground", "HighlightBackground", "Link", "SearchMatchBackground", "SearchCurrentBackground", "ChangedTextBackground", "AddedTextBackground", "RemovedTextBackground", "AddedText", "RemovedText", "CodeKeyword", "CodeType", "CodeString", "CodeComment", "CodeNumber", "CalloutTip", "AxisAttention", "AxisAttentionText", "AxisAgent", "AxisAgentText", "ScopeDiscovered", "SignalHard", "SignalSoft", "SignalHygiene", "HatchAlt"}

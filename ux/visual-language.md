@@ -63,6 +63,8 @@ set, including the five code-highlighting colours a mockup of the document panel
 | `Danger` | `--danger` | `#e06c60` | `#b3261e` |
 | `Success` | `--success` | `#5abd82` | `#27ae60` |
 | `Warning` | `--warning` | `#e0a34c` | `#f39c12` |
+| `AddedText` | `--added-text` | `#6cc086` | `#1f7a3d` |
+| `RemovedText` | `--removed-text` | `#f0847a` | `#b42318` |
 | `AxisAttention` | `--axis-attention` | `#d9a04c` | `#d99a3d` |
 | `AxisAttentionText` | `--axis-attention-text` | `#e6b877` | `#b06a10` |
 | `AxisAgent` | `--axis-agent` | `#4aa3a3` | `#4aa3a3` |

@@ -763,7 +763,7 @@ func historyBack(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSectionHeading
 
-A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group. `SetLead` draws a picture of the group's own after the chevron and before the name: a press on it presses the heading, and a screen reader hears the name alone.
+A group heading: a filled bar with a disclosure chevron, the name, what the group holds, the count with the word for what was counted, and the one action that applies to every row under it. A count that is not a number goes in `CountText` and is drawn beside the name as written, or in `CountParts` where its parts have inks of their own, such as `AddedText` and `RemovedText` for the lines of a diff; `ActionSymbol` draws the action as a symbol and keeps its words as the button's name and tooltip, with `ActionExplanation` saying in a sentence what running it does. A collapsible heading joins the tab order and opens on Return, Enter or Space; the hoisted action is a control of its own, so running it never also collapses the group. `SetLead` draws a picture of the group's own after the chevron and before the name: a press on it presses the heading, and a screen reader hears the name alone.
 
 ```go
 func NewSectionHeading(ui *UI, label string) *SectionHeading
@@ -776,6 +776,7 @@ func NewSectionHeading(ui *UI, label string) *SectionHeading
 | `Counted` | `string` | Counted is the word for one of them; "" leaves the number bare. |
 | `CountedPlural` | `string` | CountedPlural is the word for several; "" adds an s to Counted. |
 | `CountText` | `string` | CountText is a count the caller has already written out, for a count that is not a number, such as "1 · +0 −0". |
+| `CountParts` | `[]CountPart` | CountParts is a written count in inks of its own, such as the "+5" and "−0" of "+5 −0". |
 | `Kind` | `string` | Kind says what sort of thing the group holds, beside the name. |
 | `Action` | `string` | Action is the hoisted action's words; "" for none. |
 | `ActionSymbol` | `string` | ActionSymbol draws the action as a symbol, keeping its words as the button's name and tooltip, for an action a symbol can carry. |
@@ -865,6 +866,34 @@ func sectionHeadingWrittenCount(ui *kvitui.UI) unison.Paneler {
     terminal := kvitui.NewSectionHeading(ui, "Terminal")
     terminal.Action, terminal.ActionSymbol = "Open terminal", "terminal"
     return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, changes, agents, terminal))
+}
+```
+
+*A written count in parts of their own inks*
+
+```go
+func sectionHeadingCountParts(ui *kvitui.UI) unison.Paneler {
+    // The lines added and removed are a diff's figures, in inks of their own
+    // beside their signs. The parts stand where CountText stands and are cut
+    // the same way; a screen reader hears them joined. A part with no ink is
+    // drawn in the faint ink the written count has.
+    changes := kvitui.NewSectionHeading(ui, "Changes")
+    changes.CountParts = []kvitui.CountPart{
+        {Text: "3 · "},
+        {Text: "+128", Ink: kvitui.InkAddedText},
+        {Text: " "},
+        {Text: "−24", Ink: kvitui.InkRemovedText},
+    }
+    changes.Collapsible = true
+    changes.Action, changes.ActionSymbol = "Open diff", "diff"
+    added := kvitui.NewSectionHeading(ui, "Only added")
+    added.CountParts = []kvitui.CountPart{
+        {Text: "+5", Ink: kvitui.InkAddedText},
+        {Text: " "},
+        {Text: "−0"},
+    }
+    added.Kind = "one file"
+    return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpace, changes, added))
 }
 ```
 

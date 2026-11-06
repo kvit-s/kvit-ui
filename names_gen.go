@@ -50,6 +50,8 @@ var (
 	InkChangedTextBackground   Ink = func(t tokens.Tokens) palette.Color { return t.ChangedTextBackground }
 	InkAddedTextBackground     Ink = func(t tokens.Tokens) palette.Color { return t.AddedTextBackground }
 	InkRemovedTextBackground   Ink = func(t tokens.Tokens) palette.Color { return t.RemovedTextBackground }
+	InkAddedText               Ink = func(t tokens.Tokens) palette.Color { return t.AddedText }
+	InkRemovedText             Ink = func(t tokens.Tokens) palette.Color { return t.RemovedText }
 	InkCodeKeyword             Ink = func(t tokens.Tokens) palette.Color { return t.CodeKeyword }
 	InkCodeType                Ink = func(t tokens.Tokens) palette.Color { return t.CodeType }
 	InkCodeString              Ink = func(t tokens.Tokens) palette.Color { return t.CodeString }
