@@ -6,6 +6,7 @@ import (
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/kvit-s/kvit-ui/uitest"
+	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/enums/role"
 )
@@ -53,4 +54,49 @@ func TestTheNamingCheckFindsAControlWithNoName(t *testing.T) {
 	if n := s.Named("Delete"); n == nil || n.Role != role.Button {
 		t.Errorf("the named button's node is %+v", n)
 	}
+}
+
+// A scale below full size changes how many pixels a window paints and nothing
+// of where its parts are, and a picture of such a window is refused rather than
+// handed to a test that would read the wrong colours from it.
+func TestAScaleAskedForChangesThePixelsAndNotTheLayout(t *testing.T) {
+	open := func(t *testing.T) (*uitest.Session, *kvitui.Button) {
+		t.Helper()
+		var save *kvitui.Button
+		s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler {
+			save = kvitui.NewButton(ui, "Save")
+			return kvitui.Left(save)
+		})
+		return s, save
+	}
+	var fullBounds geom.Rect
+	t.Run("full size", func(t *testing.T) {
+		s, save := open(t)
+		if got := s.Screen.Scale(); got != 1 {
+			t.Fatalf("the scale is %v", got)
+		}
+		s.Do(func() { fullBounds = save.FrameRect() })
+		if bounds := s.Capture().Bounds(); bounds.Dx() < 1000 {
+			t.Fatalf("the picture is %d pixels wide", bounds.Dx())
+		}
+	})
+	t.Run("small", func(t *testing.T) {
+		t.Setenv(uitest.ScaleVariable, "0.1")
+		s, save := open(t)
+		if got := s.Screen.Scale(); got != 0.1 {
+			t.Fatalf("the scale is %v", got)
+		}
+		var bounds geom.Rect
+		s.Do(func() { bounds = save.FrameRect() })
+		if bounds != fullBounds {
+			t.Fatalf("the button is at %v, and at %v at full size", bounds, fullBounds)
+		}
+	})
+	t.Run("not a scale", func(t *testing.T) {
+		t.Setenv(uitest.ScaleVariable, "small")
+		s, _ := open(t)
+		if got := s.Screen.Scale(); got != 1 {
+			t.Fatalf("the scale is %v", got)
+		}
+	})
 }

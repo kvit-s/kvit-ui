@@ -7,6 +7,8 @@ package uitest
 
 import (
 	"image"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -33,6 +35,24 @@ type Options struct {
 	// form (also Linux's) unless set, on every system, so a test of the
 	// macOS form runs anywhere.
 	Form kvitui.Form
+}
+
+// ScaleVariable is an environment variable naming the backing scale of the
+// screens Open starts, which is 1 unless it is set. A program whose tests mostly
+// ask what a window shows, rather than how it looks, sets it below 1: layout is
+// in logical points and comes out the same, while each frame costs far fewer
+// pixels to paint and to copy. Capture refuses a window drawn below full size,
+// so a test reading what was drawn sets it to 1 for itself.
+const ScaleVariable = "KVIT_UITEST_SCALE"
+
+// screenScale is the backing scale ScaleVariable asks for, and 1 for anything
+// that cannot be a scale.
+func screenScale() float32 {
+	scale, err := strconv.ParseFloat(os.Getenv(ScaleVariable), 32)
+	if err != nil || scale <= 0 {
+		return 1
+	}
+	return float32(scale)
 }
 
 // Session is a headless screen showing one Kvit window.
@@ -76,7 +96,7 @@ func Open(t testing.TB, opt Options, build func(ui *kvitui.UI) unison.Paneler) *
 	}
 	s := &Session{t: t, UI: ui}
 	var startErr error
-	s.Screen, err = unison.StartHeadless(unison.HeadlessConfig{Width: width, Height: height},
+	s.Screen, err = unison.StartHeadless(unison.HeadlessConfig{Width: width, Height: height, Scale: screenScale()},
 		unison.StartupFinishedCallback(func() {
 			if s.Window, startErr = kvitui.NewWindow(ui, t.Name()); startErr != nil {
 				return
@@ -128,7 +148,13 @@ func (s *Session) SetInterfaceSize(px int) {
 }
 
 // Capture is the window as drawn now.
-func (s *Session) Capture() image.Image { return s.Screen.CaptureWindow(s.Window.Window) }
+func (s *Session) Capture() image.Image {
+	s.t.Helper()
+	if s.Screen.Scale() < 1 {
+		s.t.Fatalf("uitest: the window is drawn at %v of its size, so a picture of it is not what a person sees; set %s to 1 for this test", s.Screen.Scale(), ScaleVariable)
+	}
+	return s.Screen.CaptureWindow(s.Window.Window)
+}
 
 // Tree is what a screen reader is told about the window now.
 func (s *Session) Tree() *accessibility.Tree { return s.Screen.AccessibilityTree(s.Window.Window) }
