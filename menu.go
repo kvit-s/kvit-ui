@@ -2,6 +2,7 @@ package kvitui
 
 import (
 	"math"
+
 	"runtime"
 	"slices"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/richardwilkes/unison/accessibility"
 	"github.com/richardwilkes/unison/enums/check"
 	"github.com/richardwilkes/unison/enums/mod"
+	"github.com/richardwilkes/unison/enums/pathop"
 	"github.com/richardwilkes/unison/enums/role"
 )
 
@@ -408,6 +410,10 @@ func nativeItem(f unison.MenuFactory, form Form, it MenuItem) unison.MenuItem {
 // column of marks does not find.
 var menuBullet = Px(7)
 
+// menuMaxLines caps a menu's height: at most this many slim rows inside its
+// frame, and never taller than the room the window has on the side it opens.
+const menuMaxLines = 15
+
 // menu is the Kvit menu: a list of commands in the window's popup layer. It
 // takes the keyboard focus while open and gives it back when it closes.
 type menu struct {
@@ -431,36 +437,77 @@ type menu struct {
 	sub      *menu // the submenu open beside a line, or nil
 	subLine  int   // the line the submenu belongs to
 	hoverGen int   // counts pointer moves, so a late submenu opening can tell it is stale
+	// scrollY is how far the lines are scrolled, for a menu taller than its
+	// frame; ease moves it the distance the wheel was turned.
+	scrollY float32
+	ease    wheelScroll
+	// needInitialScroll opens on the checked line, once the frame's height
+	// is known.
+	needInitialScroll bool
+	// dragging moves the handle, with the pointer's start and the scroll it
+	// started from.
+	dragging        bool
+	dragStartY      float32
+	dragStartScroll float32
+	// handleHover lights the handle while the pointer rests on it.
+	handleHover bool
 }
 
 func newMenu(ui *UI, title string, items []MenuItem) *menu {
 	if ui.form == FormWindows {
 		items = menuAccessKeys(items)
 	}
-	m := &menu{ui: ui, title: title, items: items, lit: -1}
+	m := &menu{ui: ui, title: title, items: items, lit: -1, needInitialScroll: true}
 	m.Self = m
 	m.tip = partTip{ui: ui, owner: m}
 	m.SetFocusable(true)
 	m.SetSizer(m.sizes)
+	m.ease = wheelScroll{ui: ui,
+		at:     func() (x, y float32) { return 0, m.scrollY },
+		travel: func() (x, y float32) { return 0, m.travel() },
+		moveTo: func(_, y float32) { m.scrollTo(y) }}
 	m.DrawCallback = m.draw
 	m.KeyDownCallback = m.keyDown
-	m.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool { m.hover(m.lineAt(where)); return true }
-	m.MouseDragCallback = func(where geom.Point, _ int, _ mod.Modifiers) bool { m.hover(m.lineAt(where)); return true }
+	m.MouseWheelCallback = func(_ geom.Point, delta geom.Point, _ mod.Modifiers) bool { return m.ease.wheel(delta) }
+	m.MouseMoveCallback = func(where geom.Point, _ mod.Modifiers) bool { m.pointerAt(where, false); return true }
+	m.MouseDragCallback = func(where geom.Point, _ int, _ mod.Modifiers) bool { m.pointerAt(where, true); return true }
 	// The first move over the menu arrives as the pointer entering it.
 	m.MouseEnterCallback = m.MouseMoveCallback
 	m.MouseExitCallback = func() bool {
+		m.handleHover = false
 		// The pointer leaving for the open submenu leaves its line lit.
 		if m.sub == nil {
 			m.light(-1)
 		}
+		m.MarkForRedraw()
 		return true
 	}
 	m.MouseDownCallback = func(where geom.Point, _, _ int, _ mod.Modifiers) bool {
+		if m.travel() > 0 && where.In(m.grabRect()) {
+			m.dragging = true
+			m.dragStartY, m.dragStartScroll = where.Y, m.scrollY
+			return true
+		}
+		if m.travel() > 0 && where.In(m.stripRect()) {
+			// A press on the track pages, as a scroll bar's does.
+			if where.Y < m.thumbRect().Y {
+				m.scrollTo(m.scrollY - m.viewH())
+			} else {
+				m.scrollTo(m.scrollY + m.viewH())
+			}
+			m.pressed = false
+			return true
+		}
 		m.pressed = true
 		m.light(m.lineAt(where))
 		return true
 	}
 	m.MouseUpCallback = func(where geom.Point, _ int, _ mod.Modifiers) bool {
+		if m.dragging {
+			m.dragging = false
+			m.MarkForRedraw()
+			return true
+		}
 		if m.pressed {
 			m.pressed = false
 			if i := m.lineAt(where); i >= 0 {
@@ -532,8 +579,173 @@ func (m *menu) shortcut(it MenuItem) *text.Layout {
 	return ui.Fonts.Layout([]text.Span{{Text: words, Style: ui.Chrome(ui.Size(RoleSmall), text.Regular, ui.Theme.Tokens().TextFaint)}}, text.Options{})
 }
 
+// fullH is the height of every line inside the frame.
+func (m *menu) fullH() float32 {
+	h := float32(0)
+	for _, it := range m.items {
+		h += m.lineHeight(it)
+	}
+	return h
+}
+
+// maxInsideH is the tallest the lines may stand inside the frame: 15 slim
+// rows, read at layout and draw time so it follows the interface size.
+func (m *menu) maxInsideH() float32 {
+	return float32(menuMaxLines) * float32(m.ui.Interface.RowHeightSlim())
+}
+
+// viewH is the height the lines are shown in: all of them up to the
+// maximum, scrolling past that, and never taller than the frame the window
+// gave the menu.
+func (m *menu) viewH() float32 {
+	full := m.fullH()
+	maxInside := m.maxInsideH()
+	r := m.ContentRect(false)
+	vh := r.Height - 2*m.frame()
+	if vh <= 0 {
+		return min(full, maxInside)
+	}
+	return max(0, min(full, vh, maxInside))
+}
+
+// travel is how far the lines can scroll.
+func (m *menu) travel() float32 { return max(0, m.fullH()-m.viewH()) }
+
+// scrollTo moves the view, kept within its ends.
+func (m *menu) scrollTo(y float32) {
+	y = max(0, min(m.travel(), y))
+	if y != m.scrollY {
+		m.scrollY = y
+		m.MarkForRedraw()
+		if m.sub != nil {
+			// The submenu hangs from its line, so it follows the line as
+			// drawn.
+			if w := m.ui.windowOf(m); w != nil {
+				w.Content().MarkForLayoutAndRedraw()
+			}
+		}
+	}
+}
+
+// offsetTop is how far the top of a line stands below the top of the view
+// while unrolled.
+func (m *menu) offsetTop(i int) float32 {
+	top := float32(0)
+	for j := range i {
+		top += m.lineHeight(m.items[j])
+	}
+	return top
+}
+
+// reveal scrolls a line into view.
+func (m *menu) reveal(i int) {
+	if i < 0 || i >= len(m.items) {
+		return
+	}
+	top := m.offsetTop(i)
+	bottom := top + m.lineHeight(m.items[i])
+	view := m.viewH()
+	switch {
+	case top < m.scrollY:
+		m.scrollTo(top)
+	case bottom > m.scrollY+view:
+		m.scrollTo(bottom - view)
+	}
+}
+
+// viewRect is where the lines show, inside the frame.
+func (m *menu) viewRect() geom.Rect {
+	r := m.ContentRect(false)
+	return geom.NewRect(r.X+m.frame(), r.Y+m.frame(), r.Width-2*m.frame(), m.viewH())
+}
+
+// stripRect is the handle's strip at the view's right edge, kept while the
+// lines scroll.
+func (m *menu) stripRect() geom.Rect {
+	v := m.viewRect()
+	w := float32(m.ui.Interface.SpaceWide())
+	return geom.NewRect(v.Right()-w, v.Y, w, v.Height)
+}
+
+// thumbRect is the handle, sized by how much shows and placed by where the
+// view is.
+func (m *menu) thumbRect() geom.Rect {
+	v := m.viewRect()
+	full := m.fullH()
+	if full <= 0 || v.Height >= full {
+		return geom.Rect{}
+	}
+	tight := float32(m.ui.Interface.SpaceTight())
+	w := max(1, float32(m.ui.Interface.SpaceWide())-2*tight)
+	h := max(float32(m.ui.Interface.Px(24)), v.Height*v.Height/full)
+	h = min(h, v.Height)
+	travel := m.travel()
+	y := v.Y
+	if travel > 0 {
+		y += (v.Height - h) * m.scrollY / travel
+	}
+	return geom.NewRect(v.Right()-tight-w, y, w, h)
+}
+
+// grabRect is the handle with room around it, so it takes a press on its
+// near misses too.
+func (m *menu) grabRect() geom.Rect {
+	return m.thumbRect().Inset(geom.NewUniformInsets(-float32(m.ui.Interface.SpaceSnug())))
+}
+
+// pointerAt answers the pointer at a point: dragging the handle moves the
+// view, resting on it lights it, and anywhere else lights the line there.
+func (m *menu) pointerAt(where geom.Point, dragging bool) {
+	if m.dragging {
+		thumbH := m.thumbRect().Height
+		span := m.viewH() - thumbH
+		if span > 0 {
+			m.scrollTo(m.dragStartScroll + (where.Y-m.dragStartY)*m.travel()/span)
+		}
+		return
+	}
+	if m.travel() > 0 && (where.In(m.stripRect()) || where.In(m.grabRect())) {
+		over := where.In(m.grabRect())
+		if over != m.handleHover {
+			m.handleHover = over
+			m.MarkForRedraw()
+		}
+		if !dragging {
+			m.hover(-1)
+		}
+		return
+	}
+	if m.handleHover {
+		m.handleHover = false
+		m.MarkForRedraw()
+	}
+	m.hover(m.lineAt(where))
+}
+
+// initialScroll opens on the checked line, as a select's list opens on its
+// current value.
+func (m *menu) initialScroll(view float32) {
+	for i, it := range m.items {
+		if it.Checked {
+			top := m.offsetTop(i)
+			bottom := top + m.lineHeight(it)
+			switch {
+			case top < m.scrollY:
+				m.scrollY = top
+			case bottom > m.scrollY+view:
+				m.scrollY = bottom - view
+			}
+			m.scrollY = max(0, min(m.travelFor(view), m.scrollY))
+			return
+		}
+	}
+}
+
+// travelFor is the travel for a view height not yet laid out.
+func (m *menu) travelFor(view float32) float32 { return max(0, m.fullH()-view) }
+
 // sizes: 200 design pixels wide, or wider for a long line, and as tall as its
-// lines.
+// lines up to the maximum of 15 slim rows.
 func (m *menu) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	i := m.ui.Interface
 	w := float32(i.Px(200)) - 2*m.frame()
@@ -553,22 +765,32 @@ func (m *menu) sizes(geom.Size) (minSize, prefSize, maxSize geom.Size) {
 		}
 		w = max(w, float32(i.Px(180)), need)
 	}
+	h = min(h, m.maxInsideH())
 	size := geom.NewSize(w+2*m.frame(), h+2*m.frame())
 	return size, size, size
 }
 
-// lineBox is where a line is.
+// lineBox is where a line is drawn, scrolled with the view. A line out of
+// view stands outside it, above or below, where it would be.
 func (m *menu) lineBox(i int) geom.Rect {
 	r := m.ContentRect(false)
-	y := r.Y + m.frame()
+	y := r.Y + m.frame() - m.scrollY
 	for j := range i {
 		y += m.lineHeight(m.items[j])
 	}
 	return geom.NewRect(r.X+m.frame(), y, r.Width-2*m.frame(), m.lineHeight(m.items[i]))
 }
 
-// lineAt is the line that can be chosen under a point, or -1.
+// lineAt is the line that can be chosen under a point, or -1: the scrolled
+// line drawn there, on its visible part. A line cut by the frame's edge
+// answers on the part that shows. The handle's strip is never a line.
 func (m *menu) lineAt(where geom.Point) int {
+	if m.travel() > 0 && where.In(m.stripRect()) {
+		return -1
+	}
+	if !where.In(m.viewRect()) {
+		return -1
+	}
 	for i, it := range m.items {
 		if !it.Separator && !it.Disabled && where.In(m.lineBox(i)) {
 			return i
@@ -621,6 +843,7 @@ func (m *menu) openSub(i int, first bool) {
 		if m.subLine == i {
 			if first {
 				m.sub.light(m.sub.step(-1, 1))
+				m.sub.reveal(m.sub.lit)
 			}
 			return
 		}
@@ -640,20 +863,32 @@ func (m *menu) openSub(i int, first bool) {
 	outer := func() geom.Rect { return anchorIn(m) }
 	sub.hide = w.Show(&Popup{Panel: sub, Anchor: m, OnEscape: sub.close, OnPressOutside: sub.close,
 		Place: func(bounds geom.Rect, size geom.Size) geom.Rect {
-			// Beside the menu, its first line level with the line it came from,
-			// or on the other side where there is no room.
+			// Beside the menu, its first line level with the line it came from
+			// while that fits, or on the other side where there is no room.
+			// At most the maximum height, and never taller than the window.
 			a, o := line(), outer()
 			x, y := o.Right(), a.Y-sub.frame()
 			if x+size.Width > bounds.Right() {
 				x = max(bounds.X, o.X-size.Width)
 			}
-			if y+size.Height > bounds.Bottom() {
-				y = max(bounds.Y, bounds.Bottom()-size.Height)
+			h := min(size.Height, bounds.Height)
+			view := max(0, h-2*sub.frame())
+			if sub.needInitialScroll {
+				sub.initialScroll(view)
+				sub.needInitialScroll = false
 			}
-			return geom.NewRect(x, y, size.Width, size.Height)
+			sub.scrollY = max(0, min(sub.travelFor(view), sub.scrollY))
+			if y+h > bounds.Bottom() {
+				y = max(bounds.Y, bounds.Bottom()-h)
+			}
+			if y < bounds.Y {
+				y = bounds.Y
+			}
+			return geom.NewRect(x, y, size.Width, h)
 		}})
 	if first {
 		sub.light(sub.step(-1, 1))
+		sub.reveal(sub.lit)
 	}
 	unison.InvokeTask(func() {
 		if sub.hide != nil {
@@ -723,15 +958,38 @@ func (m *menu) open(owner unison.Paneler, part geom.Rect) {
 	// closes it and does not open it again.
 	m.hide = w.Show(&Popup{Panel: m, Anchor: owner, OnEscape: m.close, OnPressOutside: m.close, OpenedFrom: below,
 		Place: func(bounds geom.Rect, size geom.Size) geom.Rect {
+			// Below its anchor while the whole menu fits there, otherwise on
+			// the side with more room, at the height that side allows up to
+			// the maximum.
 			a := below()
-			x, y := a.X, a.Bottom()
+			x := a.X
 			if x+size.Width > bounds.Right() {
 				x = max(bounds.X, bounds.Right()-size.Width)
 			}
-			if y+size.Height > bounds.Bottom() {
-				y = max(bounds.Y, a.Y-size.Height)
+			roomBelow := max(0, bounds.Bottom()-a.Bottom())
+			roomAbove := max(0, a.Y-bounds.Y)
+			var y, h float32
+			switch {
+			case size.Height <= roomBelow:
+				y, h = a.Bottom(), size.Height
+			case roomAbove > roomBelow:
+				h = min(size.Height, roomAbove)
+				y = a.Y - h
+			default:
+				h = min(size.Height, roomBelow)
+				y = a.Bottom()
 			}
-			return geom.NewRect(x, y, size.Width, size.Height)
+			if h <= 0 {
+				h = min(size.Height, bounds.Height)
+				y = bounds.Y
+			}
+			view := max(0, h-2*m.frame())
+			if m.needInitialScroll {
+				m.initialScroll(view)
+				m.needInitialScroll = false
+			}
+			m.scrollY = max(0, min(m.travelFor(view), m.scrollY))
+			return geom.NewRect(x, y, size.Width, h)
 		}})
 	unison.InvokeTask(func() {
 		if m.hide != nil {
@@ -799,16 +1057,20 @@ func (m *menu) keyDown(key unison.KeyCode, _ mod.Modifiers, _ bool) bool {
 	switch key {
 	case unison.KeyDown:
 		m.light(m.step(max(-1, m.lit), 1))
+		m.reveal(m.lit)
 	case unison.KeyUp:
 		start := m.lit
 		if start < 0 {
 			start = len(m.items)
 		}
 		m.light(m.step(start, -1))
+		m.reveal(m.lit)
 	case unison.KeyHome:
 		m.light(m.step(-1, 1))
+		m.reveal(m.lit)
 	case unison.KeyEnd:
 		m.light(m.step(len(m.items), -1))
+		m.reveal(m.lit)
 	case unison.KeyReturn, unison.KeyNumPadEnter, unison.KeySpace:
 		if m.lit >= 0 {
 			m.choose(m.lit)
@@ -862,6 +1124,7 @@ func (m *menu) accessKey(key unison.KeyCode) bool {
 		return false
 	case 1:
 		m.light(hits[0])
+		m.reveal(hits[0])
 		if len(m.items[hits[0]].Items) > 0 {
 			m.openSub(hits[0], true)
 		} else {
@@ -869,6 +1132,7 @@ func (m *menu) accessKey(key unison.KeyCode) bool {
 		}
 		return true
 	}
+
 	next := hits[0]
 	for _, h := range hits {
 		if h > m.lit {
@@ -877,6 +1141,7 @@ func (m *menu) accessKey(key unison.KeyCode) bool {
 		}
 	}
 	m.light(next)
+	m.reveal(next)
 	return true
 }
 
@@ -888,8 +1153,15 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 	p.round(r, radius, t.PopupBackground)
 	p.outline(r, radius, float32(i.Hairline()), t.BorderStrong)
 	snug := float32(i.SpaceSnug())
+	// The lines scroll inside the frame: only the view shows.
+	v := m.viewRect()
+	gc.Save()
+	gc.ClipRect(v, pathop.Intersect, false)
 	for j, it := range m.items {
 		box := m.lineBox(j)
+		if box.Bottom() <= v.Y || box.Y >= v.Bottom() {
+			continue
+		}
 		if it.Separator {
 			p.fill(geom.NewRect(box.X+snug, box.Y, max(0, box.Width-2*snug), box.Height), t.Border)
 			continue
@@ -946,6 +1218,19 @@ func (m *menu) draw(gc *unison.Canvas, _ geom.Rect) {
 		l := m.words(it, max(1, right-x))
 		_, h := l.Size()
 		l.Draw(gc, x, box.Y+(box.Height-h)/2)
+	}
+	gc.Restore()
+	// The handle, drawn only while the lines do not fit, in the scroll bar's
+	// colours.
+	if m.travel() > 0 {
+		thumb := m.thumbRect()
+		if !thumb.Empty() {
+			ink := t.Border
+			if m.dragging || m.handleHover {
+				ink = t.BorderStrong
+			}
+			p.round(thumb, min(thumb.Width, thumb.Height)/2, ink)
+		}
 	}
 }
 
@@ -1017,7 +1302,10 @@ func (m *menu) PerformAccessibilityAction(req accessibility.ActionRequest) bool 
 			m.sub.close()
 		}
 	case accessibility.Focus:
+		// Focusing a line out of view from a screen reader scrolls it into
+		// view.
 		m.light(i)
+		m.reveal(i)
 	default:
 		return false
 	}

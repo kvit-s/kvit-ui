@@ -682,9 +682,10 @@ var catalog = []entry{
 	{
 		name:    "KvitMenu",
 		group:   "Flow",
-		summary: "A list of commands. Eighteen private versions in the estate, and what they mostly get wrong is the same two things: no keyboard route in, and no separator before the destructive item. Opened by a button, a right-click, the Menu key or Shift+F10; drawn by Kvit on Windows and Linux and by the system on macOS.",
+		summary: "A list of commands. Eighteen private versions in the estate, and what they mostly get wrong is the same two things: no keyboard route in, and no separator before the destructive item. Opened by a button, a right-click, the Menu key or Shift+F10; drawn by Kvit on Windows and Linux and by the system on macOS. A menu caps its height at fifteen lines and scrolls the rest, opening on its checked line.",
 		specimens: []specimen{
 			{caption: "Opened, with shortcuts and a destructive item", build: menuOpened},
+			{caption: "Long, capped at fifteen lines with a handle for the rest", build: menuLong},
 		},
 	},
 	{

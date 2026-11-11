@@ -60,6 +60,24 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
 	return stage
 }
 
+func menuLong(ui *kvitui.UI) unison.Paneler {
+	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
+	// A menu of twenty-one projects in three groups of seven, capped at
+	// fifteen lines with a handle for the rest: the lines scroll under the
+	// wheel and the arrow keys. The groups keep the seven-to-a-group rule.
+	whenShown(stage, func() {
+		var items []kvitui.MenuItem
+		for i := 1; i <= 21; i++ {
+			if i == 8 || i == 15 {
+				items = append(items, kvitui.MenuItem{Separator: true})
+			}
+			items = append(items, kvitui.MenuItem{Text: fmt.Sprintf("Project %02d", i), Verbatim: true})
+		}
+		ui.ShowMenuAt(stage, geom.Rect{}, "Projects", items)
+	})
+	return stage
+}
+
 func menuItemForms(ui *kvitui.UI) unison.Paneler {
 	stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(110), unison.NewPanel()))
 	whenShown(stage, func() {

@@ -3533,7 +3533,7 @@ func scrollBarBesideColumn(ui *kvitui.UI) unison.Paneler {
 
 ### KvitMenu
 
-A list of commands. Eighteen private versions in the estate, and what they mostly get wrong is the same two things: no keyboard route in, and no separator before the destructive item. Opened by a button, a right-click, the Menu key or Shift+F10; drawn by Kvit on Windows and Linux and by the system on macOS.
+A list of commands. Eighteen private versions in the estate, and what they mostly get wrong is the same two things: no keyboard route in, and no separator before the destructive item. Opened by a button, a right-click, the Menu key or Shift+F10; drawn by Kvit on Windows and Linux and by the system on macOS. A menu caps its height at fifteen lines and scrolls the rest, opening on its checked line.
 
 ```go
 func (u *UI) ShowMenu(anchor unison.Paneler, title string, items []MenuItem) (closeMenu func())
@@ -3561,6 +3561,28 @@ func menuOpened(ui *kvitui.UI) unison.Paneler {
             {Separator: true},
             {Text: "Delete", Symbol: "trash", Danger: true},
         })
+    })
+    return stage
+}
+```
+
+*Long, capped at fifteen lines with a handle for the rest*
+
+```go
+func menuLong(ui *kvitui.UI) unison.Paneler {
+    stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(170), unison.NewPanel()))
+    // A menu of twenty-one projects in three groups of seven, capped at
+    // fifteen lines with a handle for the rest: the lines scroll under the
+    // wheel and the arrow keys. The groups keep the seven-to-a-group rule.
+    whenShown(stage, func() {
+        var items []kvitui.MenuItem
+        for i := 1; i <= 21; i++ {
+            if i == 8 || i == 15 {
+                items = append(items, kvitui.MenuItem{Separator: true})
+            }
+            items = append(items, kvitui.MenuItem{Text: fmt.Sprintf("Project %02d", i), Verbatim: true})
+        }
+        ui.ShowMenuAt(stage, geom.Rect{}, "Projects", items)
     })
     return stage
 }
