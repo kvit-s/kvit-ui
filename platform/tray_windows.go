@@ -8,13 +8,15 @@ package platform
 // with TrackPopupMenuEx, and a notification is the icon's balloon (NIF_INFO),
 // which Windows 10 and 11 show as a toast; clicking it sends
 // NIN_BALLOONUSERCLICK. The icon is made from the picture's pixels at the
-// size Windows draws small icons (SM_CXSMICON).
+// size Windows draws small icons (SM_CXSMICON). The menu is drawn dark or
+// light as Windows' app mode is set (followMenuTheme).
 
 import (
 	"image"
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unicode/utf16"
 	"unsafe"
@@ -26,6 +28,7 @@ var (
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
+	uxtheme  = windows.NewLazySystemDLL("uxtheme.dll")
 
 	procShellNotifyIcon       = shell32.NewProc("Shell_NotifyIconW")
 	procGetModuleHandle       = kernel32.NewProc("GetModuleHandleW")
@@ -107,6 +110,14 @@ const (
 
 	smMenuDropAlignment = 40
 	smCxSmIcon          = 49
+
+	// uxtheme.dll's functions that let a menu be drawn dark, which it
+	// exports by number only (see menuTheme).
+	uxRefreshColorPolicy  = 104 // RefreshImmersiveColorPolicyState
+	uxSetPreferredAppMode = 135 // SetPreferredAppMode; AllowDarkModeForApp in 1809
+	uxFlushMenuThemes     = 136 // FlushMenuThemes
+	appModeAllowDark      = 1   // AllowDark; true for 1809's AllowDarkModeForApp
+	darkMenuBuild         = 17763
 
 	dibRGBColors = 0
 
@@ -247,6 +258,7 @@ func newTrayBackend(events trayEvents) trayBackend {
 func (t *winTray) run(ready chan struct{}) {
 	runtime.LockOSThread()
 	defer close(t.done)
+	menuTheme()
 	hwnd := createTrayWindow()
 	if hwnd == 0 {
 		close(ready)
@@ -528,6 +540,7 @@ func (t *winTray) showMenu(x, y int32) {
 		procGetCursorPos.Call(uintptr(unsafe.Pointer(&p)))
 		x, y = p.X, p.Y
 	}
+	followMenuTheme()
 	flags := uintptr(tpmReturnCmd | tpmNoNotify | tpmRightButton | tpmBottomAlign)
 	if r, _, _ := procGetSystemMetrics.Call(smMenuDropAlignment); r != 0 {
 		flags |= tpmRightAlign
@@ -537,6 +550,51 @@ func (t *winTray) showMenu(x, y int32) {
 	procPostMessage.Call(t.hwnd, wmNull, 0, 0)
 	if chosen > 0 {
 		t.events.chose(int(chosen) - 1)
+	}
+}
+
+// menuTheme lets Windows draw the process's menus dark, once, and returns
+// the two functions followMenuTheme calls before each menu.
+//
+// Windows draws a popup menu in its light style unless the program has said
+// it can be drawn dark. The only way to say so is uxtheme.dll's
+// SetPreferredAppMode, which is undocumented and exported by number alone,
+// as are the two others used here; Win32 programs with dark menus, such as
+// kvit-dictate, call the same functions. Given AllowDark, the menu follows
+// "Choose your default app mode" in Windows' colour settings
+// (AppsUseLightTheme). In Windows 10
+// 1809 the same number was AllowDarkModeForApp(true), with the same effect;
+// before 1809 the numbers are other functions, so nothing is looked up
+// there. Without the functions the menu stays light.
+var menuTheme = sync.OnceValue(func() (p struct{ refresh, flush uintptr }) {
+	if v := windows.RtlGetVersion(); v.MajorVersion < 10 || v.BuildNumber < darkMenuBuild {
+		return p
+	}
+	if uxtheme.Load() != nil {
+		return p
+	}
+	h := windows.Handle(uxtheme.Handle())
+	setMode, _ := windows.GetProcAddressByOrdinal(h, uxSetPreferredAppMode)
+	if setMode == 0 {
+		return p
+	}
+	syscall.SyscallN(setMode, appModeAllowDark)
+	p.refresh, _ = windows.GetProcAddressByOrdinal(h, uxRefreshColorPolicy)
+	p.flush, _ = windows.GetProcAddressByOrdinal(h, uxFlushMenuThemes)
+	return p
+})
+
+// followMenuTheme has the next menu drawn as Windows' app mode is set now:
+// it reads the setting again and drops the menu styles Windows keeps for
+// the process, so a switch between dark and light while the app runs shows
+// at the next menu. Tray thread.
+func followMenuTheme() {
+	p := menuTheme()
+	if p.refresh != 0 {
+		syscall.SyscallN(p.refresh)
+	}
+	if p.flush != 0 {
+		syscall.SyscallN(p.flush)
 	}
 }
 
