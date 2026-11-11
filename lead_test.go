@@ -732,3 +732,194 @@ func TestTheChosenOptionsBulletIsLargeEnoughToSee(t *testing.T) {
 		}
 	}
 }
+
+// A select's options draw their pictures and symbols on their lines in its
+// list, as a set of options in a menu does: an unchosen option its picture or
+// its symbol, one with neither nothing, and the chosen option, whatever it has,
+// its bullet on the Windows form and its tick on the macOS form. A screen
+// reader is told each line's words alone. The closed select, in its field,
+// compact, plain and fused forms, draws the same pixels as one whose options
+// have neither, so its words stand where a plain select's always have.
+func TestASelectsOptionsDrawTheirPicturesInItsList(t *testing.T) {
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		t.Run(form.String(), func(t *testing.T) {
+			picture := &recordedPicture{natural: geom.NewSize(16, 16)}
+			chosen := &recordedPicture{natural: geom.NewSize(16, 16)}
+			const (
+				hasPicture = iota
+				hasSymbol
+				hasNeither
+				isChosen
+			)
+			decorated := []kvitui.Option{
+				hasPicture: {Value: "picture", Label: "Has a picture", Picture: picture},
+				hasSymbol:  {Value: "symbol", Label: "Has a symbol", Symbol: "folder"},
+				hasNeither: {Value: "neither", Label: "Has neither"},
+				isChosen:   {Value: "chosen", Label: "Chosen", Picture: chosen, Symbol: "folder"},
+			}
+			bare := make([]kvitui.Option, len(decorated))
+			for i, o := range decorated {
+				bare[i] = kvitui.Option{Value: o.Value, Label: o.Label}
+			}
+			type pair struct {
+				form          string
+				with, without unison.Paneler
+			}
+			var pairs []pair
+			var field *kvitui.Select
+			s := uitest.Open(t, uitest.Options{Form: form}, func(ui *kvitui.UI) unison.Paneler {
+				choice := func(options []kvitui.Option, how func(*kvitui.Select)) *kvitui.Select {
+					c := kvitui.NewSelect(ui, "Move to", options...)
+					c.Current = "chosen"
+					how(c)
+					return c
+				}
+				fused := func(options []kvitui.Option) *kvitui.ChoiceButton {
+					c := kvitui.NewChoiceButton(ui, "Move", "Where to", options...)
+					c.Current = "chosen"
+					return c
+				}
+				asField := func(*kvitui.Select) {}
+				compact := func(c *kvitui.Select) { c.Compact, c.Symbol = true, "calendar" }
+				plain := func(c *kvitui.Select) { c.Plain = true }
+				field = choice(decorated, asField)
+				pairs = []pair{
+					{"field", kvitui.Width(ui, kvitui.Px(200), field), kvitui.Width(ui, kvitui.Px(200), choice(bare, asField))},
+					{"compact", kvitui.Left(choice(decorated, compact)), kvitui.Left(choice(bare, compact))},
+					{"plain", kvitui.Width(ui, kvitui.Px(200), choice(decorated, plain)), kvitui.Width(ui, kvitui.Px(200), choice(bare, plain))},
+					{"fused", kvitui.Left(fused(decorated)), kvitui.Left(fused(bare))},
+				}
+				// A button first takes the focus the window gives its first
+				// control, which a field select would draw as its edge.
+				children := []unison.Paneler{kvitui.Left(kvitui.NewButton(ui, "First"))}
+				for _, p := range pairs {
+					children = append(children, p.with, p.without)
+				}
+				return kvitui.Column(ui, kvitui.Px(12), children...)
+			})
+			s.Screen.MouseMove(geom.NewPoint(1400, 900), 0)
+			s.Sync()
+
+			img := s.Capture()
+			for _, p := range pairs {
+				a, b := rootRect(p.with), rootRect(p.without)
+				if a.Size != b.Size {
+					t.Errorf("the closed %s select is %v with pictures and %v without", p.form, a.Size, b.Size)
+					continue
+				}
+				size := image.Pt(int(a.Width), int(a.Height))
+				if differ, drawn := sameStretch(img, image.Pt(int(a.X), int(a.Y)), image.Pt(int(b.X), int(b.Y)), size); differ != 0 || drawn == 0 {
+					t.Errorf("the closed %s select differs in %d pixels from one with no pictures, with %d drawn", p.form, differ, drawn)
+				}
+			}
+			if len(picture.at) != 0 || len(chosen.at) != 0 {
+				t.Errorf("the closed selects drew their options' pictures %d and %d times", len(picture.at), len(chosen.at))
+			}
+			if n := s.Node(field); n == nil || n.Name != "Move to" || n.Value != "Chosen" {
+				t.Errorf("the closed select is told to a screen reader as %+v", n)
+			}
+
+			// The list, and what the menu was given for each line.
+			box := rootRect(field)
+			s.Screen.Click(geom.NewPoint(box.X+box.Width/2, box.Y+box.Height/2))
+			s.WaitFor("the select's list", func() bool { return len(s.Nodes(role.MenuItem)) == len(decorated) })
+			s.Do(func() {
+				menus := s.Window.ShownMenus()
+				if len(menus) != 1 || len(menus[0].Items) != len(decorated) {
+					t.Fatalf("the select opened %+v", menus)
+				}
+				for i, it := range menus[0].Items {
+					o := decorated[i]
+					if it.Symbol != o.Symbol || it.Picture != o.Picture || !it.Radio || it.Checked != (i == isChosen) {
+						t.Errorf("the line for %q is %+v", o.Label, it)
+					}
+				}
+			})
+			lines := s.Nodes(role.MenuItem)
+			slices.SortFunc(lines, func(a, b *accessibility.Node) int { return cmp.Compare(a.Bounds.Y, b.Bounds.Y) })
+			for i, n := range lines {
+				want := check.Off
+				if i == isChosen {
+					want = check.On
+				}
+				if n.Name != decorated[i].Label || !n.HasCheck || n.Checked != want {
+					t.Errorf("the line for %q is told to a screen reader as %+v", decorated[i].Label, n)
+				}
+			}
+			list := s.Capture()
+
+			// What the same lines draw in a menu of MenuItems, to hold the
+			// select's lines against.
+			s.Screen.KeyPress(unison.KeyEscape, 0)
+			s.WaitFor("the list to close", func() bool { return len(s.Nodes(role.MenuItem)) == 0 })
+			const (
+				refSymbol = iota
+				refChosen
+				refTick
+			)
+			reference := []kvitui.MenuItem{
+				refSymbol: {Text: "Has a symbol", Verbatim: true, Symbol: "folder"},
+				refChosen: {Text: "Chosen", Verbatim: true, Radio: true, Checked: true},
+				refTick:   {Text: "Chosen", Verbatim: true, Checked: true},
+			}
+			s.Do(func() { s.UI.ShowMenu(field, "Move to", reference) })
+			s.WaitFor("the reference menu", func() bool { return len(s.Nodes(role.MenuItem)) == len(reference) })
+			refLines := s.Nodes(role.MenuItem)
+			slices.SortFunc(refLines, func(a, b *accessibility.Node) int { return cmp.Compare(a.Bounds.Y, b.Bounds.Y) })
+			ref := s.Capture()
+
+			s.Do(func() {
+				m := s.UI.Interface
+				column := func(n *accessibility.Node) image.Point {
+					return image.Pt(int(n.Bounds.X)+m.Space(), int(n.Bounds.Y))
+				}
+				size := image.Pt(m.IconSizeSmall(), int(lines[0].Bounds.Height))
+				// across compares a column of the select's list with one of the
+				// reference menu.
+				across := func(what string, line int, refLine int) {
+					t.Helper()
+					a, b := column(lines[line]), column(refLines[refLine])
+					differ, drawn := 0, 0
+					ground := list.At(a.X, a.Y)
+					for y := range size.Y {
+						for x := range size.X {
+							pa := list.At(a.X+x, a.Y+y)
+							if !samePixel(pa, ref.At(b.X+x, b.Y+y)) {
+								differ++
+							}
+							if !samePixel(pa, ground) {
+								drawn++
+							}
+						}
+					}
+					if differ != 0 || drawn == 0 {
+						t.Errorf("%s: %d pixels differ from what it should match, with %d drawn", what, differ, drawn)
+					}
+				}
+				if len(picture.at) == 0 {
+					t.Error("the unchosen option with a picture did not draw it")
+				}
+				middle := column(lines[hasPicture]).Add(image.Pt(m.IconSizeSmall()/2, int(lines[hasPicture].Bounds.Height)/2))
+				if c := list.At(middle.X, middle.Y); !isLeadColour(c) {
+					t.Errorf("the middle of the picture's column is %v", c)
+				}
+				across("the unchosen option's symbol", hasSymbol, refSymbol)
+				if _, drawn := sameStretch(list, column(lines[hasNeither]), column(lines[hasNeither]), size); drawn != 0 {
+					t.Errorf("the option with neither has %d pixels drawn in its column, want none", drawn)
+				}
+				if len(chosen.at) != 0 {
+					t.Error("the chosen option drew its picture")
+				}
+				across("the chosen option's mark", isChosen, refChosen)
+				differ, drawn := sameStretch(ref, column(refLines[refChosen]), column(refLines[refTick]), size)
+				if form == kvitui.FormWindows && (differ == 0 || drawn == 0) {
+					t.Errorf("the chosen option's mark differs from a tick in %d pixels on the Windows form, with %d drawn", differ, drawn)
+				}
+				if form == kvitui.FormMac && (differ != 0 || drawn == 0) {
+					t.Errorf("the chosen option's mark differs from a tick in %d pixels on the macOS form, with %d drawn", differ, drawn)
+				}
+			})
+			s.CheckNamed()
+		})
+	}
+}

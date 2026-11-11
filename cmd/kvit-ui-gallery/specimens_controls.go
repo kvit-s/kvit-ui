@@ -300,3 +300,14 @@ func selectPlainRows(ui *kvitui.UI) unison.Paneler {
 		row("photo-sync", "project"), row("recipes", "project"), row("old-backups", "none"),
 		row("thermostat-logs", "home"), row("ledger-exports", "accounts")))
 }
+
+func selectPictures(ui *kvitui.UI) unison.Paneler {
+	// A choice of things with pictures of their own, such as projects: each
+	// line of the list has the option's picture before its words, or its
+	// symbol where it has none, and the chosen line draws its mark there
+	// instead. The closed select says the chosen option's words alone.
+	return kvitui.NewSelect(ui, "Move to",
+		kvitui.Option{Value: "photo-sync", Label: "photo-sync", Picture: svgPicture()},
+		kvitui.Option{Value: "recipes", Label: "recipes", Picture: pngPicture()},
+		kvitui.Option{Value: "old-backups", Label: "old-backups", Symbol: "folder"})
+}

@@ -18,6 +18,9 @@ import (
 // once, Segmented is right: a three-item list hides two of the answers behind
 // a press. The list opens as unison's menu, as the owner chose for menus, with
 // the chosen option ticked; Up and Down change the choice without opening it.
+// An option's Symbol or Picture is drawn before its words on its line in the
+// list, and never in the closed select, which in every form draws the chosen
+// option's words alone.
 //
 // Compact draws the same choice as a quiet button: the optional Symbol before
 // the chosen option's words, no field outline. It is the control for a filter
@@ -175,7 +178,8 @@ func (s *Select) step(by int) bool {
 func (s *Select) open() {
 	var items []MenuItem
 	for _, o := range s.Options {
-		items = append(items, MenuItem{Text: PlainMenuText(o.Label), Verbatim: true, Radio: true, Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
+		items = append(items, MenuItem{Text: PlainMenuText(o.Label), Verbatim: true, Symbol: o.Symbol, Picture: o.Picture,
+			Radio: true, Checked: o.Value == s.Current, OnSelect: func() { s.Choose(o.Value) }})
 	}
 	if s.Plain && runtime.GOOS == "darwin" {
 		// The system's menu holds the program until it closes, so the ground

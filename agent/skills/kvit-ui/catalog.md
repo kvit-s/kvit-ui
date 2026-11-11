@@ -2021,7 +2021,7 @@ func checkStates(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSelect
 
-A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form. Plain draws it as the value's words and a small arrow, with a ground only under the pointer, for a value repeated down a list, where each row states one answer and few rows get changed.
+A choice from a list too long to lay out. For two to four self-evident options, KvitSegmented is right instead — a three-item dropdown hides two of the three answers for no reason. Compact draws the same choice as a quiet button with a leading symbol and the chosen value's words, for a filter stating its value such as a period; the field is for a choice on a form. Plain draws it as the value's words and a small arrow, with a ground only under the pointer, for a value repeated down a list, where each row states one answer and few rows get changed. An option's `Symbol`, or its `Picture` in place of it, is drawn before its words on its line in the list, as a KvitMenuItem's is, such as a project's icon in a list of projects; the chosen line draws its bullet or tick there instead. The closed select, in every form, draws the chosen option's words alone, and a screen reader hears the option's label. KvitSegmented ignores both fields.
 
 ```go
 func NewSelect(ui *UI, label string, options ...Option) *Select
@@ -2101,6 +2101,21 @@ func selectPlainRows(ui *kvitui.UI) unison.Paneler {
     return kvitui.Width(ui, kvitui.Px(420), kvitui.Column(ui, kvitui.Px(0), head,
         row("photo-sync", "project"), row("recipes", "project"), row("old-backups", "none"),
         row("thermostat-logs", "home"), row("ledger-exports", "accounts")))
+}
+```
+
+*Options with a picture or a symbol on their lines in the list*
+
+```go
+func selectPictures(ui *kvitui.UI) unison.Paneler {
+    // A choice of things with pictures of their own, such as projects: each
+    // line of the list has the option's picture before its words, or its
+    // symbol where it has none, and the chosen line draws its mark there
+    // instead. The closed select says the chosen option's words alone.
+    return kvitui.NewSelect(ui, "Move to",
+        kvitui.Option{Value: "photo-sync", Label: "photo-sync", Picture: svgPicture()},
+        kvitui.Option{Value: "recipes", Label: "recipes", Picture: pngPicture()},
+        kvitui.Option{Value: "old-backups", Label: "old-backups", Symbol: "folder"})
 }
 ```
 

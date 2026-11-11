@@ -16,8 +16,21 @@ type Option struct {
 	// Value is what the choice means to the caller.
 	Value string
 	// Label is what the segment, or the select's line, says, in sentence
-	// case: a segment is written in title case on the macOS form (WRD-6).
+	// case: a segment is written in title case on the macOS form (WRD-6). It
+	// is also what a screen reader is told, whatever Symbol or Picture is set.
 	Label string
+	// Symbol is an optional meaning name drawn before the words of the
+	// option's line in a Select's list, as a MenuItem's is. The closed select
+	// draws the chosen option's words alone. Segmented and DualList ignore it.
+	Symbol string
+	// Picture is drawn before the words of the option's line in a Select's
+	// list in place of Symbol, as a MenuItem's is: a choice naming something
+	// with a picture of its own, such as a project's icon. The chosen line
+	// draws its bullet (Windows form) or tick (macOS form) in its place, and
+	// the system's own menu on macOS draws no pictures and no symbols. The
+	// closed select draws the chosen option's words alone. Segmented and
+	// DualList ignore it.
+	Picture unison.Drawable
 }
 
 // Segmented is one choice from two to five short options, all visible: a
