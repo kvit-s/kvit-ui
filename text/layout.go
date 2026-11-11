@@ -297,6 +297,11 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 	var outs []shaping.Output
 	var seg shaping.Segmenter
 	shaper := &l.fonts.shaper
+	// tabUnits holds, for each tab of the paragraph, the width of a space in
+	// its span's font: the tab's own run may be shaped in another font, one
+	// that has a glyph for U+0009, when it stands alone in its span (an
+	// indent before a keyword coloured apart from it).
+	var tabUnits []fixed.Int26_6
 	for i, st := range l.styles {
 		start, end := l.starts[i], len(l.runes)
 		if i+1 < len(l.starts) {
@@ -339,6 +344,15 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 			if opt.Grid > 0 {
 				in.FontFeatures = append(in.FontFeatures, noLigatures...)
 			}
+			for k := a; k < b && opt.Grid == 0; k++ {
+				if l.runes[k] != '\t' {
+					continue
+				}
+				if tabUnits == nil {
+					tabUnits = make([]fixed.Int26_6, len(para))
+				}
+				tabUnits[k-ps] = spaceAdvance(scriptFontmap{f.fm}.ResolveFace(' '), in.Size)
+			}
 			for _, part := range seg.Split(in, scriptFontmap{f.fm}) {
 				out := shaper.Shape(part)
 				markInk(&out, para)
@@ -349,6 +363,9 @@ func (l *Layout) layoutParagraph(ps, pe int, opt Options, lineMult, y float32) f
 			}
 			a = b
 		}
+	}
+	if tabUnits != nil {
+		tabStops(outs, para, tabUnits)
 	}
 	if len(outs) == 0 {
 		// An empty paragraph still takes a line, at the metrics of the style in
@@ -425,6 +442,64 @@ func markInk(out *shaping.Output, text []rune) {
 		}
 		g.Width = g.XAdvance
 	}
+}
+
+// tabSpaces is how many of its font's spaces apart the tab stops are.
+const tabSpaces = 4
+
+// tabStops makes each tab in a paragraph's shaped runs blank space reaching
+// to the next tab stop: the stops are tabSpaces spaces of the tab's span's
+// font apart (units, by the tab's place in the paragraph), counted from the
+// paragraph's start, and the tab takes its run's space glyph. Shaped as it
+// comes, a tab is the font's glyph for U+0009, which most fonts lack, so it
+// drew as the empty box of a missing character, as wide as that box: two
+// tabs indenting a line of code read "▯▯s.toEnd()". The stops are counted
+// along the paragraph rather than its line, which is the same for the text
+// they are for (code, which does not wrap) and for a tab at the start of any
+// paragraph. A terminal's grid places its own tabs, so a gridded layout has
+// no units and is not changed.
+func tabStops(outs []shaping.Output, text []rune, units []fixed.Int26_6) {
+	var x fixed.Int26_6
+	for o := range outs {
+		out := &outs[o]
+		if out.Face == nil {
+			x += out.Advance
+			continue
+		}
+		var at, grew fixed.Int26_6
+		for i := range out.Glyphs {
+			g := &out.Glyphs[i]
+			if c := g.ClusterIndex; c < len(text) && text[c] == '\t' {
+				unit := units[c]
+				if unit <= 0 {
+					unit = spaceAdvance(out.Face, out.Size)
+				}
+				stop := max(1, unit*tabSpaces)
+				advance := stop - (x+at)%stop
+				if space, ok := out.Face.NominalGlyph(' '); ok {
+					g.GlyphID = space
+				}
+				g.XOffset, g.YOffset, g.Width = 0, 0, 0
+				grew += advance - g.XAdvance
+				g.XAdvance = advance
+			}
+			at += g.XAdvance
+		}
+		out.Advance += grew
+		x += out.Advance
+	}
+}
+
+// spaceAdvance is the width of a face's space at a size, 0 for no face.
+func spaceAdvance(face *gfont.Face, size fixed.Int26_6) fixed.Int26_6 {
+	if face == nil {
+		return 0
+	}
+	space, ok := face.NominalGlyph(' ')
+	if !ok {
+		return 0
+	}
+	return fixed.Int26_6(math.Round(float64(face.HorizontalAdvance(space)) * float64(size) / float64(face.Upem())))
 }
 
 var tnum = ot.MustNewTag("tnum")
