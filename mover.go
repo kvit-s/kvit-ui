@@ -22,6 +22,13 @@ type Mover struct {
 	// drag began, in a Kvit window. Without it Escape does nothing to the
 	// drag.
 	EscapeAbandons bool
+	// AnyPressEnds makes a press of any button that arrives while a drag is
+	// under way end the drag first, leaving the panel where the drag brought
+	// it; the press is then handled as any other. Without it a second button
+	// pressed during a drag is passed on, and the drag goes on while the
+	// panel's own callback takes that press. Either way the drag is over when
+	// the left button is let go, wherever unison sends the release.
+	AnyPressEnds bool
 
 	ui       *UI
 	panel    *unison.Panel
@@ -30,6 +37,7 @@ type Mover struct {
 	at       geom.Point // where the panel was moved to, from the corner of the bounds
 	moved    bool
 	dragging bool
+	drags    int        // counts drags, so a late word about one that is over is ignored
 	grab     geom.Point // the point pressed, in the panel's coordinates
 }
 
@@ -43,11 +51,19 @@ func NewMover(ui *UI, p unison.Paneler, band func() float32) *Mover {
 	panel := m.panel
 	down, drag, up := panel.MouseDownCallback, panel.MouseDragCallback, panel.MouseUpCallback
 	panel.MouseDownCallback = func(where geom.Point, button, clicks int, mods mod.Modifiers) bool {
+		if m.AnyPressEnds && m.dragging {
+			m.stop()
+		}
 		if button != unison.ButtonLeft || where.Y < 0 || where.Y >= m.band() {
 			return down != nil && down(where, button, clicks, mods)
 		}
 		m.dragging, m.grab = true, where
-		if w := ui.windowOf(panel); w != nil && m.EscapeAbandons {
+		m.drags++
+		w := ui.windowOf(panel)
+		if w == nil {
+			return true
+		}
+		if m.EscapeAbandons {
 			at, moved := m.at, m.moved
 			w.startDrag(func() {
 				m.dragging, m.at, m.moved = false, at, moved
@@ -56,13 +72,22 @@ func NewMover(ui *UI, p unison.Paneler, band func() float32) *Mover {
 				}
 			})
 		}
+		// The drag is over once the left button is let go, even where the
+		// release goes to another panel, as it does after a second button
+		// pressed during the drag went to one.
+		this := m.drags
+		w.watchRelease(func() {
+			if m.dragging && m.drags == this {
+				m.stop()
+			}
+		})
 		return true
 	}
 	panel.MouseDragCallback = func(where geom.Point, button int, mods mod.Modifiers) bool {
 		if !m.dragging {
 			return drag != nil && drag(where, button, mods)
 		}
-		m.drag(where)
+		m.dragTo(where)
 		return true
 	}
 	panel.MouseUpCallback = func(where geom.Point, button int, mods mod.Modifiers) bool {
@@ -78,7 +103,16 @@ func NewMover(ui *UI, p unison.Paneler, band func() float32) *Mover {
 	return m
 }
 
-func (m *Mover) drag(where geom.Point) {
+// stop ends the drag under way, leaving the panel where it is.
+func (m *Mover) stop() {
+	m.dragging = false
+	if w := m.ui.windowOf(m.panel); w != nil && m.EscapeAbandons {
+		w.endDrag()
+	}
+}
+
+// dragTo moves the panel so the point pressed is under where.
+func (m *Mover) dragTo(where geom.Point) {
 	f := m.panel.FrameRect()
 	m.at = f.Point.Add(where.Sub(m.grab)).Sub(m.bounds.Point)
 	m.moved = true

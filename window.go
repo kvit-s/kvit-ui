@@ -49,6 +49,7 @@ type Window struct {
 	menuBar                       *MenuBar
 	altHeld                       bool          // Alt is held, which shows the access keys
 	dragUndo                      func()        // puts things back as they were before the drag under way
+	dragRelease                   func()        // told once the left button is let go, wherever the release went
 	accessCache                   []AccessKey   // the access keys while they are shown
 	document                      string        // the document the window shows, for its title
 	edited                        bool          // the document has unsaved changes
@@ -154,6 +155,18 @@ func newWindow(ui *UI, title string, options ...unison.WindowOption) (*Window, e
 			return true
 		}
 		return button == unison.ButtonRight && w.contextPress(at)
+	}
+	// unison sends a release to the panel that took the last press, so a
+	// drag whose second press went to another panel never sees its own
+	// release; the window sees every one.
+	uw.MouseUpCallback = func(_ geom.Point, button int, _ mod.Modifiers) bool {
+		if f := w.dragRelease; f != nil && button == unison.ButtonLeft {
+			w.dragRelease = nil
+			// After the release has reached its panel, which may have ended
+			// the drag itself.
+			unison.InvokeTask(f)
+		}
+		return false
 	}
 	if ui.windows == nil {
 		ui.windows = map[*unison.Window]*Window{}

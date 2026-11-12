@@ -89,10 +89,11 @@ var catalog = []entry{
 	{
 		name:    "KvitLine",
 		group:   "Structure",
-		summary: "Panels side by side, a gap apart, centred on the line (`Line`, or `NewLineLayout`). A hidden child takes no room and no gap. `Grow` and `GrowShare` give a child the width the others leave, `FixedWidth` holds one to a width, and any other keeps its own. The options reproduce what lines in the applications do: `GrowLast`, `ClipFixed`, `FillsHint`, `InsetsUncounted`, `Top` and `NoShrink`.",
+		summary: "Panels side by side, a gap apart, centred on the line (`Line`, or `NewLineLayout`). A hidden child takes no room and no gap. `Grow` and `GrowShare` give a child the width the others leave, `FixedWidth` holds one to a width, and any other keeps its own. The options reproduce what lines in the applications do: `GrowLast`, `ClipFixed`, `FillsHint`, `InsetsUncounted`, `Top`, `AlignTop` and `NoShrink`. `NewRowLayout` is the layout `Row` makes, for a panel filled after it is made, and `ShownIn` and `InsetsOf` are for a layout of your own.",
 		specimens: []specimen{
 			{caption: "One part grows, one is held to a width, one keeps its own", build: lineGrowAndFixed},
 			{caption: "Two growers sharing the width one to two", build: lineShares},
+			{caption: "A button level with the top of a field that grows", build: lineAlignTop},
 		},
 	},
 	{
@@ -201,13 +202,13 @@ var catalog = []entry{
 	{
 		name:    "KvitRow",
 		group:   "Content",
-		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`. A row that needs another size says so with `Height`, `FitContent` and `Margins`, and places its parts through the `Leading`, `Title`, `Subtitle` and `Trailing` slots or a `Place` function of its own. `Bar`, `Radius`, `RingAtEdge`, `RingOnAnyFocus`, `NoHoverTint` and `NoHoverTintDisabled` change its marks. `HoverWhole` keeps it hovered over its own words and `OnHover` reports the change; `PressOn` and `AnyButton` say which press activates it, and `OnDoubleClick`, `OnPress`, `OnDrag`, `OnRelease`, `OnKey`, `OnFocus` and `OnBlur` are hooks for a list's own behaviour. `Description`, `Level`, `Expandable` and `Expanded` go to screen readers, for a tree's rows.",
+		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`. A row that needs another size says so with `Height`, `FitContent`, `FitRoom`, `FitAtLeastForm` and `Margins`, and places its parts through the `Leading`, `Title`, `Subtitle` and `Trailing` slots, a layout of its own in `Arrange`, or a `Place` function. `Bar`, `Radius`, `RingAtEdge`, `RingHalfIn`, `RingOnAnyFocus`, `RingKeptOnPress`, `NoHoverTint` and `NoHoverTintDisabled` change its marks. `HoverWhole` keeps it hovered over its own words, `HoverYields` gives up the hover over a part with a hover of its own, and `OnHover` reports the change; `PressOn`, `AnyButton` and `NoFocusOnPress` say what a press does, and `OnDoubleClick`, `OnPress`, `OnDrag`, `OnRelease`, `OnKeyDown`, `OnKey`, `OnFocus` and `OnBlur` are hooks for a list's own behaviour. `Description`, `Level`, `Expandable` and `Expanded` go to screen readers, for a tree's rows.",
 		specimens: []specimen{
 			{caption: "Pressable and static", build: rowPressableAndStatic},
 			{caption: "Opened from the keyboard, without opening it twice", build: rowFromTheKeyboard},
 			{caption: "The four heights, and the three states", build: rowHeights},
 			{caption: "Slots, in a row as tall as its two lines", build: rowSlots},
-			{caption: "A selection bar, rounded tints, and the ring at the edge", build: rowBarAndRing},
+			{caption: "A selection bar, rounded tints, and the ring at the edge or half its width in", build: rowBarAndRing},
 			{caption: "Hovered over its own words, and saying so", build: rowHoveredWhole},
 		},
 	},
@@ -533,7 +534,7 @@ var catalog = []entry{
 	{
 		name:    "KvitPopover",
 		group:   "Feedback",
-		summary: "A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card. `OpenModal` shows it over a scrim, so nothing behind can be used until it closes; `ModalPress` says whether the press outside that closes it stops there or goes on to what is behind. `OnEscape` and `OnPressOutside` run in place of closing, `PressOutsideIgnored` makes a press outside do nothing, `MayClose` holds it open while work cannot be stopped, and `FirstFocus` says what takes the keyboard. A `Mover` lets the reader drag any popup's panel by a band along its top, and `DialogButtonOrder` puts a surface's own buttons in the order the platform reads them.",
+		summary: "A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card. `OpenModal` shows it over a scrim, so nothing behind can be used until it closes; `ModalPress` says whether the press outside that closes it stops there or goes on to what is behind. `OnEscape` and `OnPressOutside` run in place of closing, `PressOutsideIgnored` makes a press outside do nothing, `MayClose` holds it open while work cannot be stopped, `FirstFocus` says what takes the keyboard, and `NoFocusBack` leaves the focus alone when it closes. A `Mover` lets the reader drag any popup's panel by a band along its top, ending the drag at a second press with `AnyPressEnds`, and `DialogButtonOrder` puts a surface's own buttons in the order the platform reads them.",
 		specimens: []specimen{
 			{caption: "Open, holding a form", build: popoverWithForm},
 			{caption: "Opened modal from a button, moved by its title, with its buttons in the form's order", build: popoverModalMoved},

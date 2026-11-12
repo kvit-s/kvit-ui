@@ -86,6 +86,84 @@ func TestAListRowsHeightAndPlacement(t *testing.T) {
 	})
 }
 
+// FitRoom adds room inside the content's box, where a release counts; the
+// margins beside it still do not. FitAtLeastForm keeps the form's height
+// under a short child. Arrange lays the children out in place of the row's
+// line.
+func TestAListRowsFitRoomAndArrange(t *testing.T) {
+	var roomy, short, high, arranged *kvitui.ListRow
+	var words *kvitui.Label
+	var grower, fixed *unison.Panel
+	opened := 0
+	screen, ui := rowsIn(t, func(ui *kvitui.UI) []*kvitui.ListRow {
+		words = kvitui.NewLabel(ui, "First line\nSecond line")
+		words.Wrap = true
+		roomy = kvitui.NewListRow(ui, kvitui.FullWidth(words))
+		roomy.Interactive, roomy.NoOpensMark, roomy.FitContent, roomy.FitRoom = true, true, true, kvitui.Px(10)
+		roomy.OnActivate = func() { opened++ }
+		short = kvitui.NewListRow(ui, box(40, 6))
+		short.FitContent, short.FitAtLeastForm = true, true
+		high = kvitui.NewListRow(ui, box(40, 60))
+		high.FitContent, high.FitAtLeastForm = true, true
+		grower, fixed = kvitui.Grow(box(30, 12)), box(50, 16)
+		arranged = kvitui.NewListRow(ui, grower, fixed)
+		arranged.Arrange = kvitui.NewLineLayout(ui, kvitui.SizeSpace)
+		return []*kvitui.ListRow{roomy, short, high, arranged}
+	})
+	var tight float32
+	screen.Do(func() {
+		m := ui.Interface
+		tight = float32(m.SpaceTight())
+		_, two, _ := words.Sizes(geom.NewSize(300-2*tight, 0))
+		if h := roomy.FrameRect().Height; h != two.Height+10 {
+			t.Errorf("a row fitting two lines %v tall with room of 10 is %v tall", two.Height, h)
+		}
+		wantFrame(t, "the words of a row with room", words.AsPanel(), tight, 5, 300-2*tight, two.Height)
+		slim := float32(m.RowHeightSlim())
+		if h := short.FrameRect().Height; h != slim {
+			t.Errorf("a row at least its form's height, holding a child 6 tall, is %v tall, want %v", h, slim)
+		}
+		if h := high.FrameRect().Height; h != 60 {
+			t.Errorf("a row at least its form's height, holding a child 60 tall, is %v tall", h)
+		}
+		// Height still wins over both.
+		short.Height = kvitui.Px(12)
+		if _, pref, _ := short.Sizes(geom.NewSize(300, 0)); pref.Height != 12 {
+			t.Errorf("a row with a height of 12 and FitAtLeastForm asks for %v tall", pref.Height)
+		}
+		// Arrange: the grower takes the width the other leaves, and the row
+		// asks for the line's own width.
+		gap := float32(m.Space())
+		wantFrame(t, "a child that grows in a row's line", grower.AsPanel(), tight, (slim-12)/2, 300-2*tight-50-gap, 12)
+		wantFrame(t, "a child at its own width in a row's line", fixed, 300-tight-50, (slim-16)/2, 50, 16)
+		wantSizes(t, "a row arranged by a line", arranged.AsPanel(), geom.NewSize(300, 0),
+			geom.NewSize(2*tight, slim), geom.NewSize(30+50+gap+2*tight, slim), geom.NewSize(unison.DefaultMaxSize, slim))
+		// With FitContent and FitAtLeastForm it is as tall as the taller of the
+		// form and the line, as Kvit Works' rows on a line are.
+		arranged.FitContent, arranged.FitAtLeastForm = true, true
+		fixed.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
+			return geom.Size{}, geom.NewSize(50, 70), geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)
+		})
+		wantSizes(t, "a tall row arranged by a line", arranged.AsPanel(), geom.NewSize(300, 0),
+			geom.NewSize(2*tight, 70), geom.NewSize(30+50+gap+2*tight, 70), geom.NewSize(unison.DefaultMaxSize, 70))
+		fixed.SetSizer(func(geom.Size) (geom.Size, geom.Size, geom.Size) {
+			return geom.Size{}, geom.NewSize(50, 10), geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)
+		})
+		wantSizes(t, "a short row arranged by a line", arranged.AsPanel(), geom.NewSize(300, 0),
+			geom.NewSize(2*tight, slim), geom.NewSize(30+50+gap+2*tight, slim), geom.NewSize(unison.DefaultMaxSize, slim))
+	})
+	// A release in the left margin does not activate the row; one in the room
+	// added above the words does. PanelPoint counts from inside the margins.
+	screen.Click(screen.PanelPoint(roomy, geom.NewPoint(-tight/2, 2)))
+	if opened != 0 {
+		t.Errorf("a press in the left margin of a row with room opened it %d times", opened)
+	}
+	screen.Click(screen.PanelPoint(roomy, geom.NewPoint(150, 2)))
+	if opened != 1 {
+		t.Errorf("a press in the room above a row's words opened it %d times", opened)
+	}
+}
+
 func TestAListRowsSlots(t *testing.T) {
 	var row *kvitui.ListRow
 	lead, title, sub, trail := box(16, 16), box(80, 14), box(120, 12), box(40, 20)
@@ -134,7 +212,7 @@ func near(a, b color.Color) bool {
 
 func TestAListRowsMarks(t *testing.T) {
 	t.Setenv(uitest.ScaleVariable, "1")
-	var plain, barred, edge, anyFocus, round, quiet *kvitui.ListRow
+	var plain, barred, edge, half, anyFocus, round, quiet *kvitui.ListRow
 	s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler {
 		row := func(words string) *kvitui.ListRow {
 			r := kvitui.NewListRow(ui, kvitui.NewLabel(ui, words))
@@ -144,10 +222,12 @@ func TestAListRowsMarks(t *testing.T) {
 		plain, barred, edge, anyFocus, round, quiet = row("Plain"), row("Bar"), row("Edge"), row("Any focus"), row("Round"), row("Quiet")
 		barred.Bar = kvitui.Px(3)
 		edge.RingAtEdge = true
+		half = row("Half in")
+		half.RingHalfIn = true
 		anyFocus.RingOnAnyFocus = true
 		round.Radius = kvitui.Px(10)
 		quiet.NoHoverTint = true
-		return kvitui.Width(ui, kvitui.Px(300), kvitui.Stack(ui, kvitui.SizeSpace, plain, barred, edge, anyFocus, round, quiet))
+		return kvitui.Width(ui, kvitui.Px(300), kvitui.Stack(ui, kvitui.SizeSpace, plain, barred, edge, half, anyFocus, round, quiet))
 	})
 	var img image.Image
 	shoot := func() {
@@ -198,6 +278,15 @@ func TestAListRowsMarks(t *testing.T) {
 	shoot()
 	if !near(at(barred, 200, inner), ringInk) || near(at(barred, 200, ring/2), ringInk) {
 		t.Error("a row focused from the keyboard draws no ring a ring's width inside its edge")
+	}
+	// Half a ring's width in: the edge's pixel row is clear, the next two are
+	// the ring at a ring width of 2, and the row the default ring reaches
+	// past them is clear again.
+	s.Do(func() { half.Focus() })
+	shoot()
+	if near(at(half, 200, 0), ringInk) || !near(at(half, 200, ring/2), ringInk) || !near(at(half, 200, ring/2+ring-1), ringInk) ||
+		near(at(half, 200, ring/2+ring), ringInk) {
+		t.Error("a row with its ring half a width in does not draw it on the second and third pixel rows")
 	}
 	// A press gives the focus without a ring, unless any focus shows it.
 	s.Screen.Click(s.Screen.PanelPoint(plain, geom.NewPoint(200, mid)))
@@ -429,6 +518,170 @@ func TestAListRowsKeyAndFocusHooks(t *testing.T) {
 	screen.KeyPress(unison.KeyDown, 0)
 	if len(keys) != 1 || keys[0] != unison.KeyDown {
 		t.Errorf("a key on a control inside the row reached OnKey as %v", keys)
+	}
+
+	// OnKeyDown is offered a key first, with whether it repeats; a key it
+	// takes reaches neither OnKey nor the row, and one it leaves reaches both.
+	var repeats []bool
+	takeDown := false
+	screen.Do(func() {
+		row.OnKeyDown = func(key unison.KeyCode, _ mod.Modifiers, repeat bool) bool {
+			if key == unison.KeyReturn {
+				repeats = append(repeats, repeat)
+			}
+			return takeDown
+		}
+		row.Focus()
+	})
+	screen.Sync()
+	opened, keys, take = 0, nil, false
+	screen.KeyDown(unison.KeyReturn, 0)
+	screen.KeyDown(unison.KeyReturn, 0)
+	screen.KeyUp(unison.KeyReturn, 0)
+	if len(repeats) != 2 || repeats[0] || !repeats[1] {
+		t.Errorf("Return held down told OnKeyDown repeat %v, want false then true", repeats)
+	}
+	if opened != 1 || len(keys) != 2 {
+		t.Errorf("keys OnKeyDown left reached OnKey %d times and opened the row %d times, want 2 and 1", len(keys), opened)
+	}
+	opened, keys, takeDown = 0, nil, true
+	screen.KeyPress(unison.KeyReturn, 0)
+	if opened != 0 || len(keys) != 0 {
+		t.Errorf("a key OnKeyDown took reached OnKey %d times and opened the row %d times", len(keys), opened)
+	}
+}
+
+// A press on a row that shows the keyboard ring ends it, unless the row keeps
+// it; a press on a row without the focus gives it the focus without a ring
+// either way.
+func TestAListRowKeepsItsRingOnAPressWhenTold(t *testing.T) {
+	var plain, keeps, other *kvitui.ListRow
+	screen, _ := rowsIn(t, func(ui *kvitui.UI) []*kvitui.ListRow {
+		row := func(words string) *kvitui.ListRow {
+			r := kvitui.NewListRow(ui, kvitui.NewLabel(ui, words))
+			r.Interactive, r.NoOpensMark = true, true
+			return r
+		}
+		plain, keeps, other = row("Plain"), row("Keeps"), row("Other")
+		keeps.RingKeptOnPress = true
+		return []*kvitui.ListRow{plain, keeps, other}
+	})
+	keyboard := func(r *kvitui.ListRow) (k bool) {
+		screen.Do(func() { k = r.KeyboardFocus() })
+		return k
+	}
+	for _, c := range []struct {
+		row  *kvitui.ListRow
+		keep bool
+	}{{plain, false}, {keeps, true}} {
+		// From another row, since the first row holds the focus the window
+		// handed out, and Focus() on a row that holds it changes nothing.
+		screen.Do(func() { other.Focus() })
+		screen.Sync()
+		screen.Do(func() { c.row.Focus() })
+		screen.Sync()
+		if !keyboard(c.row) {
+			t.Fatalf("a row given the focus with Focus() shows no ring (keeps it on a press: %v)", c.keep)
+		}
+		screen.Click(screen.PanelPoint(c.row, geom.NewPoint(250, 5)))
+		if got := keyboard(c.row); got != c.keep {
+			t.Errorf("after a press on a row showing its ring, the ring shows %v; want %v", got, c.keep)
+		}
+		screen.Do(func() { other.Focus() })
+		screen.Sync()
+		screen.Click(screen.PanelPoint(c.row, geom.NewPoint(250, 5)))
+		var focused bool
+		screen.Do(func() { focused = c.row.Focused() })
+		if !focused || keyboard(c.row) {
+			t.Errorf("a row focused by a press holds the focus %v and shows its ring %v (keeps it on a press: %v)", focused, keyboard(c.row), c.keep)
+		}
+	}
+}
+
+// A row that takes no focus on a press still acts on it, and the focus stays
+// where it was.
+func TestAListRowPressedWithoutTakingTheFocus(t *testing.T) {
+	var field *kvitui.Field
+	var row *kvitui.ListRow
+	opened := 0
+	screen, _ := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		field = kvitui.NewField(ui)
+		row = kvitui.NewListRow(ui, kvitui.NewLabel(ui, "Version 3"))
+		row.Interactive, row.NoOpensMark = true, true
+		row.OnActivate = func() { opened++ }
+		return []unison.Paneler{kvitui.FullWidth(field), kvitui.Width(ui, kvitui.Px(300), row)}
+	})
+	fieldFocused := func() (f bool) {
+		screen.Do(func() { f = field.Edit().Focused() })
+		return f
+	}
+	for _, noFocus := range []bool{true, false} {
+		opened = 0
+		screen.Do(func() {
+			row.NoFocusOnPress = noFocus
+			field.Focus()
+		})
+		screen.Sync()
+		if !fieldFocused() {
+			t.Fatal("the field does not hold the focus before the press")
+		}
+		screen.Click(screen.PanelPoint(row, geom.NewPoint(250, 5)))
+		var rowFocused bool
+		screen.Do(func() { rowFocused = row.Focused() })
+		if opened != 1 || fieldFocused() != noFocus || rowFocused == noFocus {
+			t.Errorf("with NoFocusOnPress %v a press opened the row %d times; the field holds the focus %v, the row %v",
+				noFocus, opened, fieldFocused(), rowFocused)
+		}
+	}
+	// Tab still reaches it.
+	screen.Do(func() {
+		row.NoFocusOnPress = true
+		field.Focus()
+	})
+	screen.Sync()
+	screen.KeyPress(unison.KeyTab, 0)
+	var rowFocused bool
+	screen.Do(func() { rowFocused = row.Focused() })
+	if !rowFocused {
+		t.Error("Tab from the field does not reach a row that takes no focus on a press")
+	}
+}
+
+// A row that yields its hover is untinted over a part with a hover of its
+// own, such as a button, and tinted over its words and its padding.
+func TestAListRowYieldsItsHoverToAButton(t *testing.T) {
+	var row *kvitui.ListRow
+	var words *kvitui.Label
+	var button *kvitui.Button
+	screen, _, _ := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		words = kvitui.NewLabel(ui, "Words")
+		button = kvitui.NewButton(ui, "Stop")
+		row = kvitui.NewListRow(ui, words, button)
+		row.Interactive, row.NoOpensMark, row.HoverWhole = true, true, true
+		return []unison.Paneler{kvitui.Width(ui, kvitui.Px(300), kvitui.Stack(ui, nil, row, kvitui.NewLabel(ui, "Below")))}
+	})
+	hovered := func() (h bool) {
+		screen.Do(func() { h = row.Hovered() })
+		return h
+	}
+	for _, yields := range []bool{false, true} {
+		screen.Do(func() { row.HoverYields = yields })
+		for _, c := range []struct {
+			what string
+			at   geom.Point
+			want bool
+		}{
+			{"its words", screen.PanelCenter(words), true},
+			{"its padding", screen.PanelPoint(row, geom.NewPoint(250, 3)), true},
+			{"a button inside it", screen.PanelCenter(button), !yields},
+		} {
+			screen.MouseMove(geom.NewPoint(5, 400), 0)
+			screen.MouseMove(c.at, 0)
+			screen.Sync()
+			if got := hovered(); got != c.want {
+				t.Errorf("with HoverYields %v, the row is hovered %v with the pointer on %s; want %v", yields, got, c.what, c.want)
+			}
+		}
 	}
 }
 

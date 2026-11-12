@@ -243,6 +243,22 @@ func TestALinesOptions(t *testing.T) {
 			geom.NewSize(60+gap, 30), geom.NewSize(60+gap, 30), geom.NewSize(unison.DefaultMaxSize, 30))
 		laid(line, 200, 20)
 		wantFrame(t, "a child of a line that does not shrink, in a shorter line", a, 0, -5, 40, 30)
+
+		// AlignTop: every child at the top of the content at its own height,
+		// uncut, over Top; the sizes reported are unchanged.
+		a, b = box(40, 40), box(40, 20)
+		line = kvitui.Line(ui, kvitui.SizeSpace, a, b)
+		line.SetBorder(kvitui.Padding(ui, kvitui.Px(5)))
+		_, before, _ := line.Sizes(geom.NewSize(200, 0))
+		options(line).AlignTop, options(line).Top = true, true
+		if _, after, _ := line.Sizes(geom.NewSize(200, 0)); after != before {
+			t.Errorf("a line with its children at the top asks for %v, %v without", after, before)
+		}
+		laid(line, 200, 100)
+		wantFrame(t, "the tall child of a line with its children at the top", a, 5, 5, 40, 40)
+		wantFrame(t, "the short child of a line with its children at the top", b, 45+gap, 5, 40, 20)
+		laid(line, 200, 30)
+		wantFrame(t, "the tall child of a short line with its children at the top", a, 5, 5, 40, 40)
 	})
 }
 
@@ -296,6 +312,50 @@ func TestTheSmallerLayouts(t *testing.T) {
 			capped.SetLayout(kvitui.AtMost(ui, kvitui.Px(50), kvitui.OwnSizeLayout{}))
 			wantSizes(t, "a panel with a height limit", capped, geom.NewSize(100, 0),
 				geom.NewSize(0, c.want), geom.NewSize(40, c.want), geom.NewSize(unison.DefaultMaxSize, c.want))
+		}
+
+		// NewRowLayout: children added after the layout is made, one column
+		// each, centred on the line; a hidden child keeps its room.
+		row := unison.NewPanel()
+		row.SetLayout(kvitui.NewRowLayout(ui, kvitui.SizeSpace))
+		first, middle, last := box(40, 20), box(60, 30), box(50, 10)
+		for _, c := range []*unison.Panel{first, middle, last} {
+			row.AddChild(c)
+		}
+		gap := float32(ui.Interface.Space())
+		wantSizes(t, "a row laid out by NewRowLayout", row, geom.Size{},
+			geom.NewSize(2*gap, 0), geom.NewSize(150+2*gap, 30), geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize))
+		laid(row, 300, 30)
+		wantFrame(t, "the first child of a row", first, 0, 5, 40, 20)
+		wantFrame(t, "the middle child of a row", middle, 40+gap, 0, 60, 30)
+		wantFrame(t, "the last child of a row", last, 100+2*gap, 10, 50, 10)
+		middle.Hidden = true
+		laid(row, 300, 30)
+		wantFrame(t, "the last child of a row whose middle child is hidden", last, 100+2*gap, 10, 50, 10)
+
+		// ShownIn and InsetsOf: the children that are not hidden, and the
+		// border's insets or none.
+		holder := unison.NewPanel()
+		shown, hidden := box(1, 1), box(1, 1)
+		hidden.Hidden = true
+		holder.AddChild(shown)
+		holder.AddChild(hidden)
+		for _, c := range []struct {
+			what   string
+			border unison.Border
+			want   geom.Insets
+		}{
+			{"no border", nil, geom.Insets{}},
+			{"padding", kvitui.Padding(ui, kvitui.Px(6)), geom.NewUniformInsets(6)},
+			{"insets", kvitui.Insets(ui, kvitui.Px(1), kvitui.Px(2), nil, kvitui.Px(4)), geom.Insets{Top: 1, Left: 2, Right: 4}},
+		} {
+			holder.SetBorder(c.border)
+			if got := kvitui.InsetsOf(holder); got != c.want {
+				t.Errorf("InsetsOf a panel with %s is %v, want %v", c.what, got, c.want)
+			}
+			if got := kvitui.ShownIn(holder); len(got) != 1 || got[0] != shown {
+				t.Errorf("ShownIn a panel with %s is %v", c.what, got)
+			}
 		}
 
 		// Relayout marks the panel and what it sits in, and with children

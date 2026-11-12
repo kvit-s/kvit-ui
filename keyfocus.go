@@ -32,14 +32,23 @@ func (u *UI) WatchKeys(w *unison.Window) {
 // focus, Asked before the component gives the panel the focus itself, Gained
 // from its GainedFocusCallback and Lost from its LostFocusCallback.
 type KeyFocus struct {
+	// KeptOnPress keeps the keyboard focus shown on a panel that holds it
+	// when the panel is pressed, where Pressed otherwise ends it. A press on
+	// a panel that does not hold the focus still gives it focus that does
+	// not show.
+	KeptOnPress bool
+
 	pressed, asked, keyboard bool
 }
 
 // Pressed says a press is about to give the panel the focus. A press on a
-// panel that holds the focus already ends any keyboard focus shown.
+// panel that holds the focus already ends any keyboard focus shown, unless
+// KeptOnPress.
 func (f *KeyFocus) Pressed() {
 	f.pressed = true
-	f.keyboard = false
+	if !f.KeptOnPress {
+		f.keyboard = false
+	}
 }
 
 // Asked says the component is about to give the panel the focus itself, as

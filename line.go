@@ -55,6 +55,11 @@ type LineLayout struct {
 	// NoShrink makes the least size the line reports the size it asks for,
 	// and lets a child keep its own height in a shorter line.
 	NoShrink bool
+	// AlignTop frames every child with its top at the top of the content,
+	// at the height it asks for at its width, uncut, as a button stays level
+	// with the first line of a field that grows downwards. It wins over Top.
+	// The sizes the line reports are unchanged.
+	AlignTop bool
 }
 
 // NewLineLayout returns a line's layout with a gap between the children.
@@ -192,6 +197,8 @@ func (l *LineLayout) PerformLayout(target *unison.Panel) {
 	for i, c := range parts {
 		h, within := heights[i], r.Height
 		switch {
+		case l.AlignTop:
+			within = h
 		case l.Top:
 			within = tallest
 		case !l.NoShrink:

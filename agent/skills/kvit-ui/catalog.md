@@ -374,7 +374,7 @@ func stackReadingColumn(ui *kvitui.UI) unison.Paneler {
 
 ### KvitLine
 
-Panels side by side, a gap apart, centred on the line (`Line`, or `NewLineLayout`). A hidden child takes no room and no gap. `Grow` and `GrowShare` give a child the width the others leave, `FixedWidth` holds one to a width, and any other keeps its own. The options reproduce what lines in the applications do: `GrowLast`, `ClipFixed`, `FillsHint`, `InsetsUncounted`, `Top` and `NoShrink`.
+Panels side by side, a gap apart, centred on the line (`Line`, or `NewLineLayout`). A hidden child takes no room and no gap. `Grow` and `GrowShare` give a child the width the others leave, `FixedWidth` holds one to a width, and any other keeps its own. The options reproduce what lines in the applications do: `GrowLast`, `ClipFixed`, `FillsHint`, `InsetsUncounted`, `Top`, `AlignTop` and `NoShrink`. `NewRowLayout` is the layout `Row` makes, for a panel filled after it is made, and `ShownIn` and `InsetsOf` are for a layout of your own.
 
 *One part grows, one is held to a width, one keeps its own*
 
@@ -398,6 +398,27 @@ func lineShares(ui *kvitui.UI) unison.Paneler {
     part := func(words string) *kvitui.Button { return kvitui.NewButton(ui, words) }
     return kvitui.Width(ui, kvitui.Px(360), kvitui.Line(ui, kvitui.SizeSpace,
         kvitui.GrowShare(part("Import file"), 1), kvitui.GrowShare(part("Export ledger"), 2)))
+}
+```
+
+*A button level with the top of a field that grows*
+
+```go
+func lineAlignTop(ui *kvitui.UI) unison.Paneler {
+    path := kvitui.NewField(ui)
+    path.Label, path.Placeholder = "Project folder", "Project folder"
+    path.Error = "No folder of that name"
+    line := kvitui.NewLineLayout(ui, kvitui.SizeSpaceSnug)
+    // The button stays level with the field's line as the error under the
+    // field makes it taller.
+    line.AlignTop = true
+    browse := kvitui.NewButton(ui, "Browse")
+    browse.Asks = true
+    row := unison.NewPanel()
+    row.SetLayout(line)
+    row.AddChild(kvitui.Grow(path))
+    row.AddChild(browse)
+    return kvitui.Width(ui, kvitui.Px(360), row)
 }
 ```
 
@@ -1115,7 +1136,7 @@ func sectionHeadingExplanation(ui *kvitui.UI) unison.Paneler {
 
 ### KvitRow
 
-A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`. A row that needs another size says so with `Height`, `FitContent` and `Margins`, and places its parts through the `Leading`, `Title`, `Subtitle` and `Trailing` slots or a `Place` function of its own. `Bar`, `Radius`, `RingAtEdge`, `RingOnAnyFocus`, `NoHoverTint` and `NoHoverTintDisabled` change its marks. `HoverWhole` keeps it hovered over its own words and `OnHover` reports the change; `PressOn` and `AnyButton` say which press activates it, and `OnDoubleClick`, `OnPress`, `OnDrag`, `OnRelease`, `OnKey`, `OnFocus` and `OnBlur` are hooks for a list's own behaviour. `Description`, `Level`, `Expandable` and `Expanded` go to screen readers, for a tree's rows.
+A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`. A row that needs another size says so with `Height`, `FitContent`, `FitRoom`, `FitAtLeastForm` and `Margins`, and places its parts through the `Leading`, `Title`, `Subtitle` and `Trailing` slots, a layout of its own in `Arrange`, or a `Place` function. `Bar`, `Radius`, `RingAtEdge`, `RingHalfIn`, `RingOnAnyFocus`, `RingKeptOnPress`, `NoHoverTint` and `NoHoverTintDisabled` change its marks. `HoverWhole` keeps it hovered over its own words, `HoverYields` gives up the hover over a part with a hover of its own, and `OnHover` reports the change; `PressOn`, `AnyButton` and `NoFocusOnPress` say what a press does, and `OnDoubleClick`, `OnPress`, `OnDrag`, `OnRelease`, `OnKeyDown`, `OnKey`, `OnFocus` and `OnBlur` are hooks for a list's own behaviour. `Description`, `Level`, `Expandable` and `Expanded` go to screen readers, for a tree's rows.
 
 *Pressable and static*
 
@@ -1196,7 +1217,7 @@ func rowSlots(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
-*A selection bar, rounded tints, and the ring at the edge*
+*A selection bar, rounded tints, and the ring at the edge or half its width in*
 
 ```go
 func rowBarAndRing(ui *kvitui.UI) unison.Paneler {
@@ -1214,7 +1235,9 @@ func rowBarAndRing(ui *kvitui.UI) unison.Paneler {
     round.Radius, round.Selected = kvitui.SizeRadiusControl, true
     edge := row("The cursor's ring at the row's edge")
     edge.RingAtEdge, edge.Radius, edge.Current = true, kvitui.SizeRadiusControl, true
-    return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, barred, round, edge))
+    half := row("The cursor's ring half its width in")
+    half.RingHalfIn, half.Current = true, true
+    return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, barred, round, edge, half))
 }
 ```
 
@@ -2915,7 +2938,7 @@ func tooltipSetOnAControl(ui *kvitui.UI) unison.Paneler {
 
 ### KvitPopover
 
-A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card. `OpenModal` shows it over a scrim, so nothing behind can be used until it closes; `ModalPress` says whether the press outside that closes it stops there or goes on to what is behind. `OnEscape` and `OnPressOutside` run in place of closing, `PressOutsideIgnored` makes a press outside do nothing, `MayClose` holds it open while work cannot be stopped, and `FirstFocus` says what takes the keyboard. A `Mover` lets the reader drag any popup's panel by a band along its top, and `DialogButtonOrder` puts a surface's own buttons in the order the platform reads them.
+A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card. `OpenModal` shows it over a scrim, so nothing behind can be used until it closes; `ModalPress` says whether the press outside that closes it stops there or goes on to what is behind. `OnEscape` and `OnPressOutside` run in place of closing, `PressOutsideIgnored` makes a press outside do nothing, `MayClose` holds it open while work cannot be stopped, `FirstFocus` says what takes the keyboard, and `NoFocusBack` leaves the focus alone when it closes. A `Mover` lets the reader drag any popup's panel by a band along its top, ending the drag at a second press with `AnyPressEnds`, and `DialogButtonOrder` puts a surface's own buttons in the order the platform reads them.
 
 ```go
 func NewPopover(ui *UI, title string, content ...unison.Paneler) *Popover
@@ -2932,6 +2955,7 @@ func NewPopover(ui *UI, title string, content ...unison.Paneler) *Popover
 | `ModalPress` | `ModalPress` | ModalPress is what becomes of a press outside a popover opened with OpenModal, once it has closed the popover or run OnPressOutside: it goes no further (the default), or it goes on to what is behind. |
 | `MayClose` | `func() bool` | MayClose, when set, is asked by Close, and by Escape and a press outside where they close the popover: false leaves it open, as while it shows work that cannot be stopped. |
 | `FirstFocus` | `func() *unison.Panel` | FirstFocus answers what takes the keyboard when the popover opens; nil, or answering nil, gives it to the first control inside. |
+| `NoFocusBack` | `bool` | NoFocusBack leaves the focus alone when the popover closes, where Close otherwise gives it back to what held it when the popover opened. |
 
 Methods: `Close`, `OpenModal`, `Open`, `Opened`.
 

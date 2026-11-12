@@ -193,6 +193,22 @@ func TestALabelKeepsToItsLineLimit(t *testing.T) {
 		if _, pref, _ := short.Sizes(geom.NewSize(width, 0)); pref.Height != line.Height {
 			t.Errorf("a short text with a limit is %v tall, a line %v", pref.Height, line.Height)
 		}
+		// A text of short lines of its own, more of them than the limit,
+		// narrower than the room: as tall as the lines drawn.
+		quoted := kvitui.NewLabel(ui, "a\nb\nc\nd\ne")
+		quoted.Wrap = true
+		_, all, _ := quoted.Sizes(geom.NewSize(width, 0))
+		if all.Height < 4.5*line.Height {
+			t.Fatalf("five lines of their own with no limit are %v tall, a line %v", all.Height, line.Height)
+		}
+		quoted.MaxLines = 2
+		if _, pref, _ := quoted.Sizes(geom.NewSize(width, 0)); pref.Height < 1.5*line.Height || pref.Height > 2.5*line.Height {
+			t.Errorf("five lines of their own limited to two are %v tall, a line %v", pref.Height, line.Height)
+		}
+		// Offered no width, it is as tall as all its lines.
+		if _, pref, _ := quoted.Sizes(geom.Size{}); pref.Height != all.Height {
+			t.Errorf("five lines of their own limited to two, offered no width, are %v tall, want %v", pref.Height, all.Height)
+		}
 	})
 }
 

@@ -53,6 +53,39 @@ func Row(ui *UI, gap Measure, children ...unison.Paneler) *unison.Panel {
 	return p
 }
 
+// NewRowLayout returns the layout Row gives its panel, for a panel filled
+// after it is made: side by side, a gap apart, centred on one line, with one
+// column for every child, hidden ones included, counted again before every
+// size question and layout. A child with no layout data is given the middle
+// alignment Row gives it. A hidden child keeps its room and its gap, as in
+// any flex layout; a Line leaves it out.
+func NewRowLayout(ui *UI, gap Measure) unison.Layout {
+	return &rowLayout{spaced{FlexLayout: unison.FlexLayout{Columns: 1, VAlign: align.Middle}, ui: ui, gap: gap, horizontal: true}}
+}
+
+type rowLayout struct{ spaced }
+
+func (l *rowLayout) sync(target *unison.Panel) {
+	l.Columns = max(1, len(target.Children()))
+	for _, c := range target.Children() {
+		if c.LayoutData() == nil {
+			c.SetLayoutData(&unison.FlexLayoutData{VAlign: align.Middle})
+		}
+	}
+}
+
+// LayoutSizes implements unison.Layout.
+func (l *rowLayout) LayoutSizes(target *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	l.sync(target)
+	return l.spaced.LayoutSizes(target, hint)
+}
+
+// PerformLayout implements unison.Layout.
+func (l *rowLayout) PerformLayout(target *unison.Panel) {
+	l.sync(target)
+	l.spaced.PerformLayout(target)
+}
+
 // Column stacks panels top to bottom, a gap apart, each as wide as the
 // column.
 func Column(ui *UI, gap Measure, children ...unison.Paneler) *unison.Panel {

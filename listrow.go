@@ -76,6 +76,15 @@ type ListRow struct {
 	// width offered less the margins' width, plus the margins' height.
 	// Height wins over it.
 	FitContent bool
+	// FitRoom, with FitContent, is added to the content's height, in all,
+	// beside the margins' height. It is room inside the content's box rather
+	// than a margin: the children stay centred in the taller box, and a
+	// release in it activates the row as one on the content does. Nil adds
+	// nothing.
+	FitRoom Measure
+	// FitAtLeastForm, with FitContent, keeps the row at least as tall as its
+	// Form's height.
+	FitAtLeastForm bool
 	// Margins, when set, replace the row's own margins on all four sides;
 	// the chevron's room is still added on the right while the row opens
 	// something. With it set, a release counts anywhere in the row's box,
@@ -85,6 +94,13 @@ type ListRow struct {
 	// inside the margins, in place of the row's own line. The row then asks
 	// for the width it is offered.
 	Place func(content geom.Rect)
+	// Arrange, when set, lays the row's children out in place of the row's
+	// own line, on the row's panel, whose border is the row's margins. The
+	// row asks for the least and preferred widths Arrange reports, and with
+	// FitContent takes Arrange's preferred height as its own, margins
+	// included, before FitRoom and FitAtLeastForm. Place and the slots win
+	// over it.
+	Arrange unison.Layout
 	// Leading, Title, Subtitle and Trailing are slots for a row that needs
 	// no arithmetic of its own. When any is set the row holds those panels
 	// and nothing else: Leading at its own size at the left, Title taking
@@ -102,9 +118,17 @@ type ListRow struct {
 	// RingAtEdge draws the ring just inside the row's edge, where it is
 	// otherwise a ring's width further in.
 	RingAtEdge bool
+	// RingHalfIn draws the ring half a ring's width inside the row's edge.
+	// RingAtEdge wins over it.
+	RingHalfIn bool
 	// RingOnAnyFocus shows the ring however the focus arrived, where it
 	// otherwise shows only for focus that came from the keyboard.
 	RingOnAnyFocus bool
+	// RingKeptOnPress keeps the keyboard focus, and its ring, on a row that
+	// holds it when the row is pressed, where a press otherwise ends it. A
+	// press on a row that does not hold the focus still gives it the focus
+	// without a ring.
+	RingKeptOnPress bool
 	// NoHoverTint leaves the row untinted under the pointer.
 	NoHoverTint bool
 	// NoHoverTintDisabled leaves a disabled row untinted under the pointer,
@@ -116,6 +140,13 @@ type ListRow struct {
 	// arrived, so a row full of labels otherwise loses its tint over its own
 	// words.
 	HoverWhole bool
+	// HoverYields, with HoverWhole, leaves the row unhovered while the
+	// pointer is on a part with a hover of its own: the innermost panel under
+	// the pointer, or a panel between it and the row, that has a
+	// MouseEnterCallback or a MouseExitCallback, as a button, a link and a
+	// mark with a tooltip have. The row itself is not counted. Plain words
+	// and symbols, however deep inside the row, keep the row hovered.
+	HoverYields bool
 	// OnHover runs after the hover changed, once the event that changed it
 	// is over, and not at all when it changed back within that event.
 	OnHover func(over bool)
@@ -128,8 +159,12 @@ type ListRow struct {
 	// the release still activates the row.
 	OnDoubleClick func()
 	// OnPress runs as a button the row accepts goes down on it, after the
-	// focus is asked for, with where in the row and which button.
+	// focus is asked for (unless NoFocusOnPress), with where in the row and
+	// which button.
 	OnPress func(where geom.Point, button int)
+	// NoFocusOnPress leaves the focus where it is when the row is pressed;
+	// the row is still reached by Tab, and the press still activates it.
+	NoFocusOnPress bool
 	// OnDrag runs as the pointer moves with the button held, with where it
 	// is in the row's coordinates.
 	OnDrag func(where geom.Point)
@@ -137,11 +172,16 @@ type ListRow struct {
 	// was used, as the end of a drag is, and the row does not activate.
 	OnRelease func() (handled bool)
 
-	// OnKey is offered every key that reaches the row before the row's own
-	// handling: repeats, keys with modifiers, keys on a row that is not
-	// Interactive and keys that come up from a control inside the row among
-	// them. True says the key was used.
+	// OnKey is offered every key that reaches the row, after OnKeyDown and
+	// before the row's own handling: repeats, keys with modifiers, keys on a
+	// row that is not Interactive and keys that come up from a control inside
+	// the row among them. True says the key was used.
 	OnKey func(key unison.KeyCode, mods mod.Modifiers) bool
+	// OnKeyDown is offered every key that reaches the row before OnKey and
+	// the row's own handling, with whether the key is a repeat. True says the
+	// key was used. A row whose keys follow a rule of its own, such as
+	// acting on a repeat or with a modifier held, answers its keys here.
+	OnKeyDown func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool
 	// OnFocus runs when the row gains the focus, with whether a press gave
 	// it, which is the opposite of what KeyboardFocus then answers; OnBlur
 	// when it loses it.
@@ -192,6 +232,9 @@ func (r *ListRow) initListRow(ui *UI, content ...unison.Paneler) {
 	// itself, so one Space does not both press the button and open the row.
 	keyDown := r.KeyDownCallback
 	r.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		if r.OnKeyDown != nil && r.OnKeyDown(key, mods, repeat) {
+			return true
+		}
 		if r.OnKey != nil && r.OnKey(key, mods) {
 			return true
 		}
@@ -272,18 +315,24 @@ func (r *ListRow) initListRow(ui *UI, content ...unison.Paneler) {
 func (r *ListRow) opens() bool { return r.Interactive && !r.NoOpensMark }
 
 // mouseDown presses the row: the left button, or any with AnyButton. It
-// gives the row the focus, and activates it at once where PressOn says so.
+// gives the row the focus, unless NoFocusOnPress, and activates it at once
+// where PressOn says so.
 func (r *ListRow) mouseDown(where geom.Point, button, clicks int, _ mod.Modifiers) bool {
 	if !r.Interactive || !r.Enabled() || (button != unison.ButtonLeft && !r.AnyButton) {
 		return false
 	}
 	r.pressed = r.PressOn == PressOnRelease
 	r.hideTip()
-	// The focus arrives after this returns; the marker says where it came
-	// from until then. A click also ends any keyboard focus shown.
-	r.pointerFocus = true
-	r.keyboardFocus = false
-	r.RequestFocus()
+	if !r.NoFocusOnPress {
+		// The focus arrives after this returns; the marker says where it came
+		// from until then. A click also ends any keyboard focus shown, unless
+		// the row keeps it.
+		r.pointerFocus = true
+		if !r.RingKeptOnPress {
+			r.keyboardFocus = false
+		}
+		r.RequestFocus()
+	}
 	r.MarkForRedraw()
 	if r.OnPress != nil {
 		r.OnPress(where, button)
@@ -346,12 +395,29 @@ func (r *ListRow) watchPointer() {
 		if r == nil || !r.HoverWhole {
 			return
 		}
-		if over := PointerOn(r.AsPanel(), where, inside); over != r.hovered {
+		over := PointerOn(r.AsPanel(), where, inside)
+		if over && r.HoverYields {
+			over = !onOwnHover(r.AsPanel(), where)
+		}
+		if over != r.hovered {
 			r.hovered = over
 			r.MarkForRedraw()
 			r.settleHover()
 		}
 	})
+}
+
+// onOwnHover reports whether the innermost panel under a root point, or a
+// panel between it and p, has pointer callbacks of its own. p itself is not
+// counted.
+func onOwnHover(p *unison.Panel, where geom.Point) bool {
+	content := p.Window().Content()
+	for q := content.PanelAt(content.PointFromRoot(where)); q != nil && q != p; q = q.Parent() {
+		if q.MouseEnterCallback != nil || q.MouseExitCallback != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // settleHover tells OnHover that the hover changed, once the event that
@@ -491,11 +557,27 @@ func (r *ListRow) contentHeight(width float32) float32 {
 	return h
 }
 
-// height is the row's height for its form.
+// height is the row's height: Height, or its form's.
 func (r *ListRow) height() float32 {
 	if r.Height != nil {
 		return float32(r.Height.Of(r.ui))
 	}
+	return r.formHeight()
+}
+
+// fitted is the row's height with FitContent for a content height that has
+// the margins counted: with FitRoom added, and at least the form's height
+// with FitAtLeastForm.
+func (r *ListRow) fitted(h float32) float32 {
+	h += orZero(r.ui, r.FitRoom)
+	if r.FitAtLeastForm {
+		h = max(h, r.formHeight())
+	}
+	return h
+}
+
+// formHeight is the height of the row's form.
+func (r *ListRow) formHeight() float32 {
 	m := r.ui.Interface
 	switch r.Form {
 	case RowFull:
@@ -550,12 +632,14 @@ func (l listRowLayout) LayoutSizes(target *unison.Panel, hint geom.Size) (minSiz
 	r := l.r
 	in := r.contentInsets()
 	h := r.height()
-	if r.Height == nil && r.FitContent {
+	fits := r.Height == nil && r.FitContent
+	arranged := r.Arrange != nil && r.Place == nil && len(r.slots()) == 0
+	if fits && !arranged {
 		width := hint.Width
 		if width > 0 {
 			width = max(0, width-in.Width())
 		}
-		h = r.contentHeight(width) + in.Height()
+		h = r.fitted(r.contentHeight(width) + in.Height())
 	}
 	switch {
 	case r.Place != nil:
@@ -563,6 +647,12 @@ func (l listRowLayout) LayoutSizes(target *unison.Panel, hint geom.Size) (minSiz
 	case len(r.slots()) > 0:
 		w, _ := r.arrangeSlots(geom.Rect{}, false)
 		return geom.NewSize(in.Width(), h), geom.NewSize(w+in.Width(), h), geom.NewSize(unison.DefaultMaxSize, h)
+	case arranged:
+		minSize, prefSize, _ = r.Arrange.LayoutSizes(target, hint)
+		if fits {
+			h = r.fitted(prefSize.Height)
+		}
+		return geom.NewSize(minSize.Width, h), geom.NewSize(prefSize.Width, h), geom.NewSize(unison.DefaultMaxSize, h)
 	}
 	minSize, prefSize, _ = l.Layout.LayoutSizes(target, hint)
 	return geom.NewSize(minSize.Width, h), geom.NewSize(prefSize.Width, h), geom.NewSize(unison.DefaultMaxSize, h)
@@ -575,6 +665,8 @@ func (l listRowLayout) PerformLayout(target *unison.Panel) {
 		r.Place(target.ContentRect(false))
 	case len(r.slots()) > 0:
 		r.arrangeSlots(target.ContentRect(false), true)
+	case r.Arrange != nil:
+		r.Arrange.PerformLayout(target)
 	default:
 		l.Layout.PerformLayout(target)
 	}
@@ -631,8 +723,11 @@ func (r *ListRow) drawMarks(gc *unison.Canvas, _ geom.Rect) {
 	if onIt || (r.RingOnAnyFocus && r.Focused()) {
 		w := float32(m.FocusRingWidth())
 		inset := w + w/2
-		if r.RingAtEdge {
+		switch {
+		case r.RingAtEdge:
 			inset = w / 2
+		case r.RingHalfIn:
+			inset = w
 		}
 		ring := b.Inset(geom.NewUniformInsets(inset))
 		paint := Color(t.FocusRing).Paint(gc, ring, paintstyle.Stroke)

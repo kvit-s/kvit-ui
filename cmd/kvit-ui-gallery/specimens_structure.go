@@ -278,6 +278,23 @@ func lineShares(ui *kvitui.UI) unison.Paneler {
 		kvitui.GrowShare(part("Import file"), 1), kvitui.GrowShare(part("Export ledger"), 2)))
 }
 
+func lineAlignTop(ui *kvitui.UI) unison.Paneler {
+	path := kvitui.NewField(ui)
+	path.Label, path.Placeholder = "Project folder", "Project folder"
+	path.Error = "No folder of that name"
+	line := kvitui.NewLineLayout(ui, kvitui.SizeSpaceSnug)
+	// The button stays level with the field's line as the error under the
+	// field makes it taller.
+	line.AlignTop = true
+	browse := kvitui.NewButton(ui, "Browse")
+	browse.Asks = true
+	row := unison.NewPanel()
+	row.SetLayout(line)
+	row.AddChild(kvitui.Grow(path))
+	row.AddChild(browse)
+	return kvitui.Width(ui, kvitui.Px(360), row)
+}
+
 func flowWraps(ui *kvitui.UI) unison.Paneler {
 	flow := unison.NewPanel()
 	flow.SetLayout(kvitui.NewFlowLayout(ui, kvitui.SizeSpaceNear))

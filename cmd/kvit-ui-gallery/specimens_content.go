@@ -273,7 +273,9 @@ func rowBarAndRing(ui *kvitui.UI) unison.Paneler {
 	round.Radius, round.Selected = kvitui.SizeRadiusControl, true
 	edge := row("The cursor's ring at the row's edge")
 	edge.RingAtEdge, edge.Radius, edge.Current = true, kvitui.SizeRadiusControl, true
-	return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, barred, round, edge))
+	half := row("The cursor's ring half its width in")
+	half.RingHalfIn, half.Current = true, true
+	return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, barred, round, edge, half))
 }
 
 func rowHoveredWhole(ui *kvitui.UI) unison.Paneler {

@@ -195,7 +195,9 @@ func (l *Label) limited(width float32) (body, last *text.Layout) {
 	opt := text.Options{MaxWidth: width, LineHeight: l.LineHeight, Align: l.Align}
 	var head *text.Layout
 	if l.MaxLines > 1 {
-		head = l.ui.Fonts.Layout([]text.Span{{Text: string(runes[:start]), Style: l.style()}}, opt)
+		// The line break that ends the lines kept is not a line of its own.
+		kept := strings.TrimSuffix(string(runes[:start]), "\n")
+		head = l.ui.Fonts.Layout([]text.Span{{Text: kept, Style: l.style()}}, opt)
 	}
 	opt.Elide = true
 	return head, l.ui.Fonts.Layout([]text.Span{{Text: rest, Style: l.style()}}, opt)
@@ -241,7 +243,9 @@ func (l *Label) sizes(hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
 		// asks for no width of its own, or one long sentence would widen the
 		// whole column it sits in.
 		room := hint.Width - in.Width()
-		if hint.Width > 0 && room < w {
+		// A text with line breaks of its own can fit the room and still have
+		// more lines than MaxLines keeps.
+		if hint.Width > 0 && (room < w || l.MaxLines > 0) {
 			h = l.limitedHeight(max(0, room))
 		}
 		own := float32(0)

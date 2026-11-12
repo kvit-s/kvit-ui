@@ -121,6 +121,54 @@ func TestKeyFocusTellsTheKeyboardFromAPress(t *testing.T) {
 	}
 }
 
+// With KeptOnPress a press on a panel showing keyboard focus leaves it
+// showing; focus given by a press shows in neither case.
+func TestKeyFocusKeptOnAPressWhenTold(t *testing.T) {
+	for _, kept := range []bool{false, true} {
+		t.Run(map[bool]string{false: "ended", true: "kept"}[kept], func(t *testing.T) { keyFocusOnAPress(t, kept) })
+	}
+}
+
+// keyFocusOnAPress is TestKeyFocusKeptOnAPressWhenTold for one setting of
+// KeptOnPress.
+func keyFocusOnAPress(t *testing.T, kept bool) {
+	var panel, other *unison.Panel
+	focus := kvitui.KeyFocus{KeptOnPress: kept}
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		panel, other = box(100, 40), box(100, 40)
+		for _, p := range []*unison.Panel{panel, other} {
+			p.SetFocusable(true)
+		}
+		panel.MouseDownCallback = func(geom.Point, int, int, mod.Modifiers) bool {
+			focus.Pressed()
+			panel.RequestFocus()
+			return true
+		}
+		panel.GainedFocusCallback = func() { focus.Gained(ui) }
+		panel.LostFocusCallback = focus.Lost
+		return []unison.Paneler{panel, other}
+	})
+	shows := func() (s bool) {
+		screen.Do(func() { s = focus.Shows(panel) })
+		return s
+	}
+	screen.Do(func() { ui.WatchKeys(panel.Window()) })
+	screen.Do(func() { other.RequestFocus() })
+	screen.KeyPress(unison.KeyTab, 0)
+	if !shows() {
+		t.Fatalf("focus moved by Tab does not show (kept on a press: %v)", kept)
+	}
+	screen.Click(screen.PanelCenter(panel))
+	if shows() != kept {
+		t.Errorf("after a press on a panel showing keyboard focus it shows %v; want %v", shows(), kept)
+	}
+	screen.Do(func() { other.RequestFocus() })
+	screen.Click(screen.PanelCenter(panel))
+	if shows() {
+		t.Errorf("focus given by a press shows (kept on a press: %v)", kept)
+	}
+}
+
 // same reports whether two boxes of a picture, of one size, hold the same
 // pixels.
 func same(img image.Image, a, b geom.Rect) bool {
@@ -338,6 +386,20 @@ func TestAPopoverOpenedModal(t *testing.T) {
 	if len(w.Popups()) != 0 {
 		t.Errorf("%d popups are left", len(w.Popups()))
 	}
+
+	// Closing gives the focus back to the button that held it, unless told
+	// to leave the focus alone.
+	for _, noBack := range []bool{false, true} {
+		open(func(p *kvitui.Popover) { p.NoFocusBack = noBack })
+		if !focused(first) {
+			t.Fatal("the first control of a modal popover does not have the keyboard")
+		}
+		screen.Do(func() { pop.Close() })
+		screen.Sync()
+		if focused(opener) == noBack {
+			t.Errorf("with NoFocusBack %v, after closing, the button that held the focus holds it %v", noBack, focused(opener))
+		}
+	}
 }
 
 func TestAMoverMovesAPopupByItsBand(t *testing.T) {
@@ -442,6 +504,124 @@ func TestAMoverMovesAPopupByItsBand(t *testing.T) {
 		if abandons && (after != centred || mover.Moved()) {
 			t.Errorf("Escape abandoning a drag left the surface at %v, not back at %v", after, centred)
 		}
+	}
+}
+
+// A press of a second button during a drag is passed on and the drag goes
+// on, unless any press ends it, when the panel stays where the first drag
+// left it.
+func TestAMoverEndsADragAtASecondPressWhenTold(t *testing.T) {
+	for _, ends := range []bool{false, true} {
+		t.Run(map[bool]string{false: "goes on", true: "ends"}[ends], func(t *testing.T) { moverAtASecondPress(t, ends) })
+	}
+}
+
+// A drag whose second press goes to another panel, as a right press does on a
+// panel that takes only left presses, sends its release there too. The drag
+// is still over once the buttons are let go: Escape puts nothing back, and a
+// later drag below the band does not move the panel.
+func TestAMoverDragEndsWhenASecondPressGoesElsewhere(t *testing.T) {
+	for _, ends := range []bool{false, true} {
+		t.Run(map[bool]string{false: "default", true: "any press ends"}[ends], func(t *testing.T) { moverAtAPressElsewhere(t, ends) })
+	}
+}
+
+// moverAtAPressElsewhere is TestAMoverDragEndsWhenASecondPressGoesElsewhere
+// for one setting of AnyPressEnds.
+func moverAtAPressElsewhere(t *testing.T, ends bool) {
+	var surface *unison.Panel
+	var mover *kvitui.Mover
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler { return nil })
+	screen.Do(func() {
+		surface = unison.NewPanel()
+		surface.SetSizer(func(geom.Size) (minSize, prefSize, maxSize geom.Size) {
+			return geom.NewSize(300, 200), geom.NewSize(300, 200), geom.NewSize(300, 200)
+		})
+		// The surface takes its own left presses only.
+		surface.MouseDownCallback = func(_ geom.Point, button, _ int, _ mod.Modifiers) bool { return button == unison.ButtonLeft }
+		mover = kvitui.NewMover(ui, surface, func() float32 { return 32 })
+		mover.AnyPressEnds, mover.EscapeAbandons = ends, true
+		w.Show(&kvitui.Popup{Panel: surface, Modal: true, Place: func(bounds geom.Rect, size geom.Size) geom.Rect {
+			return mover.Place(bounds, kvitui.PlaceCentred(nil)(bounds, size))
+		}})
+	})
+	screen.Sync()
+	frame := func() (r geom.Rect) {
+		screen.Do(func() { r = surface.FrameRect() })
+		return r
+	}
+	centred := frame()
+	start := screen.PanelPoint(surface, geom.NewPoint(40, 16))
+	mid := geom.NewPoint(start.X-60, start.Y-30)
+	screen.MouseDown(start, unison.ButtonLeft, 0)
+	screen.MouseMove(mid, 0)
+	first := frame()
+	if abs(first.X-(centred.X-60)) > 1 || abs(first.Y-(centred.Y-30)) > 1 {
+		t.Fatalf("the first drag moved the surface from %v to %v", centred, first)
+	}
+	screen.MouseDown(mid, unison.ButtonRight, 0)
+	screen.MouseUp(mid, unison.ButtonRight, 0)
+	screen.MouseUp(mid, unison.ButtonLeft, 0)
+	below := screen.PanelPoint(surface, geom.NewPoint(40, 100))
+	screen.Drag(below, geom.NewPoint(below.X-50, below.Y-20), 4)
+	if now := frame(); now != first {
+		t.Errorf("a later drag below the band moved the surface from %v to %v", first, now)
+	}
+	screen.KeyPress(unison.KeyEscape, 0)
+	if now := frame(); now != first {
+		t.Errorf("Escape after the buttons were let go moved the surface from %v to %v", first, now)
+	}
+}
+
+// moverAtASecondPress is TestAMoverEndsADragAtASecondPressWhenTold for one
+// setting of AnyPressEnds.
+func moverAtASecondPress(t *testing.T, ends bool) {
+	var surface *unison.Panel
+	var mover *kvitui.Mover
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler { return nil })
+	screen.Do(func() {
+		surface = unison.NewPanel()
+		surface.SetSizer(func(geom.Size) (minSize, prefSize, maxSize geom.Size) {
+			return geom.NewSize(300, 200), geom.NewSize(300, 200), geom.NewSize(300, 200)
+		})
+		// The surface takes every press of its own, as a dialog's body does, so
+		// the second press stays with it and the drags after it reach it.
+		surface.MouseDownCallback = func(geom.Point, int, int, mod.Modifiers) bool { return true }
+		mover = kvitui.NewMover(ui, surface, func() float32 { return 32 })
+		mover.AnyPressEnds, mover.EscapeAbandons = ends, true
+		w.Show(&kvitui.Popup{Panel: surface, Modal: true, Place: func(bounds geom.Rect, size geom.Size) geom.Rect {
+			return mover.Place(bounds, kvitui.PlaceCentred(nil)(bounds, size))
+		}})
+	})
+	screen.Sync()
+	frame := func() (r geom.Rect) {
+		screen.Do(func() { r = surface.FrameRect() })
+		return r
+	}
+	centred := frame()
+	start := screen.PanelPoint(surface, geom.NewPoint(40, 16))
+	mid := geom.NewPoint(start.X-60, start.Y-30)
+	end := geom.NewPoint(mid.X-60, mid.Y-30)
+	screen.MouseDown(start, unison.ButtonLeft, 0)
+	screen.MouseMove(mid, 0)
+	first := frame()
+	if abs(first.X-(centred.X-60)) > 1 || abs(first.Y-(centred.Y-30)) > 1 || !mover.Moved() {
+		t.Fatalf("the first drag moved the surface from %v to %v", centred, first)
+	}
+	screen.MouseDown(mid, unison.ButtonRight, 0)
+	screen.MouseMove(end, 0)
+	second := frame()
+	// Escape abandons a drag still under way, and does nothing to one that
+	// the second press ended.
+	screen.KeyPress(unison.KeyEscape, 0)
+	afterEscape := frame()
+	screen.MouseUp(end, unison.ButtonRight, 0)
+	screen.MouseUp(end, unison.ButtonLeft, 0)
+	if ends && (second != first || afterEscape != first || !mover.Moved()) {
+		t.Errorf("after a second press ended the drag, the surface went from %v to %v, and to %v after Escape", first, second, afterEscape)
+	}
+	if !ends && (abs(second.X-(first.X-60)) > 1 || abs(second.Y-(first.Y-30)) > 1 || afterEscape != centred) {
+		t.Errorf("after a second press the drag did not go on: the surface went from %v to %v, and to %v after Escape", first, second, afterEscape)
 	}
 }
 

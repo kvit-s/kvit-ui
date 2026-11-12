@@ -7,8 +7,15 @@ import (
 	"github.com/richardwilkes/unison"
 )
 
-// shownIn are a panel's children that are not hidden, in order.
-func shownIn(target *unison.Panel) []*unison.Panel {
+// shownIn is ShownIn.
+func shownIn(target *unison.Panel) []*unison.Panel { return ShownIn(target) }
+
+// insetsOf is InsetsOf.
+func insetsOf(target *unison.Panel) geom.Insets { return InsetsOf(target) }
+
+// ShownIn are a panel's children that are not hidden, in order, for a layout
+// in which a hidden child takes no room.
+func ShownIn(target *unison.Panel) []*unison.Panel {
 	var out []*unison.Panel
 	for _, c := range target.Children() {
 		if !c.Hidden {
@@ -18,8 +25,8 @@ func shownIn(target *unison.Panel) []*unison.Panel {
 	return out
 }
 
-// insetsOf are the insets of a panel's border, none without one.
-func insetsOf(target *unison.Panel) geom.Insets {
+// InsetsOf are the insets of a panel's border, none without one.
+func InsetsOf(target *unison.Panel) geom.Insets {
 	if b := target.Border(); b != nil {
 		return b.Insets()
 	}

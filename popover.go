@@ -73,6 +73,9 @@ type Popover struct {
 	// FirstFocus answers what takes the keyboard when the popover opens; nil,
 	// or answering nil, gives it to the first control inside.
 	FirstFocus func() *unison.Panel
+	// NoFocusBack leaves the focus alone when the popover closes, where Close
+	// otherwise gives it back to what held it when the popover opened.
+	NoFocusBack bool
 
 	hide     func()
 	previous *unison.Panel // what held the focus when it opened
@@ -211,7 +214,7 @@ func (p *Popover) open(anchor unison.Paneler, place func(bounds geom.Rect, size 
 // Opened reports whether the popover is showing.
 func (p *Popover) Opened() bool { return p.hide != nil }
 
-// Close takes the popover away and gives the focus back.
+// Close takes the popover away and gives the focus back, unless NoFocusBack.
 func (p *Popover) Close() {
 	if p.hide == nil || (p.MayClose != nil && !p.MayClose()) {
 		return
@@ -228,7 +231,7 @@ func (p *Popover) Close() {
 	}
 	p.hide()
 	p.hide = nil
-	if inside && p.previous != nil && p.previous.Window() != nil {
+	if inside && !p.NoFocusBack && p.previous != nil && p.previous.Window() != nil {
 		p.previous.RequestFocus()
 	}
 	if p.OnClose != nil {

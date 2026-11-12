@@ -198,6 +198,11 @@ func (w *Window) startDrag(undo func()) { w.dragUndo = undo }
 // endDrag says the drag is over.
 func (w *Window) endDrag() { w.dragUndo = nil }
 
+// watchRelease has the window call f once the left button is next let go,
+// after the release has been handled, wherever it went. A second call
+// replaces the first.
+func (w *Window) watchRelease(f func()) { w.dragRelease = f }
+
 // dragKeys abandons a drag under way on Escape.
 func (w *Window) dragKeys(key unison.KeyCode) bool {
 	if key != unison.KeyEscape || w.dragUndo == nil {
