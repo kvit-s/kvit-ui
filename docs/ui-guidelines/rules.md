@@ -934,7 +934,7 @@ Modifiers keep their usual meaning during direct manipulation: the copy modifier
 
 Going to a search area puts the keyboard in its search field, with its earlier text selected so typing replaces it; Find focuses the window's search field; where the window has a separate find bar, Find opens it (decided, Q-20).
 
-- **Windows:** Ctrl+F and Ctrl+E both go to the window's search field when there is one; where there is a separate find bar, Ctrl+F opens it and Ctrl+E goes to the search field.
+- **Windows:** Ctrl+F and Ctrl+E both go to the window's search field when there is one; where there is a separate find bar, Ctrl+F opens it and Ctrl+E goes to the search field. A control that uses one of these keys for an editing command of its own, as a text editor uses Ctrl+E for inline code, keeps it while the keyboard is in it.
 - **macOS:** Cmd-F.
 - **Sources** (3 records):
   - Apple: [search-fields](https://developer.apple.com/design/human-interface-guidelines/search-fields) 20
@@ -942,7 +942,7 @@ Going to a search area puts the keyboard in its search field, with its earlier t
 - **Enforce:**
   - Component: SearchField registers itself as the window's Find target, answering Ctrl+F and Ctrl+E on Windows and Linux and Cmd-F on macOS; a find bar, where an app has one, takes Find instead.
   - Test, all screens of an app: Every app screen with a SearchField answers to Find.
-- **kvit-ui now:** enforces it. Find's keys, Ctrl+F and Ctrl+E on the Windows form and Cmd-F on the macOS form, put the keyboard in the window's search field with its text selected when no command has them (`windowkeys.go`). A Find command with `FindBar` set takes only the first key, Ctrl+F or Cmd-F, and Ctrl+E still goes to the search field (`command.go`).
+- **kvit-ui now:** enforces it. Find's keys, Ctrl+F and Ctrl+E on the Windows form and Cmd-F on the macOS form, put the keyboard in the window's search field with its text selected when no command has them (`windowkeys.go`). A Find command with `FindBar` set takes only the first key, Ctrl+F or Cmd-F, and Ctrl+E still goes to the search field (`command.go`). A control marked with `KeepsFindKey` gets the Find keys it names while the keyboard is in it, as a text editor that uses Ctrl+E for inline code does; from anywhere else in the window they go to the search field.
 
 ### KEY-14
 

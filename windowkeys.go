@@ -13,7 +13,8 @@ import (
 // Windows form (KEY-9, decided Q-18); Find's keys put the keyboard in the
 // window's search field with its text selected (KEY-13, decided Q-20). A
 // find bar's command (Command.FindBar) has Find's first key, so only the
-// rest, Ctrl+E on the Windows form, comes here.
+// rest, Ctrl+E on the Windows form, comes here. A Find key the focused
+// control keeps for itself (KeepsFindKey) is left to that control.
 func (w *Window) windowKeys(key unison.KeyCode, mods mod.Modifiers) bool {
 	if w.popupOpen() {
 		return false
@@ -31,9 +32,43 @@ func (w *Window) windowKeys(key unison.KeyCode, mods mod.Modifiers) bool {
 	}
 	for _, s := range StdKeys(StdFind, w.ui.form) {
 		if s.Matches(w.ui.form, key, mods) {
+			if w.focusKeepsFindKey(key, mods) {
+				return false
+			}
 			if f := w.searchField(); f != nil {
 				f.Focus()
 				f.edit.SelectAll()
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// keepsFindKeyKey is the client-data key that holds the Find keys a control
+// keeps for itself.
+const keepsFindKeyKey = "kvitui.keepsFindKey"
+
+// KeepsFindKey marks a control that uses one of Find's keys for something
+// of its own, as a text editor uses Ctrl+E for inline code: while the
+// keyboard is in the control, or in anything inside it, the window does not
+// send those keys to its search field, and the control's own key handler
+// gets them. From anywhere else in the window the keys still go to the
+// search field (KEY-13). A key that a command has stays the command's.
+// Calling it again adds to the keys already kept.
+func KeepsFindKey(p unison.Paneler, keys ...Shortcut) {
+	data := p.AsPanel().ClientData()
+	kept, _ := data[keepsFindKeyKey].([]Shortcut)
+	data[keepsFindKeyKey] = append(slices.Clip(kept), keys...)
+}
+
+// focusKeepsFindKey reports whether the focused control, or one it is
+// inside, keeps a key press for itself.
+func (w *Window) focusKeepsFindKey(key unison.KeyCode, mods mod.Modifiers) bool {
+	for p := w.CurrentFocus(); p != nil; p = p.Parent() {
+		kept, _ := p.ClientData()[keepsFindKeyKey].([]Shortcut)
+		for _, s := range kept {
+			if s.Matches(w.ui.form, key, mods) {
 				return true
 			}
 		}

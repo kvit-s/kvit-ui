@@ -347,7 +347,7 @@ A window answers the keys of the commands on its menu bar
 focused field. Ctrl+F and Ctrl+E go to the window's search field by
 themselves; a window that also has a find bar gives it a Command with
 `Std: StdFind` and `FindBar: true`, which takes Ctrl+F (Cmd-F) and leaves
-Ctrl+E to the search field. A shortcut whose command cannot act does nothing, silently.
+Ctrl+E to the search field. A control that uses a Find key itself, as an\neditor uses Ctrl+E for inline code, says so with\n`KeepsFindKey(editor, Keys(unison.KeyE, ModPrimary))` and gets the key\nwhile the keyboard is in it. A shortcut whose command cannot act does nothing, silently.
 (KEY-2, KEY-13)
 
 - Save with no Ctrl+S → Save on Ctrl+S

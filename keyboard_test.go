@@ -337,3 +337,49 @@ func findBarKeys(t *testing.T, form kvitui.Form) {
 		t.Errorf("Ctrl+E opened the find bar %d times and left the keyboard on %v", opened, n)
 	}
 }
+
+// A control that keeps one of Find's keys for itself gets it while the
+// keyboard is in it, and from any other control the key still goes to the
+// window's search field (KEY-13).
+func TestAFocusedControlKeepsAFindKey(t *testing.T) {
+	var search *kvitui.SearchField
+	var other *kvitui.Button
+	var editor *unison.Panel
+	got := 0
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		search = kvitui.NewSearchField(ui)
+		search.Placeholder = "Search notes"
+		other = kvitui.NewButton(ui, "Import")
+		editor = unison.NewPanel()
+		editor.SetFocusable(true)
+		editor.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, _ bool) bool {
+			if key == unison.KeyE && mods&mod.NonSticky == mod.Control {
+				got++
+				return true
+			}
+			return false
+		}
+		kvitui.KeepsFindKey(editor, kvitui.Keys(unison.KeyE, kvitui.ModPrimary))
+		return []unison.Paneler{kvitui.Left(search), other, editor}
+	})
+	screen.Do(func() {
+		ui.SetForm(kvitui.FormWindows)
+		editor.RequestFocus()
+	})
+	screen.KeyPress(unison.KeyE, mod.Control)
+	var onEditor bool
+	screen.Do(func() { onEditor = w.CurrentFocus() == editor })
+	if got != 1 || !onEditor {
+		t.Errorf("Ctrl+E in a control that keeps it reached the control %d times, with the keyboard still in it: %v", got, onEditor)
+	}
+	// Only the named key is kept: Ctrl+F still goes to the search field.
+	screen.KeyPress(unison.KeyF, mod.Control)
+	if n := focusedNode(screen, w); n == nil || n.Role != role.TextField {
+		t.Errorf("Ctrl+F in a control that keeps only Ctrl+E left the keyboard on %v", n)
+	}
+	screen.Do(func() { other.Focus() })
+	screen.KeyPress(unison.KeyE, mod.Control)
+	if n := focusedNode(screen, w); got != 1 || n == nil || n.Role != role.TextField {
+		t.Errorf("Ctrl+E from another control reached the editor %d times and left the keyboard on %v", got, n)
+	}
+}
