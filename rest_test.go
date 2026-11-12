@@ -543,3 +543,40 @@ func TestAPressOutsideAPopoverPressesNothing(t *testing.T) {
 		t.Error("a press on a select's opener did not close the popover and open the list")
 	}
 }
+
+// A popup with PressPasses, such as a field shown over the cell it edits,
+// closes on a press outside it and lets the press reach what is under the
+// pointer; a menu open above it still stops the press (PTR-13).
+func TestAPopupCanLetItsClosingPressThrough(t *testing.T) {
+	var behind *kvitui.Button
+	pressed, closed := 0, 0
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		behind = kvitui.NewButton(ui, "Import")
+		behind.OnClick = func() { pressed++ }
+		return []unison.Paneler{kvitui.Left(behind), kvitui.NewLabel(ui, "Notes")}
+	})
+	var hide, hideMenu func()
+	corner := func(geom.Rect, geom.Size) geom.Rect { return geom.NewRect(400, 300, 120, 40) }
+	open := func(menu bool) {
+		screen.Do(func() {
+			hide = w.Show(&kvitui.Popup{Panel: kvitui.NewLabel(ui, "Cell"), Place: corner, PressPasses: true,
+				OnPressOutside: func() { closed++; hide() }})
+			if menu {
+				hideMenu = w.Show(&kvitui.Popup{Panel: kvitui.NewLabel(ui, "Menu"),
+					Place:          func(geom.Rect, geom.Size) geom.Rect { return geom.NewRect(400, 360, 120, 40) },
+					OnPressOutside: func() { hideMenu() }})
+			}
+		})
+		screen.Sync()
+	}
+	open(false)
+	screen.Click(screen.PanelCenter(behind))
+	if closed != 1 || pressed != 1 {
+		t.Errorf("a press outside closed the field %d times and pressed the button behind %d times, each once wanted", closed, pressed)
+	}
+	open(true)
+	screen.Click(screen.PanelCenter(behind))
+	if closed != 2 || pressed != 1 {
+		t.Errorf("with a menu above it, a press outside closed the field %d times in all and pressed the button %d times, 2 and 1 wanted", closed, pressed)
+	}
+}

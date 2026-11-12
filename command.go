@@ -50,6 +50,11 @@ type Command struct {
 	// Checked makes the command a switch, reporting whether it is on now: a
 	// tick on its menu line and a checked button.
 	Checked func() bool
+	// FindBar, on a Find command (Std: StdFind), says the command opens a
+	// find bar of the app's own, apart from the window's search field: it
+	// takes only Find's first key on each form, Ctrl+F or Cmd-F, and the
+	// Windows form's Ctrl+E still goes to the search field (KEY-13).
+	FindBar bool
 	// TurnOn and TurnOff are a switch's words on the macOS form, where the
 	// menu line says what choosing it does: "Show sidebar" while it is off,
 	// "Hide sidebar" while it is on. The Windows form keeps Name and ticks
@@ -295,9 +300,12 @@ func (c *Command) SymbolName() string {
 }
 
 // Shortcuts are the keys that run the command in a form: its standard keys,
-// then its own.
+// then its own. A find bar's Find has only the first of Find's keys.
 func (c *Command) Shortcuts(f Form) []Shortcut {
 	keys := append([]Shortcut(nil), StdKeys(c.Std, f)...)
+	if c.FindBar && c.Std == StdFind && len(keys) > 1 {
+		keys = keys[:1]
+	}
 	if !c.Shortcut.IsZero() {
 		keys = append(keys, c.Shortcut)
 	}

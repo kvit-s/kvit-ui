@@ -345,7 +345,9 @@ A window answers the keys of the commands on its menu bar
 (`Window.SetMenuBar`), on a toolbar it shows, and given to
 `Window.AddCommands`, wherever the focus is, leaving typing keys to a
 focused field. Ctrl+F and Ctrl+E go to the window's search field by
-themselves. A shortcut whose command cannot act does nothing, silently.
+themselves; a window that also has a find bar gives it a Command with
+`Std: StdFind` and `FindBar: true`, which takes Ctrl+F (Cmd-F) and leaves
+Ctrl+E to the search field. A shortcut whose command cannot act does nothing, silently.
 (KEY-2, KEY-13)
 
 - Save with no Ctrl+S → Save on Ctrl+S

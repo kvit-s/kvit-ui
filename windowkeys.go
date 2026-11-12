@@ -11,7 +11,9 @@ import (
 // them: Ctrl+Tab and Ctrl+Shift+Tab choose the next or previous tab of a row
 // of tabs on every system, and Ctrl+Page Down and Ctrl+Page Up do on the
 // Windows form (KEY-9, decided Q-18); Find's keys put the keyboard in the
-// window's search field with its text selected (KEY-13, decided Q-20).
+// window's search field with its text selected (KEY-13, decided Q-20). A
+// find bar's command (Command.FindBar) has Find's first key, so only the
+// rest, Ctrl+E on the Windows form, comes here.
 func (w *Window) windowKeys(key unison.KeyCode, mods mod.Modifiers) bool {
 	if w.popupOpen() {
 		return false

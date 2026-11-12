@@ -2456,6 +2456,7 @@ One thing the app can do, made once and offered on a menu line, a button, a symb
 | `Explanation` | `string` | Explanation is one sentence the name cannot say, such as why the command cannot act now: a tooltip's second line and the description a screen reader is told. |
 | `Enabled` | `func() bool` | Enabled reports whether the command can act now; nil is always. |
 | `Checked` | `func() bool` | Checked makes the command a switch, reporting whether it is on now: a tick on its menu line and a checked button. |
+| `FindBar` | `bool` | FindBar, on a Find command (Std: StdFind), says the command opens a find bar of the app's own, apart from the window's search field: it takes only Find's first key on each form, Ctrl+F or Cmd-F, and the Windows form's Ctrl+E still goes to the search field (KEY-13). |
 | `TurnOn` | `string` | TurnOn and TurnOff are a switch's words on the macOS form, where the menu line says what choosing it does: "Show sidebar" while it is off, "Hide sidebar" while it is on. |
 | `TurnOff` | `string` | TurnOn and TurnOff are a switch's words on the macOS form, where the menu line says what choosing it does: "Show sidebar" while it is off, "Hide sidebar" while it is on. |
 | `Run` | `func()` | Run does it. |

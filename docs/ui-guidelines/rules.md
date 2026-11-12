@@ -942,7 +942,7 @@ Going to a search area puts the keyboard in its search field, with its earlier t
 - **Enforce:**
   - Component: SearchField registers itself as the window's Find target, answering Ctrl+F and Ctrl+E on Windows and Linux and Cmd-F on macOS; a find bar, where an app has one, takes Find instead.
   - Test, all screens of an app: Every app screen with a SearchField answers to Find.
-- **kvit-ui now:** enforces it. Find's keys, Ctrl+F and Ctrl+E on the Windows form and Cmd-F on the macOS form, put the keyboard in the window's search field with its text selected when no command has them (`windowkeys.go`).
+- **kvit-ui now:** enforces it. Find's keys, Ctrl+F and Ctrl+E on the Windows form and Cmd-F on the macOS form, put the keyboard in the window's search field with its text selected when no command has them (`windowkeys.go`). A Find command with `FindBar` set takes only the first key, Ctrl+F or Cmd-F, and Ctrl+E still goes to the search field (`command.go`).
 
 ### KEY-14
 
@@ -1122,7 +1122,7 @@ A click outside an open popover closes it and goes no further, except on a contr
 - **Enforce:**
   - Component: Window's popup layer: a press outside a popover closes it and is consumed, unless it lands on a control that opens a popover.
   - Test, one screen: With a popover open, a click on a button closes the popover without pressing the button; a click on another popover's opener opens it.
-- **kvit-ui now:** enforces it. A press outside a popup closes it and goes no further, except on a control marked with `OpensPopup`, which opens its own in the same press; Select, MenuButton, SplitButton, Hint, the toolbar's More and the menu bar are marked (`layer.go`).
+- **kvit-ui now:** enforces it. A press outside a popup closes it and goes no further, except on a control marked with `OpensPopup`, which opens its own in the same press; Select, MenuButton, SplitButton, Hint, the toolbar's More and the menu bar are marked (`layer.go`). A popup with `PressPasses` set, for a field shown over the place it edits, lets its own closing press through to whatever is under it.
 
 ### PTR-14
 

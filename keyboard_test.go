@@ -289,3 +289,51 @@ func TestTabFollowsTheMacsKeyboardSetting(t *testing.T) {
 		t.Errorf("Shift+Tab with full keyboard access went to %v, not the button", n)
 	}
 }
+
+// A window with a find bar of its own beside its search field gives Find's
+// first key to the find bar's command and the rest to the search field: on
+// the Windows form Ctrl+F opens the find bar and Ctrl+E goes to the search
+// field, and on the macOS form Cmd-F opens the find bar (KEY-13).
+func TestAFindBarTakesOnlyFindsFirstKey(t *testing.T) {
+	for _, form := range []kvitui.Form{kvitui.FormWindows, kvitui.FormMac} {
+		t.Run(form.String(), func(t *testing.T) {
+			findBarKeys(t, form)
+		})
+	}
+}
+
+func findBarKeys(t *testing.T, form kvitui.Form) {
+	var search *kvitui.SearchField
+	var other *kvitui.Button
+	screen, ui, w := windowSession(t, func(ui *kvitui.UI) []unison.Paneler {
+		search = kvitui.NewSearchField(ui)
+		search.Placeholder = "Search notes"
+		other = kvitui.NewButton(ui, "Import")
+		return []unison.Paneler{kvitui.Left(search), other}
+	})
+	opened := 0
+	find := &kvitui.Command{Std: kvitui.StdFind, FindBar: true, Run: func() { opened++ }}
+	screen.Do(func() {
+		ui.SetForm(form)
+		w.AddCommands(find)
+		other.Focus()
+	})
+	if keys := find.Shortcuts(form); len(keys) != 1 || keys[0] != kvitui.StdKeys(kvitui.StdFind, form)[0] {
+		t.Errorf("form %v: a find bar's command has the keys %v", form, keys)
+	}
+	primary := mod.Control
+	if form == kvitui.FormMac {
+		primary = mod.Command
+	}
+	screen.KeyPress(unison.KeyF, primary)
+	if n := focusedNode(screen, w); opened != 1 || n == nil || n.Role == role.TextField {
+		t.Errorf("form %v: Find's first key opened the find bar %d times and left the keyboard on %v", form, opened, n)
+	}
+	if form != kvitui.FormWindows {
+		return
+	}
+	screen.KeyPress(unison.KeyE, mod.Control)
+	if n := focusedNode(screen, w); opened != 1 || n == nil || n.Role != role.TextField {
+		t.Errorf("Ctrl+E opened the find bar %d times and left the keyboard on %v", opened, n)
+	}
+}

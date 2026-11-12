@@ -33,6 +33,13 @@ type Popup struct {
 	// behind it, except on a control that opens a popup of its own, which
 	// opens in the same press (PTR-13, decided Q-43; see OpensPopup).
 	OnPressOutside func()
+	// PressPasses lets the press that runs OnPressOutside go on to what is
+	// under the pointer, whatever that is. It is for a field shown over the
+	// place it edits, such as a table's cell: a press on another cell closes
+	// this field and opens that one in the same press. A press that also
+	// closes a popup without it, such as a menu above the field, still goes
+	// no further.
+	PressPasses bool
 	// OpenedFrom, when set, is the part of the window the popup was opened
 	// from, such as a menu's button, in the window's content coordinates. A
 	// press there runs OnPressOutside and goes no further: reaching the
@@ -260,7 +267,7 @@ func (w *Window) popupPress(where geom.Point) bool {
 			if onOpener {
 				return true
 			}
-			closed = closed || !opens
+			closed = closed || !(opens || p.PressPasses)
 		}
 		if p.Modal {
 			return false // the scrim takes it
@@ -277,7 +284,8 @@ const opensPopupKey = "kvitui.opensPopup"
 // press on it while another popup is open closes that one and still reaches
 // the control, so its own popup opens in the same press (PTR-13). The
 // library's own openers, a select, a menu button, a hint, are marked
-// already.
+// already. A popup whose closing press should reach anything under it says
+// so itself, with Popup.PressPasses.
 func OpensPopup(p unison.Paneler) { p.AsPanel().ClientData()[opensPopupKey] = true }
 
 // opensPopupAt reports whether a press at a point in the window's content
