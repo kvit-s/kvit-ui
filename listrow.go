@@ -129,6 +129,15 @@ type ListRow struct {
 	// press on a row that does not hold the focus still gives it the focus
 	// without a ring.
 	RingKeptOnPress bool
+	// FocusRequestEndsOnBlur makes the row forget, when it loses the focus,
+	// a Focus() call made while it already held the focus, as KeyFocus.Lost
+	// does. Such a call changes nothing when it is made; without this, the
+	// row counts its next gain of the focus as one from the keyboard, with
+	// the ring, however that gain comes, such as a popover closing or code
+	// asking for the focus. A Focus() call that gives the row the focus at
+	// once is not affected, nor one made while the row could not take the
+	// focus, which still waits for the row's next gain.
+	FocusRequestEndsOnBlur bool
 	// NoHoverTint leaves the row untinted under the pointer.
 	NoHoverTint bool
 	// NoHoverTintDisabled leaves a disabled row untinted under the pointer,
@@ -182,6 +191,11 @@ type ListRow struct {
 	// key was used. A row whose keys follow a rule of its own, such as
 	// acting on a repeat or with a modifier held, answers its keys here.
 	OnKeyDown func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool
+	// NoShiftActivate leaves Return, Enter and Space pressed with Shift to
+	// the panels the row sits in, where the row otherwise acts on them: a
+	// Region pages up on Shift+Space. OnKeyDown and OnKey are still offered
+	// them first.
+	NoShiftActivate bool
 	// OnFocus runs when the row gains the focus, with whether a press gave
 	// it, which is the opposite of what KeyboardFocus then answers; OnBlur
 	// when it loses it.
@@ -241,6 +255,11 @@ func (r *ListRow) initListRow(ui *UI, content ...unison.Paneler) {
 		if !r.Interactive || !r.Focused() {
 			return false
 		}
+		// The row's own keys are only Return, Enter and Space, so leaving
+		// every shifted key leaves just those.
+		if r.NoShiftActivate && mods.ShiftDown() {
+			return false
+		}
 		return keyDown(key, mods, repeat)
 	}
 	// A row nobody presses leaves a press to what it sits in, such as a card
@@ -279,6 +298,9 @@ func (r *ListRow) initListRow(ui *UI, content ...unison.Paneler) {
 	}
 	r.LostFocusCallback = func() {
 		lost()
+		if r.FocusRequestEndsOnBlur {
+			r.askedFocus = false
+		}
 		if r.OnBlur != nil {
 			r.OnBlur()
 		}
@@ -382,8 +404,12 @@ func (r *ListRow) mouseUp(where geom.Point, _ int, _ mod.Modifiers) bool {
 // watchPointer follows the pointer over the row's whole window while
 // HoverWhole is set, since unison tells only the innermost panel under the
 // pointer that it has arrived.
-func (r *ListRow) watchPointer() {
-	w := r.Window()
+func (r *ListRow) watchPointer() { r.watchPointerIn(r.Window()) }
+
+// watchPointerIn registers the row with w's pointer watch, once per window.
+// It takes the window rather than reading the row's own, so a test can
+// register a row that is in no window.
+func (r *ListRow) watchPointerIn(w *unison.Window) {
 	if !r.HoverWhole || w == nil || w == r.watched {
 		return
 	}

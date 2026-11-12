@@ -3,6 +3,7 @@ package kvitui_test
 import (
 	"image"
 	"image/color"
+	"strconv"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
@@ -595,6 +596,139 @@ func TestAListRowKeepsItsRingOnAPressWhenTold(t *testing.T) {
 		if !focused || keyboard(c.row) {
 			t.Errorf("a row focused by a press holds the focus %v and shows its ring %v (keeps it on a press: %v)", focused, keyboard(c.row), c.keep)
 		}
+	}
+}
+
+// Focus() on a row that already holds the focus changes nothing then, and
+// the row counts its next gain of the focus as one from the keyboard. A row
+// told to forgets that request when it loses the focus, so the focus coming
+// back by neither a key nor a press shows no ring; a Focus() that moves the
+// focus still shows it.
+func TestAListRowEndsAFocusRequestOnBlurWhenTold(t *testing.T) {
+	var row, other *kvitui.ListRow
+	screen, _ := rowsIn(t, func(ui *kvitui.UI) []*kvitui.ListRow {
+		newRow := func(words string) *kvitui.ListRow {
+			r := kvitui.NewListRow(ui, kvitui.NewLabel(ui, words))
+			r.Interactive, r.NoOpensMark, r.RingKeptOnPress = true, true, true
+			return r
+		}
+		row, other = newRow("Row"), newRow("Other")
+		return []*kvitui.ListRow{row, other}
+	})
+	keyboard := func() (k bool) {
+		screen.Do(func() { k = row.KeyboardFocus() })
+		return k
+	}
+	press := func() { screen.Click(screen.PanelPoint(row, geom.NewPoint(250, 5))) }
+	for _, ends := range []bool{false, true} {
+		screen.Do(func() { row.FocusRequestEndsOnBlur = ends })
+		for _, pressedAgain := range []bool{true, false} {
+			// From the other row, so the press gives the row the focus.
+			screen.Do(func() { other.RequestFocus() })
+			press()
+			var focused bool
+			screen.Do(func() { focused = row.Focused() })
+			if !focused || keyboard() {
+				t.Fatalf("a pressed row holds the focus %v and shows its ring %v", focused, keyboard())
+			}
+			screen.Do(func() { row.Focus() })
+			screen.Sync()
+			if keyboard() {
+				t.Errorf("Focus() on a row that holds the focus shows its ring at once (ends on blur: %v)", ends)
+			}
+			if pressedAgain {
+				press()
+			}
+			// The focus leaves and comes back, asked for by code.
+			screen.Do(func() { other.RequestFocus() })
+			screen.Do(func() { row.RequestFocus() })
+			if got := keyboard(); got == ends {
+				t.Errorf("with FocusRequestEndsOnBlur %v and pressed again %v, the focus given back by code shows the ring %v",
+					ends, pressedAgain, got)
+			}
+		}
+	}
+	screen.Do(func() { other.RequestFocus() })
+	screen.Do(func() { row.Focus() })
+	screen.Sync()
+	if !keyboard() {
+		t.Error("with FocusRequestEndsOnBlur, Focus() that moves the focus to the row shows no ring")
+	}
+}
+
+// A row told to leaves Return, Enter and Space pressed with Shift to what it
+// sits in: in a region, Shift+Space pages up rather than pressing the row.
+func TestAListRowLeavesShiftedKeysWhenTold(t *testing.T) {
+	var region *kvitui.Region
+	var rows []*kvitui.ListRow
+	pressed := 0
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		parts := make([]unison.Paneler, 30)
+		for i := range parts {
+			r := kvitui.NewListRow(ui, kvitui.NewLabel(ui, "Version "+strconv.Itoa(i+1)))
+			r.Interactive, r.NoOpensMark = true, true
+			r.OnActivate = func() { pressed++ }
+			rows = append(rows, r)
+			parts[i] = r
+		}
+		region = kvitui.NewRegion(ui, kvitui.Column(ui, kvitui.Px(0), parts...))
+		region.SetLayoutData(&unison.FlexLayoutData{SizeHint: geom.NewSize(480, 200)})
+		return []unison.Paneler{region}
+	})
+	position := func() (y float32) {
+		screen.Do(func() { _, y = region.Position() })
+		return y
+	}
+	// Scrolled to the middle, with a row in view given the focus.
+	var row *kvitui.ListRow
+	var page float32
+	screen.Do(func() {
+		if !region.Scrolls() {
+			t.Fatal("thirty rows in 200 px do not scroll")
+		}
+		region.ScrollTo(region.Children()[1].Self.(*unison.ScrollBar).MaxValue() / 2)
+		view := region.RectToRoot(region.ContentRect(false))
+		for _, r := range rows {
+			if box := r.RectToRoot(r.ContentRect(true)); box.Y >= view.Y && box.Bottom() <= view.Bottom() {
+				row = r
+				break
+			}
+		}
+		page = max(float32(ui.Interface.RowHeight()), region.ViewHeight()-float32(ui.Interface.RowHeight()))
+	})
+	if row == nil {
+		t.Fatal("no row is in view")
+	}
+	for _, leaves := range []bool{false, true} {
+		pressed = 0
+		screen.Do(func() {
+			row.NoShiftActivate = leaves
+			row.Focus()
+		})
+		screen.Sync()
+		y := position()
+		if y < page {
+			t.Fatalf("the region is scrolled %.1f, less than a page of %.1f", y, page)
+		}
+		screen.KeyPress(unison.KeySpace, mod.Shift)
+		if leaves {
+			if got := position(); pressed != 0 || got != y-page {
+				t.Errorf("with NoShiftActivate, Shift+Space pressed the row %d times and moved the region from %.1f to %.1f, want to %.1f",
+					pressed, y, got, y-page)
+			}
+		} else if got := position(); pressed != 1 || got != y {
+			t.Errorf("Shift+Space pressed the row %d times and moved the region from %.1f to %.1f", pressed, y, got)
+		}
+	}
+	pressed = 0
+	screen.KeyPress(unison.KeyReturn, mod.Shift)
+	if pressed != 0 {
+		t.Errorf("with NoShiftActivate, Shift+Return pressed the row %d times", pressed)
+	}
+	pressed = 0
+	screen.KeyPress(unison.KeySpace, 0)
+	if pressed != 1 {
+		t.Errorf("with NoShiftActivate, Space without Shift pressed the row %d times, want once", pressed)
 	}
 }
 
