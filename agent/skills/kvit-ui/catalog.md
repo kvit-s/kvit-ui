@@ -16,7 +16,7 @@ the build.
 
 ## What there is
 
-89 components, grouped by what they are for.
+92 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
 **Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`, `KvitHistory`
@@ -42,7 +42,7 @@ marked placeholder and logs a warning, which fails the gallery's tests.
 
 ### KvitLabel
 
-A run of chrome text at one of the seven type roles. Every other component uses it, which is what keeps the chrome family, the colour and the eliding rule in one place.
+A run of chrome text at one of the seven type roles. Every other component uses it, which is what keeps the chrome family, the colour and the eliding rule in one place. `Middle` cuts one line short in its middle, `MaxLines` a wrapping label after so many lines, and a label cut short shows its whole text as a tooltip unless `NoTooltip` says not. `Italic`, `Align`, `WeightedMono` and `Size` change how the text is set; `Top` and `WrapOwnWidth` how a wrapping label sits and how wide it asks to be. `Name`, `Heading` and `Ignored` say what a screen reader is told, `EmptyTakesNoRoom` makes an empty label vanish, and `SetText` changes the words and lays out again.
 
 ```go
 func NewLabel(ui *UI, s string) *Label
@@ -59,8 +59,21 @@ func NewLabel(ui *UI, s string) *Label
 | `Wrap` | `bool` | Wrap lets the text run onto further lines instead of being cut short. |
 | `LineHeight` | `float32` | LineHeight multiplies the lines' height, for a paragraph read in a popover; 0 is 1. |
 | `Selectable` | `bool` | Selectable lets content text the reader may want again, a message, an address, an identifier, be selected whole and copied: a press selects it, and Copy, Ctrl+C or the context menu copies it (CTL-18). |
+| `Italic` | `bool` | Italic sets the text in italics, in the chrome and the monospace family alike. |
+| `MaxLines` | `int` | MaxLines, with Wrap, cuts the text short with "…" after this many lines; 0 is no limit. |
+| `Middle` | `bool` | Middle cuts one line short in its middle rather than at its end, keeping the text's start and its end. |
+| `Align` | `text.Alignment` | Align places each line across the label's width: at its start (the default), in its middle or at its end. |
+| `Name` | `string` | Name is what a screen reader is told; the text when "". |
+| `Heading` | `bool` | Heading describes the label to screen readers as a heading. |
+| `Ignored` | `bool` | Ignored keeps the label from screen readers. |
+| `NoTooltip` | `bool` | NoTooltip leaves a label that is cut short without the tooltip of its whole text. |
+| `EmptyTakesNoRoom` | `bool` | EmptyTakesNoRoom makes a label with no text ask for no size, draw nothing and stay out of a screen reader's way, so a line vanishes when it is emptied. |
+| `Top` | `bool` | Top, with Wrap, draws the text from the top of the label's box, where it is otherwise centred on the box's height. |
+| `WeightedMono` | `bool` | WeightedMono, with Mono, applies Weight, which the monospace family otherwise ignores. |
+| `WrapOwnWidth` | `bool` | WrapOwnWidth, with Wrap, makes the label ask for its text's width, up to the width offered, where a wrapping label otherwise asks for no width of its own. |
+| `Size` | `Measure` | Size, when set, is the text's size in place of the Role's. |
 
-Methods: `Elided`.
+Methods: `Elided`, `Layout`, `SetText`.
 
 *The seven roles*
 
@@ -104,6 +117,55 @@ func labelSelectable(ui *kvitui.UI) unison.Paneler {
     iban := kvitui.NewLabel(ui, "GB33 BUKB 2020 1555 5555 55")
     iban.Mono, iban.Selectable = true, true
     return iban
+}
+```
+
+*Cut short at its end, in its middle, and after two lines*
+
+```go
+func labelCutShort(ui *kvitui.UI) unison.Paneler {
+    path := "projects/ledger/exports/2026/quarterly-report-final.pdf"
+    end := kvitui.NewLabel(ui, path)
+    middle := kvitui.NewLabel(ui, path)
+    // The end of a file's name is what tells it from its neighbours.
+    middle.Middle = true
+    two := kvitui.NewLabel(ui, "A wrapping label kept to two lines is cut short at the end of the second, so a long message takes the same room in every row of a list however much it says.")
+    two.Wrap, two.MaxLines, two.Ink = true, 2, kvitui.InkTextSecondary
+    return kvitui.Width(ui, kvitui.Px(260), kvitui.Stack(ui, kvitui.SizeSpaceSnug, end, middle, two))
+}
+```
+
+*Italic, aligned, and monospace with a weight*
+
+```go
+func labelItalicAndAligned(ui *kvitui.UI) unison.Paneler {
+    aside := kvitui.NewLabel(ui, "An aside, in italics")
+    aside.Italic = true
+    centred := kvitui.NewLabel(ui, "In the middle")
+    centred.Align = text.AlignMiddle
+    total := kvitui.NewLabel(ui, "At the end")
+    total.Align = text.AlignEnd
+    id := kvitui.NewLabel(ui, "a1b2c3d4, semibold")
+    id.Mono, id.WeightedMono, id.Weight = true, true, text.Semibold
+    return kvitui.Width(ui, kvitui.Px(260), kvitui.Stack(ui, kvitui.SizeSpaceSnug, aside, centred, total, id))
+}
+```
+
+*What a screen reader is told, and a line that takes no room while empty*
+
+```go
+func labelForScreenReaders(ui *kvitui.UI) unison.Paneler {
+    // A heading by role, a count with its meaning spelt out, and a line that
+    // takes no room until it has something to say.
+    heading := kvitui.NewLabel(ui, "Changes")
+    heading.Role, heading.Heading = kvitui.RoleTitle, true
+    count := kvitui.NewLabel(ui, "3 / 12")
+    count.Name, count.Tabular = "3 of 12 files reviewed", true
+    status := kvitui.NewLabel(ui, "")
+    status.EmptyTakesNoRoom = true
+    save := kvitui.NewButton(ui, "Save changes")
+    save.OnClick = func() { status.SetText("Saved just now") }
+    return kvitui.Stack(ui, kvitui.SizeSpaceSnug, heading, count, status, kvitui.OwnWidth(save))
 }
 ```
 
@@ -171,7 +233,7 @@ func NewIconButton(ui *UI, symbol, label string) *IconButton
 | `Size` | `Measure` | Size is the button's square side; a control's height unless set. |
 | `OnClick` | `func()` | OnClick runs when the button is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Name`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Name`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Quiet, ordinary and checked*
 
@@ -244,7 +306,7 @@ func NewLink(ui *UI, s string) *Link
 | `Explanation` | `string` | Explanation says in a sentence where following the link goes, for a destination its words alone do not describe. |
 | `OnActivate` | `func()` | OnActivate runs when the link is followed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`, `SetTooltip`, `TooltipWords`.
 
 *Plain, symbolic and keyboard-focused*
 
@@ -263,6 +325,140 @@ func linkForms(ui *kvitui.UI) unison.Paneler {
 ```go
 func linkElided(ui *kvitui.UI) unison.Paneler {
     return kvitui.Width(ui, kvitui.Px(120), kvitui.NewLink(ui, "A destination whose full name does not fit here"))
+}
+```
+
+### KvitStack
+
+Panels top to bottom, a gap apart, each as wide as the stack (`Stack`, or `NewStackLayout` on a panel of your own). Unlike a column, a hidden child takes no room and no gap, so a part comes and goes by its `Hidden` field alone. A child says more with `StackData`: `OwnWidth` and `OwnWidthEnd` keep it at its own width at either end, `Left` and `Right` keep room clear beside it, and `Wide` exempts it from the stack's `MaxWidth`, which holds the others to a reading column. `SkipEmpty` also leaves out a child that asks for no height.
+
+*A hidden part, and parts at their own width*
+
+```go
+func stackShownAndHidden(ui *kvitui.UI) unison.Paneler {
+    note := func(words string) *kvitui.Label {
+        l := kvitui.NewLabel(ui, words)
+        l.Ink, l.Wrap = kvitui.InkTextSecondary, true
+        return l
+    }
+    // The middle part is hidden, and takes no room and no gap: a part comes
+    // and goes by its Hidden field alone.
+    gone := note("Hidden, so not here")
+    gone.Hidden = true
+    return kvitui.Width(ui, kvitui.Px(360), kvitui.Stack(ui, kvitui.SizeSpace,
+        note("Every part is as wide as the stack, unless it keeps its own width at the start or at the end"),
+        gone,
+        kvitui.OwnWidth(kvitui.NewButton(ui, "Add account")),
+        kvitui.OwnWidthEnd(kvitui.NewButton(ui, "Save changes"))))
+}
+```
+
+*Held to a reading column, with one part reaching further*
+
+```go
+func stackReadingColumn(ui *kvitui.UI) unison.Paneler {
+    held := kvitui.NewLabel(ui, "A part held to the stack's width limit wraps inside it, however wide the stack is.")
+    held.Wrap = true
+    wide := kvitui.NewLabel(ui, "A part marked Wide reaches as far right as the stack does.")
+    wide.Wrap = true
+    wide.SetLayoutData(kvitui.StackData{Wide: true})
+    stack := kvitui.NewStackLayout(ui, kvitui.SizeSpace)
+    stack.MaxWidth = kvitui.Px(240)
+    column := unison.NewPanel()
+    column.SetLayout(stack)
+    column.AddChild(held)
+    column.AddChild(wide)
+    return kvitui.Width(ui, kvitui.Px(520), column)
+}
+```
+
+### KvitLine
+
+Panels side by side, a gap apart, centred on the line (`Line`, or `NewLineLayout`). A hidden child takes no room and no gap. `Grow` and `GrowShare` give a child the width the others leave, `FixedWidth` holds one to a width, and any other keeps its own. The options reproduce what lines in the applications do: `GrowLast`, `ClipFixed`, `FillsHint`, `InsetsUncounted`, `Top` and `NoShrink`.
+
+*One part grows, one is held to a width, one keeps its own*
+
+```go
+func lineGrowAndFixed(ui *kvitui.UI) unison.Paneler {
+    name := kvitui.NewLabel(ui, "quarterly-report-final.pdf")
+    name.Middle = true
+    size := kvitui.NewLabel(ui, "2.4 MB")
+    size.Ink, size.Align = kvitui.InkTextMuted, text.AlignEnd
+    // The name takes the width the others leave; the size is held to a
+    // width; the button keeps its own.
+    return kvitui.Width(ui, kvitui.Px(360), kvitui.Line(ui, kvitui.SizeSpace,
+        kvitui.Grow(name), kvitui.FixedWidth(size, kvitui.Px(64)), kvitui.NewButton(ui, "Open")))
+}
+```
+
+*Two growers sharing the width one to two*
+
+```go
+func lineShares(ui *kvitui.UI) unison.Paneler {
+    part := func(words string) *kvitui.Button { return kvitui.NewButton(ui, words) }
+    return kvitui.Width(ui, kvitui.Px(360), kvitui.Line(ui, kvitui.SizeSpace,
+        kvitui.GrowShare(part("Import file"), 1), kvitui.GrowShare(part("Export ledger"), 2)))
+}
+```
+
+### KvitFlowLayout
+
+Panels left to right, starting a new line where the next does not fit (`NewFlowLayout`), with the same gap between parts and between lines. `Unasked` is the width assumed when none is offered, `FillsHint` makes it ask for the whole width, and `ItemWidth` gives every part one width worked out from the line's. Beside it are the smallest layouts: `FillLayout` gives every child the whole panel, `OwnSizeLayout` makes a panel the size of its one child, `AtMost` caps a panel's height as `AtLeast` floors it, and `Relayout` asks for a panel to be laid out again.
+
+```go
+func NewFlowLayout(ui *UI, gap Measure) *FlowLayout
+```
+
+| Field | Type | |
+|---|---|---|
+| `Gap` | `Measure` | Gap is the room between children in a line and between lines. |
+| `Unasked` | `Measure` | Unasked is the width to assume when none is offered; nil assumes the width of every child on one line. |
+| `FillsHint` | `bool` | FillsHint makes the width asked for the width offered or assumed, where it is otherwise the width of every child on one line. |
+| `ItemWidth` | `func(lineWidth float32) float32` | ItemWidth, when set, answers the width every child is measured at and framed to, from the line's width, in place of the child's own. |
+
+Methods: `LayoutSizes`, `PerformLayout`.
+
+*Wrapping at the width it is given*
+
+```go
+func flowWraps(ui *kvitui.UI) unison.Paneler {
+    flow := unison.NewPanel()
+    flow.SetLayout(kvitui.NewFlowLayout(ui, kvitui.SizeSpaceNear))
+    for _, verb := range []string{"Import", "Export", "Reconcile", "Archive", "Duplicate", "Rename", "Share"} {
+        flow.AddChild(kvitui.NewButton(ui, verb))
+    }
+    return kvitui.Width(ui, kvitui.Px(300), flow)
+}
+```
+
+*Two to a line, at a width worked out from the line's*
+
+```go
+func flowEqualBoxes(ui *kvitui.UI) unison.Paneler {
+    layout := kvitui.NewFlowLayout(ui, kvitui.SizeSpaceNear)
+    // Two to a line, whatever each would ask for.
+    layout.ItemWidth = func(lineWidth float32) float32 {
+        return (lineWidth - float32(kvitui.SizeSpaceNear.Of(ui))) / 2
+    }
+    flow := unison.NewPanel()
+    flow.SetLayout(layout)
+    for _, name := range []string{"Open ledger", "Close month", "Print report"} {
+        flow.AddChild(kvitui.NewButton(ui, name))
+    }
+    return kvitui.Width(ui, kvitui.Px(300), flow)
+}
+```
+
+*As tall as its content up to a limit, with `AtMost`*
+
+```go
+func heightLimit(ui *kvitui.UI) unison.Paneler {
+    lines := kvitui.NewLabel(ui, "As tall as what it holds,\nup to the limit,\nand no taller:\nthe rest is cut off here,\nwhere a scrolling region would scroll.")
+    lines.Wrap, lines.Top = true, true
+    capped := unison.NewPanel()
+    capped.AddChild(lines)
+    capped.SetLayout(kvitui.AtMost(ui, kvitui.Px(56), kvitui.OwnSizeLayout{}))
+    return kvitui.Width(ui, kvitui.Px(300), capped)
 }
 ```
 
@@ -369,7 +565,7 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem
 | `OnClick` | `func()` | OnClick runs when the item is pressed. |
 | `Command` | `*Command` | Command, when set, is what the item runs, and gives its words and symbol where they are empty: the settings command at the foot of the sidebar is one. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Name`, `Pressed`, `SetLead`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Name`, `Pressed`, `SetLead`, `SetTooltip`, `TooltipWords`.
 
 *Selected, hovered and counted*
 
@@ -787,7 +983,7 @@ func NewSectionHeading(ui *UI, label string) *SectionHeading
 | `OnToggle` | `func(expanded bool)` | OnToggle runs after the heading opened or closed, with the new state. |
 | `OnAction` | `func()` | OnAction runs when the hoisted action is taken. |
 
-Methods: `CountPhrase`, `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`, `TooltipWords`.
+Methods: `CountPhrase`, `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Pressed`, `SetLead`, `SetTooltip`, `TooltipWords`.
 
 *Collapsible, counted, with an action*
 
@@ -919,7 +1115,7 @@ func sectionHeadingExplanation(ui *kvitui.UI) unison.Paneler {
 
 ### KvitRow
 
-A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`.
+A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`. A row that needs another size says so with `Height`, `FitContent` and `Margins`, and places its parts through the `Leading`, `Title`, `Subtitle` and `Trailing` slots or a `Place` function of its own. `Bar`, `Radius`, `RingAtEdge`, `RingOnAnyFocus`, `NoHoverTint` and `NoHoverTintDisabled` change its marks. `HoverWhole` keeps it hovered over its own words and `OnHover` reports the change; `PressOn` and `AnyButton` say which press activates it, and `OnDoubleClick`, `OnPress`, `OnDrag`, `OnRelease`, `OnKey`, `OnFocus` and `OnBlur` are hooks for a list's own behaviour. `Description`, `Level`, `Expandable` and `Expanded` go to screen readers, for a tree's rows.
 
 *Pressable and static*
 
@@ -976,6 +1172,72 @@ func rowHeights(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
+*Slots, in a row as tall as its two lines*
+
+```go
+func rowSlots(ui *kvitui.UI) unison.Paneler {
+    row := func(symbol, name, about, when string) *kvitui.ListRow {
+        title := kvitui.NewLabel(ui, name)
+        title.Role = kvitui.RoleStrong
+        subtitle := kvitui.NewLabel(ui, about)
+        subtitle.Role, subtitle.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+        trailing := kvitui.NewLabel(ui, when)
+        trailing.Role, trailing.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+        r := kvitui.NewListRow(ui)
+        r.Leading, r.Title, r.Subtitle, r.Trailing = kvitui.NewIcon(ui, symbol), title, subtitle, trailing
+        r.Label, r.Interactive, r.NoOpensMark = name+", "+about, true, true
+        // As tall as the two lines, inside margins of its own.
+        r.FitContent, r.Margins = true, kvitui.Insets(ui, kvitui.SizeSpaceNear, kvitui.SizeSpace, kvitui.SizeSpaceNear, kvitui.SizeSpace)
+        return r
+    }
+    return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, nil,
+        row("folder", "Ledger", "Reconcile March against the statement", "2 min ago"),
+        row("folder", "Website", "Waiting on you: approve the new header", "Yesterday")))
+}
+```
+
+*A selection bar, rounded tints, and the ring at the edge*
+
+```go
+func rowBarAndRing(ui *kvitui.UI) unison.Paneler {
+    row := func(words string) *kvitui.ListRow {
+        r := kvitui.NewListRow(ui, kvitui.NewLabel(ui, words))
+        r.Label, r.Interactive, r.NoOpensMark, r.Rule = words, true, true, false
+        r.Margins = kvitui.Insets(ui, nil, kvitui.SizeSpace, nil, kvitui.SizeSpace)
+        return r
+    }
+    // Selection said twice, with a bar as well as a tint; rounded tints; and
+    // the cursor's ring at the row's edge.
+    barred := row("Selected, with a bar down its edge")
+    barred.Bar, barred.Selected = kvitui.Px(3), true
+    round := row("Selected, with rounded corners")
+    round.Radius, round.Selected = kvitui.SizeRadiusControl, true
+    edge := row("The cursor's ring at the row's edge")
+    edge.RingAtEdge, edge.Radius, edge.Current = true, kvitui.SizeRadiusControl, true
+    return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, barred, round, edge))
+}
+```
+
+*Hovered over its own words, and saying so*
+
+```go
+func rowHoveredWhole(ui *kvitui.UI) unison.Paneler {
+    said := kvitui.NewLabel(ui, "Move the pointer over the row's words")
+    said.Ink = kvitui.InkTextMuted
+    name := kvitui.NewLabel(ui, "A row full of words stays tinted over them")
+    r := kvitui.NewListRow(ui, kvitui.FullWidth(name), kvitui.NewIcon(ui, "folder"))
+    r.Label, r.Interactive, r.NoOpensMark, r.HoverWhole = name.Text, true, true, true
+    r.OnHover = func(over bool) {
+        if over {
+            said.SetText("The pointer is on the row")
+        } else {
+            said.SetText("The pointer has left the row")
+        }
+    }
+    return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, r, said))
+}
+```
+
 ### KvitSlimRow
 
 The row a reader sees most: a name, what it is, one phrase about it and one figure, right aligned, in that order on every screen.
@@ -995,7 +1257,7 @@ func NewSlimRow(ui *UI, name string) *SlimRow
 | `Measured` | `bool` | Measured is false for a value nobody measured, drawn as "—". |
 | `Symbol` | `string` | Symbol is an optional meaning name drawn before the name. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Measured and unmeasured*
 
@@ -1029,7 +1291,7 @@ func NewCard(ui *UI, content ...unison.Paneler) *Card
 | `Padding` | `Measure` | Padding is the space inside the edge; the loose space unless set. |
 | `OnActivate` | `func()` | OnActivate runs when a pressable card is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Static and interactive*
 
@@ -1596,7 +1858,7 @@ func NewCommandButton(ui *UI, c *Command) *Button
 | `Checked` | `bool` | Checked draws a button that turns a mode on as on: tinted and outlined in the accent, two marks rather than one, since a tint alone is a few percent of lightness in the high-contrast theme. |
 | `OnClick` | `func()` | OnClick runs when the button is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`, `Words`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`, `Words`.
 
 *Text, icon plus text, and busy text in every form*
 
@@ -1688,7 +1950,7 @@ func NewChipButton(ui *UI, words string) *ChipButton
 | `Selected` | `bool` | Selectable makes the chip a choice that is on or off; Selected is whether it is on. |
 | `OnActivate` | `func()` | OnActivate runs when an available chip is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Every tone, tinted, filled and keyboard-focused*
 
@@ -1890,7 +2152,7 @@ func formRowFields(ui *kvitui.UI) unison.Paneler {
 
 ### KvitTextArea
 
-Several lines of text, typed or read. KvitField's outline and error rule in the field form, no ground at all in the plain one, which is for a document filling a pane. `Underlay` draws behind the words in the text's own coordinates, so a wash over a marked passage does not mean replacing the background.
+Several lines of text, typed or read. KvitField's outline and error rule in the field form, no ground at all in the plain one, which is for a document filling a pane. `Underlay` draws behind the words in the text's own coordinates, so a wash over a marked passage does not mean replacing the background. `Fit` makes the area ask for exactly the size of its text (`FitText`, or `FitTextAtLeastOffered` for unwrapped text that should fill the width offered), where it otherwise asks for three rows.
 
 ```go
 func NewTextArea(ui *UI) *TextArea
@@ -1902,6 +2164,7 @@ func NewTextArea(ui *UI) *TextArea
 | `Plain` | `bool` | Plain draws a document filling a pane: no ground and no outline, since a whole-pane rectangle drawn as a field says there is something beside it. |
 | `Mono` | `bool` | Mono draws the text in the monospace family, for source text and anything where a column has to line up. |
 | `Underlay` | `func(gc *unison.Canvas, at func(index int) geom.Rect)` | Underlay draws behind the words, such as a wash behind a marked passage. |
+| `Fit` | `TextFit` | Fit makes the area ask for exactly the size of its text, for read-only text shown whole inside a scrolling region; FitNone asks for three rows whatever it holds. |
 
 *Resting, filled, monospace and in error*
 
@@ -1945,6 +2208,20 @@ func textAreaUnderlay(ui *kvitui.UI) unison.Paneler {
         gc.DrawRect(box, kvitui.Color(ui.Theme.Tokens().SelectionTint).Paint(gc, box, paintstyle.Fill))
     }
     return kvitui.Width(ui, kvitui.Px(280), marked)
+}
+```
+
+*Fitted to its text, for read-only text shown whole*
+
+```go
+func textAreaFitted(ui *kvitui.UI) unison.Paneler {
+    // Read-only text shown whole: the area is exactly as tall as its text at
+    // the width it is given, for a scrolling region around it to scroll.
+    output := kvitui.NewTextArea(ui)
+    output.Label, output.Plain, output.Mono, output.ReadOnly = "Output", true, true, true
+    output.Fit = kvitui.FitText
+    output.SetText("ok   ledger   0.412s\nok   export   1.038s\nok   import   0.277s\nok   rules    0.090s\nok   report   0.731s")
+    return kvitui.Width(ui, kvitui.Px(280), output)
 }
 ```
 
@@ -2002,7 +2279,7 @@ func NewCheck(ui *UI, label string) *Check
 | `OnChange` | `func(checked bool)` | OnChange runs after a press, with the new state. |
 | `Name` | `string` | Name is what a screen reader calls a box with no words beside it, such as the one on each row of a table; the words unless set. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Off, on, partial and disabled*
 
@@ -2038,7 +2315,7 @@ func NewSelect(ui *UI, label string, options ...Option) *Select
 | `Plain` | `bool` | Plain draws the select as the chosen option's words and a small arrow, with no ground or border until the pointer is on it, for a value repeated down a list. |
 | `OnChoose` | `func(value string)` | OnChoose runs after an option is chosen, with its value. |
 
-Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Choose`, `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *A currency picker*
 
@@ -2135,7 +2412,7 @@ func NewTab(ui *UI, label string) *Tab
 | `Explanation` | `string` | Explanation says in one sentence what the view shows, which two or three words on a tab cannot. |
 | `OnClick` | `func()` | OnClick runs when the tab is pressed. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Selected, counted and plain*
 
@@ -2297,7 +2574,7 @@ func NewMenuButton(ui *UI, label string, items ...MenuItem) *MenuButton
 | `Button` | embedded | Everything a Button has. |
 | `Items` | `[]MenuItem` | Items are the menu's lines. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *Three ways to sort*
 
@@ -2589,7 +2866,7 @@ func settingsWindowOpen(ui *kvitui.UI) unison.Paneler {
 
 ### KvitTooltip
 
-A short label next to a control after a pause. Never the only place a control's meaning lives — a control explained only by its tooltip is unusable on a keyboard, a screen reader and a touch screen.
+A short label next to a control after a pause. Never the only place a control's meaning lives — a control explained only by its tooltip is unusable on a keyboard, a screen reader and a touch screen. `SetTooltip` gives any control a tooltip or other words for the one it has. `AddTooltip` puts one on any panel and returns a `Tooltip`, whose fields say how it learns of the keyboard (`Focus`, `Keyboard`, `FocusAtOnce`), whether it stays while the pointer rests (`Stays`), and whether the caller reports the pointer itself (`HoverTold`).
 
 ```go
 func (u *UI) ShowTooltip(anchor unison.Paneler, words string) (hide func())
@@ -2609,9 +2886,35 @@ func tooltipOnButton(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
+*On any panel, with `AddTooltip`*
+
+```go
+func tooltipOnAnyPanel(ui *kvitui.UI) unison.Paneler {
+    changed := kvitui.NewLabel(ui, "3 files changed")
+    tip := kvitui.AddTooltip(ui, changed, func() string { return "ledger.go, export.go and export_test.go" })
+    // Shown here for good, as the keyboard resting on the label would show
+    // it; left alone, it shows half a second after the pointer comes to rest.
+    tip.Focus, tip.FocusAtOnce, tip.Stays = kvitui.TipFocusTold, true, true
+    tip.SetFocused(true)
+    return kvitui.FullWidth(kvitui.At(ui, kvitui.Px(60), kvitui.Px(30), kvitui.Px(70), changed))
+}
+```
+
+*Given to a control that has none, or in place of its own, with `SetTooltip`*
+
+```go
+func tooltipSetOnAControl(ui *kvitui.UI) unison.Paneler {
+    wrap := kvitui.NewCheck(ui, "Wrap long lines")
+    wrap.SetTooltip(func() string { return "Lines wider than the pane continue on the next line" })
+    rename := kvitui.NewIconButton(ui, "pencil", "Edit")
+    rename.SetTooltip(func() string { return "Rename the track" })
+    return kvitui.Row(ui, kvitui.SizeSpaceLoose, wrap, rename)
+}
+```
+
 ### KvitPopover
 
-A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card.
+A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card. `OpenModal` shows it over a scrim, so nothing behind can be used until it closes; `ModalPress` says whether the press outside that closes it stops there or goes on to what is behind. `OnEscape` and `OnPressOutside` run in place of closing, `PressOutsideIgnored` makes a press outside do nothing, `MayClose` holds it open while work cannot be stopped, and `FirstFocus` says what takes the keyboard. A `Mover` lets the reader drag any popup's panel by a band along its top, and `DialogButtonOrder` puts a surface's own buttons in the order the platform reads them.
 
 ```go
 func NewPopover(ui *UI, title string, content ...unison.Paneler) *Popover
@@ -2622,8 +2925,14 @@ func NewPopover(ui *UI, title string, content ...unison.Paneler) *Popover
 | `Title` | `string` | Title names the popover for a screen reader. |
 | `Width` | `Measure` | Width holds the popover to a width, its height following from it; nil takes the width its content asks for. |
 | `OnClose` | `func()` | OnClose runs after the popover closes. |
+| `OnEscape` | `func()` | OnEscape runs when Escape is pressed while the popover is open, in place of closing it; nil closes it. |
+| `OnPressOutside` | `func()` | OnPressOutside runs when the pointer is pressed outside the popover, in place of closing it; nil closes it. |
+| `PressOutsideIgnored` | `bool` | PressOutsideIgnored makes a press outside the popover do nothing; OnPressOutside is not used. |
+| `ModalPress` | `ModalPress` | ModalPress is what becomes of a press outside a popover opened with OpenModal, once it has closed the popover or run OnPressOutside: it goes no further (the default), or it goes on to what is behind. |
+| `MayClose` | `func() bool` | MayClose, when set, is asked by Close, and by Escape and a press outside where they close the popover: false leaves it open, as while it shows work that cannot be stopped. |
+| `FirstFocus` | `func() *unison.Panel` | FirstFocus answers what takes the keyboard when the popover opens; nil, or answering nil, gives it to the first control inside. |
 
-Methods: `Close`, `Open`, `Opened`.
+Methods: `Close`, `OpenModal`, `Open`, `Opened`.
 
 *Open, holding a form*
 
@@ -2636,6 +2945,51 @@ func popoverWithForm(ui *kvitui.UI) unison.Paneler {
     stage := kvitui.FullWidth(kvitui.Height(ui, kvitui.Px(150), unison.NewPanel()))
     filter.Open(stage, kvitui.PlaceOver(stage))
     return stage
+}
+```
+
+*Opened modal from a button, moved by its title, with its buttons in the form's order*
+
+```go
+func popoverModalMoved(ui *kvitui.UI) unison.Paneler {
+    open := kvitui.NewButton(ui, "Choose account")
+    open.Asks = true
+    title := kvitui.NewLabel(ui, "Choose an account")
+    title.Role, title.Weight = kvitui.RoleStrong, text.Bold
+    words := kvitui.NewLabel(ui, "Drag this surface by its title to move it. Nothing behind it can be used until it closes.")
+    words.Wrap, words.Ink = true, kvitui.InkTextSecondary
+    cancel, choose := kvitui.NewButton(ui, "Cancel"), kvitui.NewButton(ui, "Choose")
+    // The buttons in the order the platform reads them.
+    buttons := kvitui.OwnWidthEnd(kvitui.Line(ui, kvitui.SizeSpaceNear, kvitui.DialogButtonOrder(ui, cancel, choose)...))
+    pop := kvitui.NewPopover(ui, "Choose an account", kvitui.Stack(ui, kvitui.SizeSpace, title, words, buttons))
+    pop.Width = kvitui.Px(340)
+    cancel.OnClick, choose.OnClick = pop.Close, pop.Close
+    // The band a drag starts in: the padding and the title's line.
+    mover := kvitui.NewMover(ui, pop, func() float32 {
+        return float32(kvitui.SizeSpaceLoose.Of(ui)) + title.FrameRect().Height
+    })
+    open.OnClick = func() {
+        pop.OpenModal(open, func(bounds geom.Rect, size geom.Size) geom.Rect {
+            return mover.Place(bounds, kvitui.PlaceCentred(nil)(bounds, size))
+        })
+    }
+    return kvitui.Left(open)
+}
+```
+
+*The ground a floating surface stands on, drawn with `DrawSurface`*
+
+```go
+func surfaceGround(ui *kvitui.UI) unison.Paneler {
+    surface := func(words string, radius kvitui.Measure) *unison.Panel {
+        p := unison.NewPanel()
+        p.AddChild(kvitui.NewLabel(ui, words))
+        p.SetBorder(kvitui.Padding(ui, kvitui.SizeSpaceLoose))
+        p.SetLayout(kvitui.OwnSizeLayout{CountInsets: true})
+        p.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) { kvitui.DrawSurface(gc, ui, p.ContentRect(true), radius) }
+        return p
+    }
+    return kvitui.Line(ui, kvitui.SizeSpaceLoose, surface("A card's corners", nil), surface("Corners of its own", kvitui.SizeRadiusControl))
 }
 ```
 
@@ -3324,7 +3678,7 @@ func NewStatTile(ui *UI, label, value, unit string) *StatTile
 | `History` | `[]float64` | History is the recent shape; NotMeasured for a gap. |
 | `Caption` | `string` | Caption is a line under it all. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *A dashboard row*
 
@@ -3761,7 +4115,7 @@ func NewSwitch(ui *UI, label string) *Switch
 | `SmallScope` | `bool` | SmallScope marks an option of narrow reach, which the macOS form draws as a checkbox, without the On or Off the Windows form says beside a switch; it acts at once either way. |
 | `OnChange` | `func(checked bool)` | OnChange runs after a press, with the new state. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *On, off and disabled*
 
@@ -3884,7 +4238,7 @@ func NewSlider(ui *UI, label string, value float64) *Slider
 | `Step` | `float64` | Step is how far an arrow key moves it; a tenth of the range unless set. |
 | `OnChange` | `func(value float64)` | OnChange runs as the value moves. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `TooltipWords`.
+Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Pressed`, `SetTooltip`, `TooltipWords`.
 
 *With its value shown*
 

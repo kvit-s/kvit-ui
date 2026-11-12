@@ -6,6 +6,7 @@ package main
 
 import (
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/text"
 	"github.com/richardwilkes/unison"
 )
 
@@ -101,4 +102,41 @@ func linkForms(ui *kvitui.UI) unison.Paneler {
 
 func linkElided(ui *kvitui.UI) unison.Paneler {
 	return kvitui.Width(ui, kvitui.Px(120), kvitui.NewLink(ui, "A destination whose full name does not fit here"))
+}
+
+func labelCutShort(ui *kvitui.UI) unison.Paneler {
+	path := "projects/ledger/exports/2026/quarterly-report-final.pdf"
+	end := kvitui.NewLabel(ui, path)
+	middle := kvitui.NewLabel(ui, path)
+	// The end of a file's name is what tells it from its neighbours.
+	middle.Middle = true
+	two := kvitui.NewLabel(ui, "A wrapping label kept to two lines is cut short at the end of the second, so a long message takes the same room in every row of a list however much it says.")
+	two.Wrap, two.MaxLines, two.Ink = true, 2, kvitui.InkTextSecondary
+	return kvitui.Width(ui, kvitui.Px(260), kvitui.Stack(ui, kvitui.SizeSpaceSnug, end, middle, two))
+}
+
+func labelItalicAndAligned(ui *kvitui.UI) unison.Paneler {
+	aside := kvitui.NewLabel(ui, "An aside, in italics")
+	aside.Italic = true
+	centred := kvitui.NewLabel(ui, "In the middle")
+	centred.Align = text.AlignMiddle
+	total := kvitui.NewLabel(ui, "At the end")
+	total.Align = text.AlignEnd
+	id := kvitui.NewLabel(ui, "a1b2c3d4, semibold")
+	id.Mono, id.WeightedMono, id.Weight = true, true, text.Semibold
+	return kvitui.Width(ui, kvitui.Px(260), kvitui.Stack(ui, kvitui.SizeSpaceSnug, aside, centred, total, id))
+}
+
+func labelForScreenReaders(ui *kvitui.UI) unison.Paneler {
+	// A heading by role, a count with its meaning spelt out, and a line that
+	// takes no room until it has something to say.
+	heading := kvitui.NewLabel(ui, "Changes")
+	heading.Role, heading.Heading = kvitui.RoleTitle, true
+	count := kvitui.NewLabel(ui, "3 / 12")
+	count.Name, count.Tabular = "3 of 12 files reviewed", true
+	status := kvitui.NewLabel(ui, "")
+	status.EmptyTakesNoRoom = true
+	save := kvitui.NewButton(ui, "Save changes")
+	save.OnClick = func() { status.SetText("Saved just now") }
+	return kvitui.Stack(ui, kvitui.SizeSpaceSnug, heading, count, status, kvitui.OwnWidth(save))
 }

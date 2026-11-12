@@ -491,8 +491,11 @@ func (l fieldLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, pref
 		w = hint.Width
 	}
 	if l.f.area != nil {
-		// Three rows to start; a text area takes more height when given it.
 		msg := l.message(w)
+		if l.f.area.Fit != FitNone {
+			return l.f.area.fitSizes(hint, msg)
+		}
+		// Three rows to start; a text area takes more height when given it.
 		return geom.NewSize(float32(m.Px(60)), float32(m.ControlHeight())+msg),
 			geom.NewSize(float32(m.Px(200)), float32(3*m.RowHeight())+msg),
 			geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)

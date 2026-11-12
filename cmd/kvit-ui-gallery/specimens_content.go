@@ -237,3 +237,57 @@ func emptyStateCompact(ui *kvitui.UI) unison.Paneler {
 	noAgents.Detail, noAgents.Action = "none started here yet", "Start one"
 	return kvitui.FullWidth(kvitui.Column(ui, kvitui.SizeSpaceSnug, changes, noChanges, agents, noAgents))
 }
+
+func rowSlots(ui *kvitui.UI) unison.Paneler {
+	row := func(symbol, name, about, when string) *kvitui.ListRow {
+		title := kvitui.NewLabel(ui, name)
+		title.Role = kvitui.RoleStrong
+		subtitle := kvitui.NewLabel(ui, about)
+		subtitle.Role, subtitle.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+		trailing := kvitui.NewLabel(ui, when)
+		trailing.Role, trailing.Ink = kvitui.RoleSmall, kvitui.InkTextMuted
+		r := kvitui.NewListRow(ui)
+		r.Leading, r.Title, r.Subtitle, r.Trailing = kvitui.NewIcon(ui, symbol), title, subtitle, trailing
+		r.Label, r.Interactive, r.NoOpensMark = name+", "+about, true, true
+		// As tall as the two lines, inside margins of its own.
+		r.FitContent, r.Margins = true, kvitui.Insets(ui, kvitui.SizeSpaceNear, kvitui.SizeSpace, kvitui.SizeSpaceNear, kvitui.SizeSpace)
+		return r
+	}
+	return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, nil,
+		row("folder", "Ledger", "Reconcile March against the statement", "2 min ago"),
+		row("folder", "Website", "Waiting on you: approve the new header", "Yesterday")))
+}
+
+func rowBarAndRing(ui *kvitui.UI) unison.Paneler {
+	row := func(words string) *kvitui.ListRow {
+		r := kvitui.NewListRow(ui, kvitui.NewLabel(ui, words))
+		r.Label, r.Interactive, r.NoOpensMark, r.Rule = words, true, true, false
+		r.Margins = kvitui.Insets(ui, nil, kvitui.SizeSpace, nil, kvitui.SizeSpace)
+		return r
+	}
+	// Selection said twice, with a bar as well as a tint; rounded tints; and
+	// the cursor's ring at the row's edge.
+	barred := row("Selected, with a bar down its edge")
+	barred.Bar, barred.Selected = kvitui.Px(3), true
+	round := row("Selected, with rounded corners")
+	round.Radius, round.Selected = kvitui.SizeRadiusControl, true
+	edge := row("The cursor's ring at the row's edge")
+	edge.RingAtEdge, edge.Radius, edge.Current = true, kvitui.SizeRadiusControl, true
+	return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, barred, round, edge))
+}
+
+func rowHoveredWhole(ui *kvitui.UI) unison.Paneler {
+	said := kvitui.NewLabel(ui, "Move the pointer over the row's words")
+	said.Ink = kvitui.InkTextMuted
+	name := kvitui.NewLabel(ui, "A row full of words stays tinted over them")
+	r := kvitui.NewListRow(ui, kvitui.FullWidth(name), kvitui.NewIcon(ui, "folder"))
+	r.Label, r.Interactive, r.NoOpensMark, r.HoverWhole = name.Text, true, true, true
+	r.OnHover = func(over bool) {
+		if over {
+			said.SetText("The pointer is on the row")
+		} else {
+			said.SetText("The pointer has left the row")
+		}
+	}
+	return kvitui.Width(ui, kvitui.Px(380), kvitui.Stack(ui, kvitui.SizeSpaceTight, r, said))
+}

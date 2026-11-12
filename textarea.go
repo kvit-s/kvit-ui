@@ -24,6 +24,47 @@ type TextArea struct {
 	// passage. It is given a function answering where a rune index is: the
 	// top-left of the caret before it and the line's height.
 	Underlay func(gc *unison.Canvas, at func(index int) geom.Rect)
+	// Fit makes the area ask for exactly the size of its text, for read-only
+	// text shown whole inside a scrolling region; FitNone asks for three
+	// rows whatever it holds.
+	Fit TextFit
+}
+
+// TextFit is how a text area's size follows its text.
+type TextFit int
+
+const (
+	// FitNone asks for three rows to start, whatever the area holds.
+	FitNone TextFit = iota
+	// FitText asks for the text's height at the width offered, and for the
+	// text's width when the text does not wrap.
+	FitText
+	// FitTextAtLeastOffered asks for the size of the text on unwrapped
+	// lines, and for the width offered when that is wider.
+	FitTextAtLeastOffered
+)
+
+// fitSizes are the sizes of an area that fits its text, the field's error
+// message under it included.
+func (a *TextArea) fitSizes(hint geom.Size, message float32) (minSize, prefSize, maxSize geom.Size) {
+	e := a.edit
+	var w, h float32
+	if a.Fit == FitTextAtLeastOffered {
+		_, p, _ := e.Sizes(geom.Size{})
+		w, h = max(p.Width, hint.Width), p.Height
+	} else {
+		width := hint.Width
+		if !e.Wrap() {
+			width = 0
+		}
+		_, p, _ := e.Sizes(geom.NewSize(width, 0))
+		h = p.Height
+		if !e.Wrap() {
+			w = p.Width
+		}
+	}
+	h += message
+	return geom.NewSize(w, h), geom.NewSize(w, h), geom.NewSize(unison.DefaultMaxSize, h)
 }
 
 // NewTextArea returns an empty text area, three rows tall to start.

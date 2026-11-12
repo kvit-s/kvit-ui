@@ -39,11 +39,14 @@ var catalog = []entry{
 	{
 		name:    "KvitLabel",
 		group:   "Foundation",
-		summary: "A run of chrome text at one of the seven type roles. Every other component uses it, which is what keeps the chrome family, the colour and the eliding rule in one place.",
+		summary: "A run of chrome text at one of the seven type roles. Every other component uses it, which is what keeps the chrome family, the colour and the eliding rule in one place. `Middle` cuts one line short in its middle, `MaxLines` a wrapping label after so many lines, and a label cut short shows its whole text as a tooltip unless `NoTooltip` says not. `Italic`, `Align`, `WeightedMono` and `Size` change how the text is set; `Top` and `WrapOwnWidth` how a wrapping label sits and how wide it asks to be. `Name`, `Heading` and `Ignored` say what a screen reader is told, `EmptyTakesNoRoom` makes an empty label vanish, and `SetText` changes the words and lays out again.",
 		specimens: []specimen{
 			{caption: "The seven roles", build: labelRoles},
 			{caption: "Monospace and tabular numerals", build: labelMonoAndTabular},
 			{caption: "Content the reader may copy, selected by a press", build: labelSelectable},
+			{caption: "Cut short at its end, in its middle, and after two lines", build: labelCutShort},
+			{caption: "Italic, aligned, and monospace with a weight", build: labelItalicAndAligned},
+			{caption: "What a screen reader is told, and a line that takes no room while empty", build: labelForScreenReaders},
 		},
 	},
 	{
@@ -72,6 +75,34 @@ var catalog = []entry{
 		specimens: []specimen{
 			{caption: "Plain, symbolic and keyboard-focused", build: linkForms},
 			{caption: "Elided in a narrow column", build: linkElided},
+		},
+	},
+	{
+		name:    "KvitStack",
+		group:   "Structure",
+		summary: "Panels top to bottom, a gap apart, each as wide as the stack (`Stack`, or `NewStackLayout` on a panel of your own). Unlike a column, a hidden child takes no room and no gap, so a part comes and goes by its `Hidden` field alone. A child says more with `StackData`: `OwnWidth` and `OwnWidthEnd` keep it at its own width at either end, `Left` and `Right` keep room clear beside it, and `Wide` exempts it from the stack's `MaxWidth`, which holds the others to a reading column. `SkipEmpty` also leaves out a child that asks for no height.",
+		specimens: []specimen{
+			{caption: "A hidden part, and parts at their own width", build: stackShownAndHidden},
+			{caption: "Held to a reading column, with one part reaching further", build: stackReadingColumn},
+		},
+	},
+	{
+		name:    "KvitLine",
+		group:   "Structure",
+		summary: "Panels side by side, a gap apart, centred on the line (`Line`, or `NewLineLayout`). A hidden child takes no room and no gap. `Grow` and `GrowShare` give a child the width the others leave, `FixedWidth` holds one to a width, and any other keeps its own. The options reproduce what lines in the applications do: `GrowLast`, `ClipFixed`, `FillsHint`, `InsetsUncounted`, `Top` and `NoShrink`.",
+		specimens: []specimen{
+			{caption: "One part grows, one is held to a width, one keeps its own", build: lineGrowAndFixed},
+			{caption: "Two growers sharing the width one to two", build: lineShares},
+		},
+	},
+	{
+		name:    "KvitFlowLayout",
+		group:   "Structure",
+		summary: "Panels left to right, starting a new line where the next does not fit (`NewFlowLayout`), with the same gap between parts and between lines. `Unasked` is the width assumed when none is offered, `FillsHint` makes it ask for the whole width, and `ItemWidth` gives every part one width worked out from the line's. Beside it are the smallest layouts: `FillLayout` gives every child the whole panel, `OwnSizeLayout` makes a panel the size of its one child, `AtMost` caps a panel's height as `AtLeast` floors it, and `Relayout` asks for a panel to be laid out again.",
+		specimens: []specimen{
+			{caption: "Wrapping at the width it is given", build: flowWraps},
+			{caption: "Two to a line, at a width worked out from the line's", build: flowEqualBoxes},
+			{caption: "As tall as its content up to a limit, with `AtMost`", build: heightLimit},
 		},
 	},
 	{
@@ -170,11 +201,14 @@ var catalog = []entry{
 	{
 		name:    "KvitRow",
 		group:   "Content",
-		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`.",
+		summary: "A list row at one of four heights, chosen by what the row carries rather than by how many rows a view wants to fit. Hover and keyboard focus are separate marks, because they are different rows. A row that does something when it is pressed says so first: the hover tint, the press and the chevron at its trailing edge all follow `Interactive`. A row that needs another size says so with `Height`, `FitContent` and `Margins`, and places its parts through the `Leading`, `Title`, `Subtitle` and `Trailing` slots or a `Place` function of its own. `Bar`, `Radius`, `RingAtEdge`, `RingOnAnyFocus`, `NoHoverTint` and `NoHoverTintDisabled` change its marks. `HoverWhole` keeps it hovered over its own words and `OnHover` reports the change; `PressOn` and `AnyButton` say which press activates it, and `OnDoubleClick`, `OnPress`, `OnDrag`, `OnRelease`, `OnKey`, `OnFocus` and `OnBlur` are hooks for a list's own behaviour. `Description`, `Level`, `Expandable` and `Expanded` go to screen readers, for a tree's rows.",
 		specimens: []specimen{
 			{caption: "Pressable and static", build: rowPressableAndStatic},
 			{caption: "Opened from the keyboard, without opening it twice", build: rowFromTheKeyboard},
 			{caption: "The four heights, and the three states", build: rowHeights},
+			{caption: "Slots, in a row as tall as its two lines", build: rowSlots},
+			{caption: "A selection bar, rounded tints, and the ring at the edge", build: rowBarAndRing},
+			{caption: "Hovered over its own words, and saying so", build: rowHoveredWhole},
 		},
 	},
 	{
@@ -354,11 +388,12 @@ var catalog = []entry{
 	{
 		name:    "KvitTextArea",
 		group:   "Controls",
-		summary: "Several lines of text, typed or read. KvitField's outline and error rule in the field form, no ground at all in the plain one, which is for a document filling a pane. `Underlay` draws behind the words in the text's own coordinates, so a wash over a marked passage does not mean replacing the background.",
+		summary: "Several lines of text, typed or read. KvitField's outline and error rule in the field form, no ground at all in the plain one, which is for a document filling a pane. `Underlay` draws behind the words in the text's own coordinates, so a wash over a marked passage does not mean replacing the background. `Fit` makes the area ask for exactly the size of its text (`FitText`, or `FitTextAtLeastOffered` for unwrapped text that should fill the width offered), where it otherwise asks for three rows.",
 		specimens: []specimen{
 			{caption: "Resting, filled, monospace and in error", build: textAreaStates},
 			{caption: "Plain: a document filling a pane, with no ground of its own", build: textAreaPlain},
 			{caption: "A wash behind a marked passage, drawn through `Underlay`", build: textAreaUnderlay},
+			{caption: "Fitted to its text, for read-only text shown whole", build: textAreaFitted},
 		},
 	},
 	{
@@ -488,17 +523,21 @@ var catalog = []entry{
 	{
 		name:    "KvitTooltip",
 		group:   "Feedback",
-		summary: "A short label next to a control after a pause. Never the only place a control's meaning lives — a control explained only by its tooltip is unusable on a keyboard, a screen reader and a touch screen.",
+		summary: "A short label next to a control after a pause. Never the only place a control's meaning lives — a control explained only by its tooltip is unusable on a keyboard, a screen reader and a touch screen. `SetTooltip` gives any control a tooltip or other words for the one it has. `AddTooltip` puts one on any panel and returns a `Tooltip`, whose fields say how it learns of the keyboard (`Focus`, `Keyboard`, `FocusAtOnce`), whether it stays while the pointer rests (`Stays`), and whether the caller reports the pointer itself (`HoverTold`).",
 		specimens: []specimen{
 			{caption: "On a button", build: tooltipOnButton},
+			{caption: "On any panel, with `AddTooltip`", build: tooltipOnAnyPanel},
+			{caption: "Given to a control that has none, or in place of its own, with `SetTooltip`", build: tooltipSetOnAControl},
 		},
 	},
 	{
 		name:    "KvitPopover",
 		group:   "Feedback",
-		summary: "A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card.",
+		summary: "A small surface anchored to a control holding something to act on. Takes focus, closes on Escape and on a click outside — which is what separates it from a hover card. `OpenModal` shows it over a scrim, so nothing behind can be used until it closes; `ModalPress` says whether the press outside that closes it stops there or goes on to what is behind. `OnEscape` and `OnPressOutside` run in place of closing, `PressOutsideIgnored` makes a press outside do nothing, `MayClose` holds it open while work cannot be stopped, and `FirstFocus` says what takes the keyboard. A `Mover` lets the reader drag any popup's panel by a band along its top, and `DialogButtonOrder` puts a surface's own buttons in the order the platform reads them.",
 		specimens: []specimen{
 			{caption: "Open, holding a form", build: popoverWithForm},
+			{caption: "Opened modal from a button, moved by its title, with its buttons in the form's order", build: popoverModalMoved},
+			{caption: "The ground a floating surface stands on, drawn with `DrawSurface`", build: surfaceGround},
 		},
 	},
 	{

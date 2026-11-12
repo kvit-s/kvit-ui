@@ -25,11 +25,28 @@ func siblings[T unison.Paneler](p *unison.Panel) []T {
 	return out
 }
 
-// roveStep is the member a key moves to from one: the arrow keys along the
-// group's way to the one before or after, Home and End to the ends, round
-// from the last to the first where wrap is set. A disabled member is passed
-// by. It reports false for a key that does not move.
+// roveStep is RoveStep, under the name the library's own groups call it by.
 func roveStep[T unison.Paneler](members []T, from T, key unison.KeyCode, vertical, wrap bool) (T, bool) {
+	return RoveStep(members, from, key, vertical, wrap)
+}
+
+// RoveStep is the member of a group a key moves to from one: the arrow keys
+// along the group's way (Up and Down where vertical is set, Left and Right
+// otherwise) to the member before or after, Home and End to the ends, and
+// round from the last to the first where wrap is set. A disabled member is
+// passed by.
+//
+// The caller builds members, so it decides which of a list's rows are passed
+// by beyond the disabled ones, by leaving them out. A caller whose list has
+// no Home and End does not pass those keys in.
+//
+// The second result is false when the key does not move: it is not an arrow
+// along the group's way, Home or End, or there are fewer than two members,
+// or from is not among them. The zero T with true means the key moves but
+// there is nowhere to go, which is the end of a list that does not wrap; a
+// caller that passes the key on at the end of its list treats that as the
+// key not being used.
+func RoveStep[T unison.Paneler](members []T, from T, key unison.KeyCode, vertical, wrap bool) (T, bool) {
 	var none T
 	at := -1
 	for i, m := range members {

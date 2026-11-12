@@ -53,6 +53,26 @@ type Popover struct {
 	Width Measure
 	// OnClose runs after the popover closes.
 	OnClose func()
+	// OnEscape runs when Escape is pressed while the popover is open, in
+	// place of closing it; nil closes it.
+	OnEscape func()
+	// OnPressOutside runs when the pointer is pressed outside the popover,
+	// in place of closing it; nil closes it.
+	OnPressOutside func()
+	// PressOutsideIgnored makes a press outside the popover do nothing;
+	// OnPressOutside is not used.
+	PressOutsideIgnored bool
+	// ModalPress is what becomes of a press outside a popover opened with
+	// OpenModal, once it has closed the popover or run OnPressOutside: it
+	// goes no further (the default), or it goes on to what is behind.
+	ModalPress ModalPress
+	// MayClose, when set, is asked by Close, and by Escape and a press
+	// outside where they close the popover: false leaves it open, as while it
+	// shows work that cannot be stopped.
+	MayClose func() bool
+	// FirstFocus answers what takes the keyboard when the popover opens; nil,
+	// or answering nil, gives it to the first control inside.
+	FirstFocus func() *unison.Panel
 
 	hide     func()
 	previous *unison.Panel // what held the focus when it opened
@@ -76,24 +96,55 @@ func NewPopover(ui *UI, title string, content ...unison.Paneler) *Popover {
 	return p
 }
 
-// drawSurface is the ground a floating surface stands on: the popup colour, a
-// strong hairline edge, a card's corners.
-func drawSurface(gc *unison.Canvas, ui *UI, r geom.Rect) {
+// drawSurface is DrawSurface with a card's corners.
+func drawSurface(gc *unison.Canvas, ui *UI, r geom.Rect) { DrawSurface(gc, ui, r, nil) }
+
+// DrawSurface draws the ground a floating surface stands on: the popup
+// colour with a strong hairline edge, its corners rounded by radius. A nil
+// radius is a card's corners, which is what a Popover draws.
+func DrawSurface(gc *unison.Canvas, ui *UI, r geom.Rect, radius Measure) {
 	t, m := ui.Theme.Tokens(), ui.Interface
 	p := painterFor(gc, ui)
-	radius := float32(m.RadiusCard())
-	p.round(r, radius, t.PopupBackground)
-	p.outline(r, radius, float32(m.Hairline()), t.BorderStrong)
+	round := float32(m.RadiusCard())
+	if radius != nil {
+		round = float32(radius.Of(ui))
+	}
+	p.round(r, round, t.PopupBackground)
+	p.outline(r, round, float32(m.Hairline()), t.BorderStrong)
 }
 
 // Open shows the popover in the anchor's window, where place puts it, and
 // gives it the keyboard focus. It does nothing outside a Kvit window.
 func (p *Popover) Open(anchor unison.Paneler, place func(bounds geom.Rect, size geom.Size) geom.Rect) {
+	p.open(anchor, place, false)
+}
+
+// ModalPress is what becomes of a press outside a modal popover.
+type ModalPress int
+
+const (
+	// ModalPressStops ends the press at the popover: it closes the popover,
+	// or runs OnPressOutside, and presses nothing behind.
+	ModalPressStops ModalPress = iota
+	// ModalPressPasses closes the popover, or runs OnPressOutside, at once,
+	// and where that closed the popover the same press goes on to what is
+	// behind it. While the popover stays open the scrim takes the press.
+	ModalPressPasses
+)
+
+// OpenModal shows the popover as Open does, over a scrim that takes every
+// press, so nothing behind it can be used until it closes. ModalPress says
+// whether the press that closes it from outside reaches what is behind.
+func (p *Popover) OpenModal(anchor unison.Paneler, place func(bounds geom.Rect, size geom.Size) geom.Rect) {
+	p.open(anchor, place, true)
+}
+
+func (p *Popover) open(anchor unison.Paneler, place func(bounds geom.Rect, size geom.Size) geom.Rect, modal bool) {
 	if anchor.AsPanel().Window() == nil {
 		// Not in a window yet: open once it is.
 		unison.InvokeTask(func() {
 			if anchor.AsPanel().Window() != nil {
-				p.Open(anchor, place)
+				p.open(anchor, place, modal)
 			}
 		})
 		return
@@ -111,10 +162,47 @@ func (p *Popover) Open(anchor unison.Paneler, place func(bounds geom.Rect, size 
 		}
 		return place(bounds, size)
 	}
-	p.hide = w.Show(&Popup{Panel: p, Place: sized, OnEscape: p.Close, OnPressOutside: p.Close, Anchor: anchor,
-		HoldsKeyboard: true})
+	popup := &Popup{Panel: p, Place: sized, Anchor: anchor, HoldsKeyboard: true, Modal: modal}
+	popup.OnEscape = func() {
+		if p.OnEscape != nil {
+			p.OnEscape()
+			return
+		}
+		p.Close()
+	}
+	// A press outside that is ignored is left to whatever it lands on, where
+	// one that closes the popover goes no further.
+	if !p.PressOutsideIgnored {
+		outside := func() {
+			if p.OnPressOutside != nil {
+				p.OnPressOutside()
+				return
+			}
+			p.Close()
+		}
+		popup.OnPressOutside = outside
+		if modal && p.ModalPress == ModalPressStops {
+			// Once the press is over: closing takes the scrim away, and a
+			// press still under way would reach what is behind it.
+			popup.OnPressOutside = func() {
+				unison.InvokeTask(func() {
+					if p.hide != nil {
+						outside()
+					}
+				})
+			}
+		}
+	}
+	p.hide = w.Show(popup)
 	unison.InvokeTask(func() {
-		if f := p.FirstFocusableChild(); f != nil {
+		var f *unison.Panel
+		if p.FirstFocus != nil {
+			f = p.FirstFocus()
+		}
+		if f == nil {
+			f = p.FirstFocusableChild()
+		}
+		if f != nil {
 			f.RequestFocus()
 		}
 	})
@@ -125,7 +213,7 @@ func (p *Popover) Opened() bool { return p.hide != nil }
 
 // Close takes the popover away and gives the focus back.
 func (p *Popover) Close() {
-	if p.hide == nil {
+	if p.hide == nil || (p.MayClose != nil && !p.MayClose()) {
 		return
 	}
 	w := p.Window()

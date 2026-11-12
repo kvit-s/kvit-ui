@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kvit-s/kvit-ui/text"
 
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/richardwilkes/unison"
@@ -226,4 +227,85 @@ func windowShell(ui *kvitui.UI) unison.Paneler {
 	window.SetStatusBar(status)
 	window.ToFront()
 	return nil
+}
+
+func stackShownAndHidden(ui *kvitui.UI) unison.Paneler {
+	note := func(words string) *kvitui.Label {
+		l := kvitui.NewLabel(ui, words)
+		l.Ink, l.Wrap = kvitui.InkTextSecondary, true
+		return l
+	}
+	// The middle part is hidden, and takes no room and no gap: a part comes
+	// and goes by its Hidden field alone.
+	gone := note("Hidden, so not here")
+	gone.Hidden = true
+	return kvitui.Width(ui, kvitui.Px(360), kvitui.Stack(ui, kvitui.SizeSpace,
+		note("Every part is as wide as the stack, unless it keeps its own width at the start or at the end"),
+		gone,
+		kvitui.OwnWidth(kvitui.NewButton(ui, "Add account")),
+		kvitui.OwnWidthEnd(kvitui.NewButton(ui, "Save changes"))))
+}
+
+func stackReadingColumn(ui *kvitui.UI) unison.Paneler {
+	held := kvitui.NewLabel(ui, "A part held to the stack's width limit wraps inside it, however wide the stack is.")
+	held.Wrap = true
+	wide := kvitui.NewLabel(ui, "A part marked Wide reaches as far right as the stack does.")
+	wide.Wrap = true
+	wide.SetLayoutData(kvitui.StackData{Wide: true})
+	stack := kvitui.NewStackLayout(ui, kvitui.SizeSpace)
+	stack.MaxWidth = kvitui.Px(240)
+	column := unison.NewPanel()
+	column.SetLayout(stack)
+	column.AddChild(held)
+	column.AddChild(wide)
+	return kvitui.Width(ui, kvitui.Px(520), column)
+}
+
+func lineGrowAndFixed(ui *kvitui.UI) unison.Paneler {
+	name := kvitui.NewLabel(ui, "quarterly-report-final.pdf")
+	name.Middle = true
+	size := kvitui.NewLabel(ui, "2.4 MB")
+	size.Ink, size.Align = kvitui.InkTextMuted, text.AlignEnd
+	// The name takes the width the others leave; the size is held to a
+	// width; the button keeps its own.
+	return kvitui.Width(ui, kvitui.Px(360), kvitui.Line(ui, kvitui.SizeSpace,
+		kvitui.Grow(name), kvitui.FixedWidth(size, kvitui.Px(64)), kvitui.NewButton(ui, "Open")))
+}
+
+func lineShares(ui *kvitui.UI) unison.Paneler {
+	part := func(words string) *kvitui.Button { return kvitui.NewButton(ui, words) }
+	return kvitui.Width(ui, kvitui.Px(360), kvitui.Line(ui, kvitui.SizeSpace,
+		kvitui.GrowShare(part("Import file"), 1), kvitui.GrowShare(part("Export ledger"), 2)))
+}
+
+func flowWraps(ui *kvitui.UI) unison.Paneler {
+	flow := unison.NewPanel()
+	flow.SetLayout(kvitui.NewFlowLayout(ui, kvitui.SizeSpaceNear))
+	for _, verb := range []string{"Import", "Export", "Reconcile", "Archive", "Duplicate", "Rename", "Share"} {
+		flow.AddChild(kvitui.NewButton(ui, verb))
+	}
+	return kvitui.Width(ui, kvitui.Px(300), flow)
+}
+
+func flowEqualBoxes(ui *kvitui.UI) unison.Paneler {
+	layout := kvitui.NewFlowLayout(ui, kvitui.SizeSpaceNear)
+	// Two to a line, whatever each would ask for.
+	layout.ItemWidth = func(lineWidth float32) float32 {
+		return (lineWidth - float32(kvitui.SizeSpaceNear.Of(ui))) / 2
+	}
+	flow := unison.NewPanel()
+	flow.SetLayout(layout)
+	for _, name := range []string{"Open ledger", "Close month", "Print report"} {
+		flow.AddChild(kvitui.NewButton(ui, name))
+	}
+	return kvitui.Width(ui, kvitui.Px(300), flow)
+}
+
+func heightLimit(ui *kvitui.UI) unison.Paneler {
+	lines := kvitui.NewLabel(ui, "As tall as what it holds,\nup to the limit,\nand no taller:\nthe rest is cut off here,\nwhere a scrolling region would scroll.")
+	lines.Wrap, lines.Top = true, true
+	capped := unison.NewPanel()
+	capped.AddChild(lines)
+	capped.SetLayout(kvitui.AtMost(ui, kvitui.Px(56), kvitui.OwnSizeLayout{}))
+	return kvitui.Width(ui, kvitui.Px(300), capped)
 }

@@ -75,8 +75,14 @@ type control struct {
 	// tipArea, when set, is the part of the control the pointer has to be
 	// over for the tooltip, as a row's trailing chevron is.
 	tipArea func() geom.Rect
-	tipGen  int    // counts tooltip changes, so a late show can tell it is stale
-	tipHide func() // takes the tooltip away while one is shown
+	// tipSet, when set, is the tooltip's words given with SetTooltip, in
+	// place of tip's and over the whole control.
+	tipSet func() string
+	// tipAdded says a Tooltip was added to the control with AddTooltip, so
+	// its own stays away.
+	tipAdded bool
+	tipGen   int    // counts tooltip changes, so a late show can tell it is stale
+	tipHide  func() // takes the tooltip away while one is shown
 }
 
 // initControl wires the callbacks. activate runs on a click, on one of keys,
@@ -115,8 +121,8 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 	// unison shows its own on pointer hover instead.
 	c.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
 		c.Tooltip = nil
-		if c.tip != nil && ui.windowOf(c) == nil {
-			if say := c.tip(); say != "" {
+		if c.hasTip() && ui.windowOf(c) == nil {
+			if say := c.tipWords(); say != "" {
 				c.Tooltip = newTooltip(ui, say, "")
 			}
 		}
@@ -191,10 +197,10 @@ func (c *control) initControl(ui *UI, activate func(), keys ...unison.KeyCode) {
 // pointerAt shows the tooltip after the pointer rests, where the pointer is
 // over the part that has one.
 func (c *control) pointerAt(where geom.Point) {
-	if c.tip == nil {
+	if !c.hasTip() {
 		return
 	}
-	if c.tipArea != nil && !where.In(c.tipArea()) {
+	if c.tipArea != nil && c.tipSet == nil && !where.In(c.tipArea()) {
 		if !c.KeyboardFocus() {
 			c.hideTip()
 		}
@@ -208,7 +214,7 @@ func (c *control) pointerAt(where geom.Point) {
 // showTipSoon shows the tooltip after a pause, unless something changes
 // before then.
 func (c *control) showTipSoon() {
-	if c.tip == nil || c.ui.windowOf(c) == nil {
+	if !c.hasTip() || c.ui.windowOf(c) == nil {
 		return
 	}
 	c.tipGen++
@@ -225,8 +231,11 @@ func (c *control) showTipSoon() {
 // while somebody is reading it is worse than none.
 func (c *control) showTip() {
 	w := c.ui.windowOf(c)
-	say := c.tip()
-	if w == nil || say == "" {
+	if w == nil || !c.hasTip() {
+		return
+	}
+	say := c.tipWords()
+	if say == "" {
 		return
 	}
 	hide := w.Show(&Popup{Panel: newTooltip(c.ui, say, ""), Place: PlaceBeside(c.ui, c), Anchor: c, Passive: true})
@@ -259,11 +268,36 @@ func buttonKeys(ui *UI) []unison.KeyCode {
 }
 
 // TooltipWords are what the control's tooltip says now, "" for none.
-func (c *control) TooltipWords() string {
-	if c.tip == nil {
-		return ""
+func (c *control) TooltipWords() string { return c.tipWords() }
+
+// SetTooltip gives the control a tooltip of these words, asked each time it
+// is about to show, with the timing every control's tooltip has; "" shows
+// none. It replaces the tooltip a control has of its own, such as an icon
+// button's label, and nil gives the control back its own.
+func (c *control) SetTooltip(words func() string) {
+	c.tipSet = words
+	c.hideTip()
+}
+
+// tipWords are the words of the control's tooltip, "" for none.
+func (c *control) tipWords() string {
+	switch {
+	case c.tipSet != nil:
+		return c.tipSet()
+	case c.tip != nil:
+		return c.tip()
 	}
-	return c.tip()
+	return ""
+}
+
+// hasTip reports whether the control shows a tooltip of its own.
+func (c *control) hasTip() bool { return !c.tipAdded && (c.tipSet != nil || c.tip != nil) }
+
+// suppressOwnTip keeps the control's own tooltip away, for one added with
+// AddTooltip.
+func (c *control) suppressOwnTip() {
+	c.tipAdded = true
+	c.hideTip()
 }
 
 // spaceOnWindows are the keys that operate a disclosure: Space, and Return

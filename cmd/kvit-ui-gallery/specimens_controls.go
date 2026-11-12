@@ -311,3 +311,13 @@ func selectPictures(ui *kvitui.UI) unison.Paneler {
 		kvitui.Option{Value: "recipes", Label: "recipes", Picture: pngPicture()},
 		kvitui.Option{Value: "old-backups", Label: "old-backups", Symbol: "folder"})
 }
+
+func textAreaFitted(ui *kvitui.UI) unison.Paneler {
+	// Read-only text shown whole: the area is exactly as tall as its text at
+	// the width it is given, for a scrolling region around it to scroll.
+	output := kvitui.NewTextArea(ui)
+	output.Label, output.Plain, output.Mono, output.ReadOnly = "Output", true, true, true
+	output.Fit = kvitui.FitText
+	output.SetText("ok   ledger   0.412s\nok   export   1.038s\nok   import   0.277s\nok   rules    0.090s\nok   report   0.731s")
+	return kvitui.Width(ui, kvitui.Px(280), output)
+}

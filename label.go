@@ -43,6 +43,46 @@ type Label struct {
 	// it, and Copy, Ctrl+C or the context menu copies it (CTL-18). A
 	// control's label is never selectable.
 	Selectable bool
+	// Italic sets the text in italics, in the chrome and the monospace
+	// family alike.
+	Italic bool
+	// MaxLines, with Wrap, cuts the text short with "…" after this many
+	// lines; 0 is no limit.
+	MaxLines int
+	// Middle cuts one line short in its middle rather than at its end,
+	// keeping the text's start and its end. It applies where the text is
+	// not wrapped.
+	Middle bool
+	// Align places each line across the label's width: at its start (the
+	// default), in its middle or at its end.
+	Align text.Alignment
+	// Name is what a screen reader is told; the text when "".
+	Name string
+	// Heading describes the label to screen readers as a heading.
+	Heading bool
+	// Ignored keeps the label from screen readers.
+	Ignored bool
+	// NoTooltip leaves a label that is cut short without the tooltip of its
+	// whole text.
+	NoTooltip bool
+	// EmptyTakesNoRoom makes a label with no text ask for no size, draw
+	// nothing and stay out of a screen reader's way, so a line vanishes when
+	// it is emptied. Without it an empty label is one line tall.
+	EmptyTakesNoRoom bool
+	// Top, with Wrap, draws the text from the top of the label's box, where
+	// it is otherwise centred on the box's height.
+	Top bool
+	// WeightedMono, with Mono, applies Weight, which the monospace family
+	// otherwise ignores.
+	WeightedMono bool
+	// WrapOwnWidth, with Wrap, makes the label ask for its text's width, up
+	// to the width offered, where a wrapping label otherwise asks for no
+	// width of its own.
+	WrapOwnWidth bool
+	// Size, when set, is the text's size in place of the Role's. Reach for a
+	// Role first: a size of its own is for text that follows something
+	// other than the seven roles.
+	Size Measure
 }
 
 // NewLabel returns a label in the body role.
@@ -82,7 +122,7 @@ func NewLabel(ui *UI, s string) *Label {
 	})
 	l.UpdateTooltipCallback = func(geom.Point, geom.Rect) geom.Rect {
 		l.Tooltip = nil
-		if l.Elided() {
+		if !l.NoTooltip && l.Elided() {
 			l.Tooltip = newTooltip(ui, l.Text, "")
 		}
 		return l.RectToRoot(l.ContentRect(true))
@@ -108,22 +148,83 @@ func (l *Label) style() text.Style {
 	if weight == 0 {
 		weight = text.Regular
 	}
+	size := l.ui.Size(l.Role)
+	if l.Size != nil {
+		size = l.Size.Of(l.ui)
+	}
 	var st text.Style
 	if l.Mono {
-		st = l.ui.Mono(l.ui.Size(l.Role), ink.Of(l.ui))
+		st = l.ui.Mono(size, ink.Of(l.ui))
+		if l.WeightedMono {
+			st.Weight = weight
+		}
 	} else {
-		st = l.ui.Chrome(l.ui.Size(l.Role), weight, ink.Of(l.ui))
+		st = l.ui.Chrome(size, weight, ink.Of(l.ui))
 	}
 	st.Tabular = l.Tabular
+	st.Italic = st.Italic || l.Italic
 	return st
 }
 
 func (l *Label) layout(width float32) *text.Layout {
-	opt := text.Options{MaxWidth: width, LineHeight: l.LineHeight}
+	opt := text.Options{MaxWidth: width, LineHeight: l.LineHeight, Align: l.Align}
 	if !l.Wrap {
 		opt.Elide = width > 0
+		opt.ElideMiddle = l.Middle
 	}
 	return l.ui.Fonts.Layout([]text.Span{{Text: l.Text, Style: l.style()}}, opt)
+}
+
+// Layout is the label's text as it is laid out in a width, 0 for one
+// unbroken line, for a component that draws over part of it, such as an
+// underline under a few words. It is the text before MaxLines cuts it short.
+func (l *Label) Layout(width float32) *text.Layout { return l.layout(width) }
+
+// limited is the label's text in a width, in two parts where MaxLines cuts it
+// short: the lines kept whole, nil when only one line is kept, and under them
+// the rest of the text as one line cut short. Otherwise it is the whole text
+// and nil.
+func (l *Label) limited(width float32) (body, last *text.Layout) {
+	body = l.layout(width)
+	if !l.Wrap || l.MaxLines <= 0 || width <= 0 || body.LineCount() <= l.MaxLines {
+		return body, nil
+	}
+	start, _, _, _ := body.LineBounds(l.MaxLines - 1)
+	runes := []rune(l.Text)
+	rest := strings.Join(strings.Fields(string(runes[start:])), " ")
+	opt := text.Options{MaxWidth: width, LineHeight: l.LineHeight, Align: l.Align}
+	var head *text.Layout
+	if l.MaxLines > 1 {
+		head = l.ui.Fonts.Layout([]text.Span{{Text: string(runes[:start]), Style: l.style()}}, opt)
+	}
+	opt.Elide = true
+	return head, l.ui.Fonts.Layout([]text.Span{{Text: rest, Style: l.style()}}, opt)
+}
+
+// limitedHeight is the height of the text in a width, as limited gives it.
+func (l *Label) limitedHeight(width float32) float32 {
+	body, last := l.limited(width)
+	if last == nil {
+		_, h := body.Size()
+		return h
+	}
+	_, h := last.Size()
+	if body != nil {
+		_, bh := body.Size()
+		h += bh
+	}
+	return h
+}
+
+// SetText changes what the label says and, when that changed, has what it
+// sits in laid out again and the label drawn.
+func (l *Label) SetText(s string) {
+	if l.Text == s {
+		return
+	}
+	l.Text = s
+	l.MarkForLayoutRecursivelyUpward()
+	l.MarkForRedraw()
 }
 
 func (l *Label) sizes(hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
@@ -131,15 +232,26 @@ func (l *Label) sizes(hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	if b := l.Border(); b != nil {
 		in = b.Insets()
 	}
+	if l.EmptyTakesNoRoom && l.Text == "" {
+		return geom.Size{}, geom.Size{}, geom.NewSize(unison.DefaultMaxSize, 0)
+	}
 	w, h := l.layout(0).Size()
 	if l.Wrap {
 		// Wrapping text takes the width it is given and grows downwards; it
 		// asks for no width of its own, or one long sentence would widen the
 		// whole column it sits in.
-		if room := hint.Width - in.Width(); hint.Width > 0 && room < w {
-			_, h = l.layout(max(0, room)).Size()
+		room := hint.Width - in.Width()
+		if hint.Width > 0 && room < w {
+			h = l.limitedHeight(max(0, room))
 		}
-		return geom.NewSize(in.Width(), h+in.Height()), geom.NewSize(in.Width(), h+in.Height()),
+		own := float32(0)
+		if l.WrapOwnWidth {
+			own = w
+			if hint.Width > 0 {
+				own = min(w, max(0, room))
+			}
+		}
+		return geom.NewSize(in.Width(), h+in.Height()), geom.NewSize(own+in.Width(), h+in.Height()),
 			geom.NewSize(unison.DefaultMaxSize, h+in.Height())
 	}
 	return geom.NewSize(in.Width(), h+in.Height()), geom.NewSize(w+in.Width(), h+in.Height()),
@@ -147,14 +259,34 @@ func (l *Label) sizes(hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
 }
 
 func (l *Label) draw(gc *unison.Canvas, _ geom.Rect) {
+	if l.EmptyTakesNoRoom && l.Text == "" {
+		return
+	}
 	b := l.ContentRect(false)
-	lay := l.layout(b.Width)
-	w, h := lay.Size()
+	lay, last := l.limited(b.Width)
+	var w, h, headHeight float32
+	if lay != nil {
+		w, h = lay.Size()
+		headHeight = h
+	}
+	if last != nil {
+		lw, lh := last.Size()
+		w, h = max(w, lw), h+lh
+	}
+	y := b.Y + (b.Height-h)/2 // vertically centred
+	if l.Top && l.Wrap {
+		y = b.Y
+	}
 	if l.Selectable && l.Focused() {
 		// Selected whole, in the colour of selected text.
-		painterFor(gc, l.ui).fill(geom.NewRect(b.X, b.Y+(b.Height-h)/2, min(w, b.Width), h), l.ui.Theme.Tokens().SelectionActiveTint)
+		painterFor(gc, l.ui).fill(geom.NewRect(b.X, y, min(w, b.Width), h), l.ui.Theme.Tokens().SelectionActiveTint)
 	}
-	lay.Draw(gc, b.X, b.Y+(b.Height-h)/2) // vertically centred
+	if lay != nil {
+		lay.Draw(gc, b.X, y)
+	}
+	if last != nil {
+		last.Draw(gc, b.X, y+headHeight)
+	}
 }
 
 // ProvideAccessibility describes the label to screen readers as static text.
@@ -162,9 +294,18 @@ func (l *Label) ProvideAccessibility(b *unison.AccessibilityBuilder) {
 	n := b.Node()
 	if n.Role == role.Auto {
 		n.Role = role.Label
+		if l.Heading {
+			n.Role = role.Heading
+		}
+	}
+	if l.Name != "" {
+		n.Name = l.Name
 	}
 	if n.Name == "" {
 		n.Name = l.Text
+	}
+	if l.Ignored || (l.EmptyTakesNoRoom && n.Name == "") {
+		n.Ignored = true
 	}
 }
 

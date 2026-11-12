@@ -4,6 +4,8 @@ package main
 
 import (
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/text"
+	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 )
 
@@ -161,4 +163,59 @@ func floatingRecord(ui *kvitui.UI) unison.Paneler {
 	record.OnCloseRequested = record.Close
 	whenShown(stage, func() { record.Open(stage) })
 	return stage
+}
+
+func tooltipOnAnyPanel(ui *kvitui.UI) unison.Paneler {
+	changed := kvitui.NewLabel(ui, "3 files changed")
+	tip := kvitui.AddTooltip(ui, changed, func() string { return "ledger.go, export.go and export_test.go" })
+	// Shown here for good, as the keyboard resting on the label would show
+	// it; left alone, it shows half a second after the pointer comes to rest.
+	tip.Focus, tip.FocusAtOnce, tip.Stays = kvitui.TipFocusTold, true, true
+	tip.SetFocused(true)
+	return kvitui.FullWidth(kvitui.At(ui, kvitui.Px(60), kvitui.Px(30), kvitui.Px(70), changed))
+}
+
+func tooltipSetOnAControl(ui *kvitui.UI) unison.Paneler {
+	wrap := kvitui.NewCheck(ui, "Wrap long lines")
+	wrap.SetTooltip(func() string { return "Lines wider than the pane continue on the next line" })
+	rename := kvitui.NewIconButton(ui, "pencil", "Edit")
+	rename.SetTooltip(func() string { return "Rename the track" })
+	return kvitui.Row(ui, kvitui.SizeSpaceLoose, wrap, rename)
+}
+
+func popoverModalMoved(ui *kvitui.UI) unison.Paneler {
+	open := kvitui.NewButton(ui, "Choose account")
+	open.Asks = true
+	title := kvitui.NewLabel(ui, "Choose an account")
+	title.Role, title.Weight = kvitui.RoleStrong, text.Bold
+	words := kvitui.NewLabel(ui, "Drag this surface by its title to move it. Nothing behind it can be used until it closes.")
+	words.Wrap, words.Ink = true, kvitui.InkTextSecondary
+	cancel, choose := kvitui.NewButton(ui, "Cancel"), kvitui.NewButton(ui, "Choose")
+	// The buttons in the order the platform reads them.
+	buttons := kvitui.OwnWidthEnd(kvitui.Line(ui, kvitui.SizeSpaceNear, kvitui.DialogButtonOrder(ui, cancel, choose)...))
+	pop := kvitui.NewPopover(ui, "Choose an account", kvitui.Stack(ui, kvitui.SizeSpace, title, words, buttons))
+	pop.Width = kvitui.Px(340)
+	cancel.OnClick, choose.OnClick = pop.Close, pop.Close
+	// The band a drag starts in: the padding and the title's line.
+	mover := kvitui.NewMover(ui, pop, func() float32 {
+		return float32(kvitui.SizeSpaceLoose.Of(ui)) + title.FrameRect().Height
+	})
+	open.OnClick = func() {
+		pop.OpenModal(open, func(bounds geom.Rect, size geom.Size) geom.Rect {
+			return mover.Place(bounds, kvitui.PlaceCentred(nil)(bounds, size))
+		})
+	}
+	return kvitui.Left(open)
+}
+
+func surfaceGround(ui *kvitui.UI) unison.Paneler {
+	surface := func(words string, radius kvitui.Measure) *unison.Panel {
+		p := unison.NewPanel()
+		p.AddChild(kvitui.NewLabel(ui, words))
+		p.SetBorder(kvitui.Padding(ui, kvitui.SizeSpaceLoose))
+		p.SetLayout(kvitui.OwnSizeLayout{CountInsets: true})
+		p.DrawCallback = func(gc *unison.Canvas, _ geom.Rect) { kvitui.DrawSurface(gc, ui, p.ContentRect(true), radius) }
+		return p
+	}
+	return kvitui.Line(ui, kvitui.SizeSpaceLoose, surface("A card's corners", nil), surface("Corners of its own", kvitui.SizeRadiusControl))
 }
