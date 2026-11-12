@@ -169,7 +169,8 @@ const cacheLimit = 4096
 
 // Layout shapes the spans and breaks them into lines. A layout is not changed
 // once made, so a layout of one span is kept and handed out again for the
-// same text, style and options.
+// same text, style and options. A caller that keeps its layouts itself and
+// does not ask for the same text again uses LayoutFresh.
 func (f *Fonts) Layout(spans []Span, opt Options) *Layout {
 	if len(spans) != 1 {
 		return f.layoutFresh(spans, opt)
@@ -189,6 +190,17 @@ func (f *Fonts) Layout(spans []Span, opt Options) *Layout {
 	f.cache[key] = l
 	f.cacheMu.Unlock()
 	return l
+}
+
+// LayoutFresh shapes the spans and breaks them into lines, as Layout does,
+// without keeping the layout for a later call and without handing out one
+// kept earlier. It is for a caller that keeps its layouts itself and does not
+// ask for the same text again, such as a log or a terminal that lays each
+// line out once: through Layout, every such line would stay in the store
+// after the caller let go of it, and would push out the layouts that labels
+// and controls ask for again at every size request.
+func (f *Fonts) LayoutFresh(spans []Span, opt Options) *Layout {
+	return f.layoutFresh(spans, opt)
 }
 
 func (f *Fonts) layoutFresh(spans []Span, opt Options) *Layout {

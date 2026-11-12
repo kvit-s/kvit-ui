@@ -1,6 +1,7 @@
 package text_test
 
 import (
+	"fmt"
 	"image/png"
 	"math"
 	"os"
@@ -388,5 +389,42 @@ func TestBoxKeepsRoomInTheLine(t *testing.T) {
 	// The box's own runes are not drawn, and drawing it is safe.
 	if _, err := unison.NewImageFromDrawing(200, 80, 72, func(gc *unison.Canvas) { tall.Draw(gc, 0, 0) }); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// LayoutFresh lays text out without the store behind Layout keeping it: a
+// log that lays each of its lines out once through it leaves the store as it
+// found it, and the layouts are the ones Layout makes.
+func TestLayoutFreshIsNotKept(t *testing.T) {
+	f := sharedFonts(t)
+	line := func(i int) []text.Span {
+		return plain(fmt.Sprintf("%5d  step %d of the batch wrote %d bytes to out-%d.log", i, i%25, i*937, i), 13)
+	}
+	before := f.KeptLayouts()
+	var fresh []*text.Layout
+	for i := range 300 {
+		fresh = append(fresh, f.LayoutFresh(line(i), text.Options{MaxWidth: 400}))
+	}
+	if after := f.KeptLayouts(); after != before {
+		t.Errorf("the store held %d layouts before 300 fresh ones and %d after", before, after)
+	}
+
+	for _, i := range []int{0, 299} {
+		kept := f.Layout(line(i), text.Options{MaxWidth: 400})
+		if kept == fresh[i] {
+			t.Errorf("line %d: Layout handed out the fresh layout, so it had been kept", i)
+		}
+		if f.Layout(line(i), text.Options{MaxWidth: 400}) != kept {
+			t.Errorf("line %d: Layout did not keep its own layout", i)
+		}
+		if f.LayoutFresh(line(i), text.Options{MaxWidth: 400}) == kept {
+			t.Errorf("line %d: LayoutFresh handed out the kept layout", i)
+		}
+		fw, fh := fresh[i].Size()
+		kw, kh := kept.Size()
+		if fw != kw || fh != kh || fresh[i].LineCount() != kept.LineCount() {
+			t.Errorf("line %d: fresh layout %.2f × %.2f in %d lines, kept one %.2f × %.2f in %d",
+				i, fw, fh, fresh[i].LineCount(), kw, kh, kept.LineCount())
+		}
 	}
 }
