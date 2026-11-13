@@ -402,6 +402,48 @@ func TestSymbolUsesSharingAVerbAreOneMeaning(t *testing.T) {
 	}
 }
 
+// Finding and searching are one meaning of the magnifier: the standard Find
+// command and an app's own Search button, both on the search symbol, are not
+// reported in either form, while a third use of it under another verb is
+// reported as two meanings, search and zoom (CON-2).
+func TestFindAndSearchAreOneMeaningOfTheMagnifier(t *testing.T) {
+	collect := func(name string, zoom bool) []uitest.Screen {
+		s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler {
+			find := kvitui.NewCommandIconButton(ui, &kvitui.Command{Std: kvitui.StdFind, Run: func() {}})
+			search := kvitui.NewButton(ui, "Search")
+			search.Symbol = "search"
+			parts := []unison.Paneler{find, search}
+			if zoom {
+				parts = append(parts, kvitui.NewIconButton(ui, "search", "Zoom in"))
+			}
+			return kvitui.Column(ui, kvitui.SizeSpace, parts...)
+		})
+		screens := []uitest.Screen{s.Collect(name)}
+		s.SetForm(kvitui.FormMac)
+		screens = append(screens, s.Collect(name))
+		// One headless screen runs at a time.
+		s.Screen.Stop()
+		return screens
+	}
+	if problems := uitest.App(collect("project", false)...); found(problems, "CON-2", "search") {
+		t.Errorf("Find and Search on the magnifier were reported as two meanings: %v", problems)
+	}
+	var magnifier []uitest.Problem
+	for _, p := range uitest.App(collect("viewer", true)...) {
+		if p.Rule == "CON-2" && strings.Contains(p.Where, `"search"`) {
+			magnifier = append(magnifier, p)
+		}
+	}
+	if len(magnifier) != 2 {
+		t.Fatalf("Zoom in on the magnifier was not reported once in each form: %v", magnifier)
+	}
+	for _, p := range magnifier {
+		if p.What != "used for search, zoom" {
+			t.Errorf("the magnifier's meanings were not search and zoom: %s", p)
+		}
+	}
+}
+
 // A placeholder that is only a dash stands for a value that is not set,
 // while words ending in punctuation are still reported (WRD-19).
 func TestADashPlaceholderStandsForAnUnsetValue(t *testing.T) {

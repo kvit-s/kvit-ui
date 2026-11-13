@@ -211,15 +211,18 @@ func sameName(s string) string {
 }
 
 // symbolVerbs are the verbs that name one meaning of a symbol: adding for
-// plus, taking away for minus, taking away for close. A symbol's uses are
-// compared by their verb, the first word of the name, so two Add … buttons
-// carrying the plus symbol are one meaning; two names whose verbs differ
-// outside such a table are still two meanings, as next period and show fields
-// on one chevron are.
+// plus, taking away for minus, taking away for close, and looking for
+// something for the magnifier, whether the standard Find in the view on
+// screen or an app's own Search (owner's decision, 2026-11-12). A symbol's
+// uses are compared by their verb, the first word of the name, so two Add …
+// buttons carrying the plus symbol are one meaning; two names whose verbs
+// differ outside such a table are still two meanings, as next period and show
+// fields on one chevron are.
 var symbolVerbs = map[string]map[string]string{
-	"close": {"close": "close", "dismiss": "close", "clear": "close"},
-	"plus":  {"add": "add", "new": "add", "create": "add", "increase": "add"},
-	"minus": {"remove": "remove", "decrease": "remove"},
+	"close":  {"close": "close", "dismiss": "close", "clear": "close"},
+	"plus":   {"add": "add", "new": "add", "create": "add", "increase": "add"},
+	"minus":  {"remove": "remove", "decrease": "remove"},
+	"search": {"search": "search", "find": "search"},
 }
 
 // symbolMeaning reduces a use of a symbol to the meaning CON-2 compares: the
