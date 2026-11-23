@@ -219,16 +219,25 @@ func (l regionLayout) strips() (right, bottom float32) {
 	return w, 0
 }
 
+// applyHorizontal sets the scroll panel's width rule to what Horizontal says:
+// the content follows the view's width, or keeps a wider width of its own and
+// scrolls sideways. Both the size question and the layout call it, since a
+// parent that places the region by its frame alone never asks its size.
+func (r *Region) applyHorizontal() {
+	if r.Horizontal == r.sideways {
+		return
+	}
+	r.sideways = r.Horizontal
+	across := behavior.Follow
+	if r.sideways {
+		across = behavior.Fill
+	}
+	r.scroll.SetContent(r.holder, across, behavior.Fill)
+}
+
 func (l regionLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	right, bottom := l.strips()
-	if l.r.Horizontal != l.r.sideways {
-		l.r.sideways = l.r.Horizontal
-		across := behavior.Follow
-		if l.r.sideways {
-			across = behavior.Fill
-		}
-		l.r.scroll.SetContent(l.r.holder, across, behavior.Fill)
-	}
+	l.r.applyHorizontal()
 	_, p, _ := l.r.holder.Sizes(geom.NewSize(max(0, hint.Width-right), 0))
 	return geom.NewSize(right, bottom), geom.NewSize(p.Width+right, p.Height+bottom),
 		geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)
@@ -238,6 +247,7 @@ func (l regionLayout) PerformLayout(target *unison.Panel) {
 	right, bottom := l.strips()
 	b := target.ContentRect(false)
 	area := geom.NewRect(b.X, b.Y, max(0, b.Width-right), max(0, b.Height-bottom))
+	l.r.applyHorizontal()
 	l.r.scroll.SetFrameRect(area)
 	l.r.vbar.SetFrameRect(geom.NewRect(area.Right(), b.Y, right, area.Height))
 	l.r.hbar.Hidden = !l.r.Horizontal

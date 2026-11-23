@@ -314,6 +314,80 @@ func TestARegionScrollsBesideItsBarAndAnswersTheWheelAndKeys(t *testing.T) {
 	})
 }
 
+// framedOnly is a layout that places its one child over its whole content
+// box and never asks the child its size, as many of the apps' own screens
+// place their panels.
+type framedOnly struct{ size geom.Size }
+
+func (l framedOnly) LayoutSizes(*unison.Panel, geom.Size) (minSize, prefSize, maxSize geom.Size) {
+	return l.size, l.size, l.size
+}
+
+func (framedOnly) PerformLayout(target *unison.Panel) {
+	target.Children()[0].SetFrameRect(target.ContentRect(false))
+}
+
+// A region set to scroll sideways does so even when its parent places it
+// without asking its size: content asking for 1000 px in a region 500 px
+// wide is laid out 1000 px wide, the horizontal bar's range covers the part
+// out of view, and a sideways turn of the wheel moves the view. Turned off
+// after the first layout, the setting takes effect at the next one.
+func TestARegionPlacedWithoutBeingMeasuredScrollsSideways(t *testing.T) {
+	var region *kvitui.Region
+	var content, host *unison.Panel
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		ui.Theme.SetReducedMotion(true)
+		content = unison.NewPanel()
+		content.SetSizer(func(geom.Size) (minSize, prefSize, maxSize geom.Size) {
+			return geom.NewSize(0, 100), geom.NewSize(1000, 100),
+				geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)
+		})
+		region = kvitui.NewRegion(ui, content)
+		region.Padding, region.Horizontal = kvitui.Px(0), true
+		host = unison.NewPanel()
+		host.SetLayout(framedOnly{geom.NewSize(500, 200)})
+		host.AddChild(region)
+		return []unison.Paneler{host}
+	})
+	view := 500 - float32(ui.Interface.SpaceWide())
+	hbar := func() (b *unison.ScrollBar) {
+		screen.Do(func() { b = region.Children()[2].Self.(*unison.ScrollBar) })
+		return b
+	}()
+	screen.Do(func() {
+		if w := region.FrameRect().Width; w != 500 {
+			t.Fatalf("the region is %.1f wide, want 500", w)
+		}
+		if w := content.FrameRect().Width; w != 1000 {
+			t.Errorf("the content is laid out %.1f wide, want the 1000 it asks for", w)
+		}
+		if hbar.Hidden {
+			t.Error("the horizontal bar is hidden")
+		}
+		if hidden := hbar.Max() - hbar.Extent(); hidden != 1000-view {
+			t.Errorf("the horizontal bar's range leaves %.1f out of view, want %.1f", hidden, 1000-view)
+		}
+	})
+	screen.Wheel(screen.PanelCenter(region), geom.NewPoint(-1, 0), 0)
+	screen.Sync()
+	var x float32
+	screen.Do(func() { x, _ = region.Position() })
+	if want := min(1000-view, float32(platform.WheelScrollLines()*ui.Interface.RowHeightSlim())); x != want {
+		t.Errorf("a sideways notch scrolled %.1f, want %.1f", x, want)
+	}
+	screen.Do(func() {
+		region.Horizontal = false
+		region.MarkForLayoutRecursively()
+		host.ValidateLayout()
+		if w := content.FrameRect().Width; w != view {
+			t.Errorf("with Horizontal off, the content is %.1f wide, want the view's %.1f", w, view)
+		}
+		if !hbar.Hidden {
+			t.Error("with Horizontal off, the horizontal bar shows")
+		}
+	})
+}
+
 func TestAStatusBarKeepsWhatDoesNotFitBehindACount(t *testing.T) {
 	groups := []kvitui.StatusGroup{
 		{Label: "Waiting on you", Facts: []kvitui.StatusFact{{Text: "3 reviews", Symbol: "question"}, {Text: "1 conflict", Symbol: "warning"}}},
