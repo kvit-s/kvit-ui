@@ -51,6 +51,58 @@ func sidebarExpandedAndCollapsed(ui *kvitui.UI) unison.Paneler {
 	return kvitui.Row(ui, kvitui.SizeColumnGap, expanded, rail)
 }
 
+func sidebarSectionsAndFolders(ui *kvitui.UI) unison.Paneler {
+	// A notes app's places: two at the top, the folders under a heading, each
+	// folder holding its own, the tags under another, and the trash at the
+	// foot. The selected place is inside "Archive", which is closed, so
+	// "Archive" takes its bar.
+	places := func(collapsed bool) unison.Paneler {
+		folder := func(label string, count int, inside ...*kvitui.SidebarItem) *kvitui.SidebarItem {
+			it := kvitui.NewSidebarItem(ui, label, "folder")
+			it.Count, it.Counted = count, "note"
+			it.Add(inside...)
+			return it
+		}
+		all := kvitui.NewSidebarItem(ui, "All Notes", "note")
+		all.Count, all.Counted = 148, "note"
+		work := folder("Work", 41, folder("Clients", 17, folder("Acme", 9), folder("Globex", 8)), folder("Meetings", 24))
+		work.Expanded = true
+		work.Items()[0].Expanded = true
+		old := folder("2024", 12)
+		old.Selected = true
+		tag := kvitui.NewSidebarItem(ui, "urgent", "tag")
+		tag.Count, tag.Counted = 6, "note"
+		sidebar := kvitui.NewSidebar(ui, all, kvitui.NewSidebarItem(ui, "Favorites", "star"),
+			kvitui.NewSidebarHeading(ui, "Folders"), work, folder("Home", 30), folder("Archive", 12, old),
+			kvitui.NewSidebarHeading(ui, "Tags"), tag, kvitui.NewSidebarItem(ui, "reading", "tag"))
+		sidebar.AddFooter(kvitui.NewSidebarItem(ui, "Trash", "trash"))
+		sidebar.Collapsed = collapsed
+		return kvitui.Height(ui, kvitui.Px(420), sidebar)
+	}
+	return kvitui.Row(ui, kvitui.SizeColumnGap, places(false), places(true))
+}
+
+func sidebarScrolling(ui *kvitui.UI) unison.Paneler {
+	// Twelve folders in room for five: the wheel, the bar and the arrow keys
+	// scroll them, and the trash keeps its place at the foot.
+	rows := []unison.Paneler{kvitui.NewSidebarHeading(ui, "Folders")}
+	for _, name := range []string{"Accounts", "Budget", "Clients", "Drafts", "Events", "Finance", "Garden", "Health", "Ideas", "Journal", "Kitchen", "Letters"} {
+		rows = append(rows, kvitui.NewSidebarItem(ui, name, "folder"))
+	}
+	rows[1].(*kvitui.SidebarItem).Selected = true
+	sidebar := kvitui.NewSidebar(ui, rows...)
+	sidebar.AddFooter(kvitui.NewSidebarItem(ui, "Trash", "trash"))
+	return kvitui.Height(ui, kvitui.Px(220), sidebar)
+}
+
+func sidebarHeadings(ui *kvitui.UI) unison.Paneler {
+	checking := kvitui.NewSidebarItem(ui, "Checking", "bank")
+	checking.Selected = true
+	return kvitui.NewSidebar(ui,
+		kvitui.NewSidebarHeading(ui, "Accounts"), checking, kvitui.NewSidebarItem(ui, "Savings", "wallet"),
+		kvitui.NewSidebarHeading(ui, "Reports"), kvitui.NewSidebarItem(ui, "Spending", "chart"))
+}
+
 func sidebarItemStates(ui *kvitui.UI) unison.Paneler {
 	inbox := kvitui.NewSidebarItem(ui, "Inbox", "note")
 	inbox.Selected = true

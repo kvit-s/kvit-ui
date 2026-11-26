@@ -1,9 +1,12 @@
 package kvitui_test
 
 import (
+	"strconv"
 	"testing"
 
 	kvitui "github.com/kvit-s/kvit-ui"
+	"github.com/kvit-s/kvit-ui/uitest"
+	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 	"github.com/richardwilkes/unison/accessibility"
 	"github.com/richardwilkes/unison/enums/mod"
@@ -435,4 +438,90 @@ func TestADialogHandsOutItsButtons(t *testing.T) {
 			t.Error("an informing dialog's only button is not its confirming button")
 		}
 	})
+}
+
+// A dialog holding more than the window has room for stays inside it, a
+// view margin clear of its top and bottom, with its title and buttons in
+// sight and its content scrolling; Tab to a line out of sight brings it into
+// view. A dialog that fits keeps its content the whole width, with no room
+// kept for a bar it does not show (LAY-3).
+func TestADialogTallerThanTheWindowScrollsItsContent(t *testing.T) {
+	s := uitest.Open(t, uitest.Options{}, func(ui *kvitui.UI) unison.Paneler { return kvitui.NewLabel(ui, "Body") })
+	s.Do(func() {
+		m := s.UI.Interface
+		was := s.Window.ContentRect()
+		s.Window.SetContentRect(geom.NewRect(was.X, was.Y, float32(m.WidthFloor()), float32(m.HeightFloor())))
+	})
+	s.Sync()
+	var files []unison.Paneler
+	var last *kvitui.Check
+	var d *kvitui.Dialog
+	s.Do(func() {
+		for i := range 40 {
+			last = kvitui.NewCheck(s.UI, "File "+strconv.Itoa(i+1))
+			files = append(files, last)
+		}
+		d = kvitui.NewDialog(s.UI, "Commit main", files...)
+		d.ConfirmText = "Commit"
+		d.Open(s.Window)
+	})
+	s.Sync()
+	var problems []uitest.Problem
+	s.Do(func() { problems = uitest.Reach(s.Window) })
+	if len(problems) != 0 {
+		t.Errorf("parts of the dialog are out of reach: %v", problems)
+	}
+	var window, dialog, commit geom.Rect
+	s.Do(func() {
+		window = s.Window.Content().ContentRect(false)
+		dialog = d.FrameRect()
+	})
+	margin := float32(s.UI.Interface.ViewMargin())
+	if dialog.Y < window.Y+margin-1 || dialog.Bottom() > window.Bottom()-margin+1 {
+		t.Errorf("the dialog is at %v in a window of %v; it should keep a margin clear of the top and bottom", dialog, window)
+	}
+	if n := s.Named("Commit"); n == nil {
+		t.Fatal("the Commit button is not in the tree")
+	} else {
+		commit = n.Bounds
+	}
+	if commit.Bottom() > dialog.Bottom() || commit.Y < dialog.Y {
+		t.Errorf("the Commit button is at %v, outside the dialog at %v", commit, dialog)
+	}
+	inSight := func() bool {
+		var box, view geom.Rect
+		s.Do(func() {
+			box = last.RectToRoot(last.ContentRect(true))
+			view = d.RectToRoot(d.ContentRect(true))
+		})
+		return box.Y >= view.Y && box.Bottom() <= view.Bottom()
+	}
+	if inSight() {
+		t.Fatal("the last file is in sight before scrolling; the test needs a dialog taller than the window")
+	}
+	s.Do(func() { last.RequestFocus() })
+	s.Sync()
+	if !inSight() {
+		t.Error("the last file took the keyboard and stayed out of sight")
+	}
+	s.Do(func() { d.Close() })
+	s.Sync()
+
+	var short *kvitui.Dialog
+	var name *kvitui.Check
+	s.Do(func() {
+		name = kvitui.NewCheck(s.UI, "Keep the branch")
+		short = kvitui.NewDialog(s.UI, "Merge", name)
+		short.ConfirmText = "Merge"
+		short.Open(s.Window)
+	})
+	s.Sync()
+	var width, inner float32
+	s.Do(func() {
+		width = name.Parent().FrameRect().Width
+		inner = short.FrameRect().Width - 2*margin
+	})
+	if width != inner {
+		t.Errorf("a dialog that fits gives its content %v of %v", width, inner)
+	}
 }

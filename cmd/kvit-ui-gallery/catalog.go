@@ -117,16 +117,26 @@ var catalog = []entry{
 	{
 		name:    "KvitSidebar",
 		group:   "Structure",
-		summary: "The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone.",
+		summary: "The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone. A `KvitSidebarHeading` names a group of places, a `KvitSidebarItem` holds the places inside it, and places that do not fit scroll above the items at the foot.",
 		specimens: []specimen{
 			{caption: "Expanded and collapsed", build: sidebarExpandedAndCollapsed},
 			{caption: "Help and Settings at the foot", build: sidebarFooter},
+			{caption: "Places under headings, folders that open and close, and the same sidebar as its rail", build: sidebarSectionsAndFolders},
+			{caption: "More places than fit: they scroll above the foot, under a bar that is there only then", build: sidebarScrolling},
+		},
+	},
+	{
+		name:    "KvitSidebarHeading",
+		group:   "Structure",
+		summary: "The name of a group of places in a sidebar: \"Folders\" above the folders, \"Tags\" above the tags. It is words alone, a heading to a screen reader, and the rail leaves it out.",
+		specimens: []specimen{
+			{caption: "Two groups under their headings", build: sidebarHeadings},
 		},
 	},
 	{
 		name:    "KvitSidebarItem",
 		group:   "Structure",
-		summary: "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number. `SetLead` draws a picture of the place's own in place of the symbol: a press on it presses the item, a screen reader hears the label alone, and the label stays where it is, so names with a picture and names with a symbol line up.",
+		summary: "One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number. `Add` puts places inside an item, a folder's folders: the item then has a mark before its symbol that opens and closes it, Right and Left open and close it and step in and out, each level stands a loose space further in, and a closed item takes the selected place's bar while that place is inside it. `SetLead` draws a picture of the place's own in place of the symbol: a press on it presses the item, a screen reader hears the label alone, and the label stays where it is, so names with a picture and names with a symbol line up.",
 		specimens: []specimen{
 			{caption: "Selected, hovered and counted", build: sidebarItemStates},
 			{caption: "The rail, with and without its counts", build: sidebarItemRail},

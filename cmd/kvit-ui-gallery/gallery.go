@@ -26,7 +26,7 @@ type group struct {
 
 var groups = []group{
 	{"Foundation", []string{"Foundations", "KvitLabel", "KvitIcon", "KvitIconButton", "KvitLink"}},
-	{"Structure", []string{"KvitHeader", "KvitSidebar", "KvitSidebarItem", "KvitBreadcrumb", "KvitRegion", "KvitViewHead", "KvitStatusBar", "KvitWindow", "KvitHistory"}},
+	{"Structure", []string{"KvitHeader", "KvitSidebar", "KvitSidebarItem", "KvitSidebarHeading", "KvitBreadcrumb", "KvitRegion", "KvitViewHead", "KvitStatusBar", "KvitWindow", "KvitHistory"}},
 	{"Content", []string{"KvitSectionHeading", "KvitRow", "KvitSlimRow", "KvitCard", "KvitPanel", "KvitPane", "KvitDivider", "KvitDisclosure", "KvitEmptyState"}},
 	{"Marks", []string{"KvitChip", "KvitTag", "KvitBadge", "KvitSlug", "KvitDot", "KvitSignal", "KvitPip"}},
 	{"Quantities", []string{"KvitFigure", "KvitBeforeAfter"}},

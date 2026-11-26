@@ -2200,7 +2200,7 @@ Lay out by the space the window has, never by which system or screen it is, desi
 - **Enforce:**
   - Component: WidthFloor and HeightFloor are Px(880) and Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`), set as the window's minimum (`window.go:88-92`).
   - Test, all screens of an app: Open every screen at WidthFloor by HeightFloor and fail any control out of reach or cut off.
-- **kvit-ui now:** partly. Breakpoints are Measures (`tokens/interface.go:195-197`) and the window's minimum is Px(880) by Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`, set at `window.go:88-92`), as decided; nothing shows a list and its details one at a time on a narrow window.
+- **kvit-ui now:** partly. Breakpoints are Measures (`tokens/interface.go:195-197`) and the window's minimum is Px(880) by Px(600) (`tokens/interface.go:195`, `tokens/interface.go:203`, set at `window.go:88-92`), as decided; nothing shows a list and its details one at a time on a narrow window. `uitest.Reach` reads one screen for a control, scroll view, dialog or menu cut off where nothing scrolls it into view, and `Session.CheckReach` reads it at WidthFloor by HeightFloor (`uitest/reach.go`); an app's tests call it on each screen. A dialog keeps a view margin clear of the window's top and bottom: content that does not fit scrolls in a Region, with the title and the buttons in place (`dialogmove.go`, `dialog.go`).
 
 ### LAY-4
 

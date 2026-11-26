@@ -16,10 +16,10 @@ the build.
 
 ## What there is
 
-92 components, grouped by what they are for.
+93 components, grouped by what they are for.
 
 **Foundation** — `KvitLabel`, `KvitIcon`, `KvitIconButton`, `KvitLink`
-**Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`, `KvitHistory`
+**Structure** — `KvitHeader`, `KvitSidebar`, `KvitSidebarItem`, `KvitSidebarHeading`, `KvitBreadcrumb`, `KvitRegion`, `KvitViewHead`, `KvitStatusBar`, `KvitWindow`, `KvitHistory`
 **Content** — `KvitSectionHeading`, `KvitRow`, `KvitSlimRow`, `KvitCard`, `KvitPanel`, `KvitPane`, `KvitDivider`, `KvitDisclosure`, `KvitEmptyState`
 **Marks** — `KvitChip`, `KvitTag`, `KvitBadge`, `KvitSlug`, `KvitDot`, `KvitSignal`, `KvitPip`
 **Quantities** — `KvitFigure`, `KvitBeforeAfter`
@@ -513,7 +513,7 @@ func headerWithNavigation(ui *kvitui.UI) unison.Paneler {
 
 ### KvitSidebar
 
-The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone.
+The list of places down the left edge. Below the laptop breakpoint it collapses to its rail and every item becomes its symbol alone. A `KvitSidebarHeading` names a group of places, a `KvitSidebarItem` holds the places inside it, and places that do not fit scroll above the items at the foot.
 
 ```go
 func NewSidebar(ui *UI, items ...unison.Paneler) *Sidebar
@@ -523,7 +523,7 @@ func NewSidebar(ui *UI, items ...unison.Paneler) *Sidebar
 |---|---|---|
 | `Collapsed` | `bool` | Collapsed draws the sidebar as its rail. |
 
-Methods: `AddFooter`, `Commands`.
+Methods: `AddFooter`, `Commands`, `Position`, `Rows`, `ScrollTo`.
 
 *Expanded and collapsed*
 
@@ -563,9 +563,85 @@ func sidebarFooter(ui *kvitui.UI) unison.Paneler {
 }
 ```
 
+*Places under headings, folders that open and close, and the same sidebar as its rail*
+
+```go
+func sidebarSectionsAndFolders(ui *kvitui.UI) unison.Paneler {
+    // A notes app's places: two at the top, the folders under a heading, each
+    // folder holding its own, the tags under another, and the trash at the
+    // foot. The selected place is inside "Archive", which is closed, so
+    // "Archive" takes its bar.
+    places := func(collapsed bool) unison.Paneler {
+        folder := func(label string, count int, inside ...*kvitui.SidebarItem) *kvitui.SidebarItem {
+            it := kvitui.NewSidebarItem(ui, label, "folder")
+            it.Count, it.Counted = count, "note"
+            it.Add(inside...)
+            return it
+        }
+        all := kvitui.NewSidebarItem(ui, "All Notes", "note")
+        all.Count, all.Counted = 148, "note"
+        work := folder("Work", 41, folder("Clients", 17, folder("Acme", 9), folder("Globex", 8)), folder("Meetings", 24))
+        work.Expanded = true
+        work.Items()[0].Expanded = true
+        old := folder("2024", 12)
+        old.Selected = true
+        tag := kvitui.NewSidebarItem(ui, "urgent", "tag")
+        tag.Count, tag.Counted = 6, "note"
+        sidebar := kvitui.NewSidebar(ui, all, kvitui.NewSidebarItem(ui, "Favorites", "star"),
+            kvitui.NewSidebarHeading(ui, "Folders"), work, folder("Home", 30), folder("Archive", 12, old),
+            kvitui.NewSidebarHeading(ui, "Tags"), tag, kvitui.NewSidebarItem(ui, "reading", "tag"))
+        sidebar.AddFooter(kvitui.NewSidebarItem(ui, "Trash", "trash"))
+        sidebar.Collapsed = collapsed
+        return kvitui.Height(ui, kvitui.Px(420), sidebar)
+    }
+    return kvitui.Row(ui, kvitui.SizeColumnGap, places(false), places(true))
+}
+```
+
+*More places than fit: they scroll above the foot, under a bar that is there only then*
+
+```go
+func sidebarScrolling(ui *kvitui.UI) unison.Paneler {
+    // Twelve folders in room for five: the wheel, the bar and the arrow keys
+    // scroll them, and the trash keeps its place at the foot.
+    rows := []unison.Paneler{kvitui.NewSidebarHeading(ui, "Folders")}
+    for _, name := range []string{"Accounts", "Budget", "Clients", "Drafts", "Events", "Finance", "Garden", "Health", "Ideas", "Journal", "Kitchen", "Letters"} {
+        rows = append(rows, kvitui.NewSidebarItem(ui, name, "folder"))
+    }
+    rows[1].(*kvitui.SidebarItem).Selected = true
+    sidebar := kvitui.NewSidebar(ui, rows...)
+    sidebar.AddFooter(kvitui.NewSidebarItem(ui, "Trash", "trash"))
+    return kvitui.Height(ui, kvitui.Px(220), sidebar)
+}
+```
+
+### KvitSidebarHeading
+
+The name of a group of places in a sidebar: "Folders" above the folders, "Tags" above the tags. It is words alone, a heading to a screen reader, and the rail leaves it out.
+
+```go
+func NewSidebarHeading(ui *UI, label string) *SidebarHeading
+```
+
+| Field | Type | |
+|---|---|---|
+| `Text` | `string` | Text names the group. |
+
+*Two groups under their headings*
+
+```go
+func sidebarHeadings(ui *kvitui.UI) unison.Paneler {
+    checking := kvitui.NewSidebarItem(ui, "Checking", "bank")
+    checking.Selected = true
+    return kvitui.NewSidebar(ui,
+        kvitui.NewSidebarHeading(ui, "Accounts"), checking, kvitui.NewSidebarItem(ui, "Savings", "wallet"),
+        kvitui.NewSidebarHeading(ui, "Reports"), kvitui.NewSidebarItem(ui, "Spending", "chart"))
+}
+```
+
 ### KvitSidebarItem
 
-One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number. `SetLead` draws a picture of the place's own in place of the symbol: a press on it presses the item, a screen reader hears the label alone, and the label stays where it is, so names with a picture and names with a symbol line up.
+One place in the sidebar. The selected item takes a bar down its leading edge as well as a tint, so the selection is not resting on colour. A count is hidden once the sidebar collapses to the rail unless `CountInRail` asks for it, and `CountMax` raises the badge's cap where the place the item points at states the true number. `Add` puts places inside an item, a folder's folders: the item then has a mark before its symbol that opens and closes it, Right and Left open and close it and step in and out, each level stands a loose space further in, and a closed item takes the selected place's bar while that place is inside it. `SetLead` draws a picture of the place's own in place of the symbol: a press on it presses the item, a screen reader hears the label alone, and the label stays where it is, so names with a picture and names with a symbol line up.
 
 ```go
 func NewSidebarCommand(ui *UI, c *Command) *SidebarItem
@@ -585,8 +661,10 @@ func NewSidebarItem(ui *UI, label, symbol string) *SidebarItem
 | `CountMax` | `int` | CountMax is the largest count the badge writes out, 99 unless set. |
 | `OnClick` | `func()` | OnClick runs when the item is pressed. |
 | `Command` | `*Command` | Command, when set, is what the item runs, and gives its words and symbol where they are empty: the settings command at the foot of the sidebar is one. |
+| `Expanded` | `bool` | Expanded shows the places inside the item (Add). |
+| `OnToggle` | `func(expanded bool)` | OnToggle runs after the reader opened or closed the item, with the new state. |
 
-Methods: `Focus`, `Hovered`, `KeyboardFocus`, `Lead`, `Name`, `Pressed`, `SetLead`, `SetTooltip`, `TooltipWords`.
+Methods: `Add`, `Clear`, `Depth`, `Focus`, `Hovered`, `Items`, `KeyboardFocus`, `Lead`, `Name`, `Pressed`, `SetExpanded`, `SetLead`, `SetTooltip`, `TooltipWords`, `Within`.
 
 *Selected, hovered and counted*
 
@@ -689,6 +767,7 @@ func NewSettingsPage(ui *UI, about *About, panes ...SettingsPane) *Region
 |---|---|---|
 | `Padding` | `Measure` | Padding is the space inside the scrolled area, around the content; the view margin unless set, which is what a body directly inside a window wants. |
 | `Horizontal` | `bool` | Horizontal lets the content be wider than the region and scroll sideways too. |
+| `StripWhenScrolling` | `bool` | StripWhenScrolling keeps no strip for the vertical bar while all the content fits, so the content has the region's whole width until it scrolls: for a region that usually shows everything it holds, as a dialog's content does, whose layout should not change for a bar that is not there. |
 
 Methods: `Position`, `ScrollTo`, `Scrolls`, `ViewHeight`.
 

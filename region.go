@@ -29,6 +29,12 @@ type Region struct {
 	// Horizontal lets the content be wider than the region and scroll
 	// sideways too.
 	Horizontal bool
+	// StripWhenScrolling keeps no strip for the vertical bar while all the
+	// content fits, so the content has the region's whole width until it
+	// scrolls: for a region that usually shows everything it holds, as a
+	// dialog's content does, whose layout should not change for a bar that
+	// is not there.
+	StripWhenScrolling bool
 
 	scroll     *unison.ScrollPanel
 	holder     *unison.Panel
@@ -219,6 +225,13 @@ func (l regionLayout) strips() (right, bottom float32) {
 	return w, 0
 }
 
+// fits reports whether all the content shows in a box with no strip for the
+// vertical bar, for StripWhenScrolling.
+func (l regionLayout) fits(b geom.Rect) bool {
+	_, p, _ := l.r.holder.Sizes(geom.NewSize(b.Width, 0))
+	return p.Height <= b.Height
+}
+
 // applyHorizontal sets the scroll panel's width rule to what Horizontal says:
 // the content follows the view's width, or keeps a wider width of its own and
 // scrolls sideways. Both the size question and the layout call it, since a
@@ -238,6 +251,9 @@ func (r *Region) applyHorizontal() {
 func (l regionLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, prefSize, maxSize geom.Size) {
 	right, bottom := l.strips()
 	l.r.applyHorizontal()
+	if l.r.StripWhenScrolling && !l.r.Horizontal {
+		right = 0
+	}
 	_, p, _ := l.r.holder.Sizes(geom.NewSize(max(0, hint.Width-right), 0))
 	return geom.NewSize(right, bottom), geom.NewSize(p.Width+right, p.Height+bottom),
 		geom.NewSize(unison.DefaultMaxSize, unison.DefaultMaxSize)
@@ -246,6 +262,9 @@ func (l regionLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, pre
 func (l regionLayout) PerformLayout(target *unison.Panel) {
 	right, bottom := l.strips()
 	b := target.ContentRect(false)
+	if l.r.StripWhenScrolling && !l.r.Horizontal && l.fits(b) {
+		right = 0
+	}
 	area := geom.NewRect(b.X, b.Y, max(0, b.Width-right), max(0, b.Height-bottom))
 	l.r.applyHorizontal()
 	l.r.scroll.SetFrameRect(area)

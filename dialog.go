@@ -122,6 +122,7 @@ type Dialog struct {
 	close    *IconButton
 	detail   *Label
 	body     *unison.Panel
+	scroll   *Region // holds body, and scrolls it when the window is too short for all of it
 	suppress *Check
 	cancel   *Button
 	confirm  *Button
@@ -161,6 +162,9 @@ func NewDialog(ui *UI, title string, content ...unison.Paneler) *Dialog {
 		}
 		d.body.AddChild(c)
 	}
+	d.scroll = NewRegion(ui, d.body)
+	d.scroll.Padding = Px(0)
+	d.scroll.StripWhenScrolling = true
 	d.suppress = NewCheck(ui, "")
 	d.cancel = NewButton(ui, "")
 	d.cancel.OnClick = d.reject
@@ -263,7 +267,7 @@ func (d *Dialog) sync() {
 	if d.Detail != "" {
 		parts = append(parts, d.detail)
 	}
-	parts = append(parts, d.body)
+	parts = append(parts, d.scroll)
 	if d.Suppressible && !d.Destructive && d.Kind != DialogProperties {
 		parts = append(parts, d.suppress)
 	}
@@ -538,8 +542,10 @@ type dialogLayout struct{ d *Dialog }
 // the title a view margin below the top with the close control at the end of
 // its row on the Windows form, the detail and the content a loose space
 // apart, the don't-show-again box, and the buttons in a row at the bottom
-// right.
-func (l dialogLayout) arrange(r geom.Rect, set bool) float32 {
+// right. cut is how much shorter than all of it the content is shown, for a
+// window too short for the whole dialog; the content then scrolls, keeping
+// at least two rows in view, and the title and the buttons stay put.
+func (l dialogLayout) arrange(r geom.Rect, set bool, cut float32) float32 {
 	d, m := l.d, l.d.ui.Interface
 	margin, gap := float32(m.ViewMargin()), float32(m.Space())
 	inner := max(0, r.Width-2*margin)
@@ -566,9 +572,13 @@ func (l dialogLayout) arrange(r geom.Rect, set bool) float32 {
 		put(d.detail, geom.NewRect(r.X+margin, y, inner, dp.Height))
 		y += dp.Height + loose
 	}
-	_, bp, _ := d.body.Sizes(geom.NewSize(inner, 0))
-	put(d.body, geom.NewRect(r.X+margin, y, inner, bp.Height))
-	y += bp.Height
+	_, bp, _ := d.scroll.Sizes(geom.NewSize(inner, 0))
+	h := bp.Height
+	if cut > 0 {
+		h = max(min(h, 2*float32(m.RowHeight())), h-cut)
+	}
+	put(d.scroll, geom.NewRect(r.X+margin, y, inner, h))
+	y += h
 	if d.suppress.Parent() != nil {
 		_, sp, _ := d.suppress.Sizes(geom.Size{})
 		y += loose
@@ -618,11 +628,18 @@ func (l dialogLayout) LayoutSizes(_ *unison.Panel, hint geom.Size) (minSize, pre
 	if hint.Width > 0 {
 		w = hint.Width
 	}
-	h := l.arrange(geom.NewRect(0, 0, w, 0), false)
-	return geom.NewSize(w, h), geom.NewSize(float32(l.d.ui.Interface.Px(420)), h), geom.NewSize(unison.DefaultMaxSize, h)
+	h := l.arrange(geom.NewRect(0, 0, w, 0), false, 0)
+	least := l.arrange(geom.NewRect(0, 0, w, 0), false, h)
+	return geom.NewSize(w, least), geom.NewSize(float32(l.d.ui.Interface.Px(420)), h), geom.NewSize(unison.DefaultMaxSize, h)
 }
 
-func (l dialogLayout) PerformLayout(target *unison.Panel) { l.arrange(target.ContentRect(true), true) }
+// PerformLayout lays the parts out in the height the dialog was given,
+// taking from its content what the window cannot fit.
+func (l dialogLayout) PerformLayout(target *unison.Panel) {
+	r := target.ContentRect(true)
+	whole := l.arrange(r, false, 0)
+	l.arrange(r, true, max(0, whole-r.Height))
+}
 
 // ProvideAccessibility describes the dialog by its question and detail.
 func (d *Dialog) ProvideAccessibility(b *unison.AccessibilityBuilder) {

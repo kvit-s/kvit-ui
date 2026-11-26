@@ -40,8 +40,11 @@ func (d *Dialog) design(pixels float32) int {
 // top-left corner where MoveTo or the reader put it, kept inside.
 func (d *Dialog) place(bounds geom.Rect, _ geom.Size) geom.Rect {
 	w := float32(d.ui.Interface.Px(420))
-	_, pref, _ := d.Sizes(geom.NewSize(w, 0))
-	size := geom.NewSize(w, pref.Height)
+	least, pref, _ := d.Sizes(geom.NewSize(w, 0))
+	// No taller than the window leaves room for, a view margin clear of its
+	// top and bottom: the content scrolls instead (LAY-3).
+	room := bounds.Height - 2*float32(d.ui.Interface.ViewMargin())
+	size := geom.NewSize(w, max(least.Height, min(pref.Height, room)))
 	if d.x == nil || d.y == nil {
 		return PlaceCentred(nil)(bounds, size)
 	}

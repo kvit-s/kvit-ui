@@ -237,6 +237,241 @@ func TestASidebarItemSaysWhereItGoesAndHowMuchIsThere(t *testing.T) {
 	}
 }
 
+// A sidebar's places sit under headings and hold places inside them: the
+// folders of a notes app. The rows shown are the sidebar's children, a closed
+// item's places are not among them, and the mark, the arrow keys and a screen
+// reader open and close an item.
+func TestASidebarGroupsItsPlacesAndOpensTheOnesThatHoldPlaces(t *testing.T) {
+	var side *kvitui.Sidebar
+	var all, work, clients, acme, home, trash *kvitui.SidebarItem
+	var folders *kvitui.SidebarHeading
+	chosen, toggled := "", 0
+	place := func(ui *kvitui.UI, label, symbol string) *kvitui.SidebarItem {
+		it := kvitui.NewSidebarItem(ui, label, symbol)
+		it.OnClick = func() { chosen = label }
+		return it
+	}
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		all = place(ui, "All Notes", "note")
+		all.Selected = true
+		folders = kvitui.NewSidebarHeading(ui, "Folders")
+		work, clients, acme, home = place(ui, "Work", "folder"), place(ui, "Clients", "folder"), place(ui, "Acme", "folder"), place(ui, "Home", "folder")
+		clients.Add(acme)
+		work.Add(clients)
+		work.OnToggle = func(bool) { toggled++ }
+		trash = place(ui, "Trash", "trash")
+		side = kvitui.NewSidebar(ui, all, folders, work, home)
+		side.AddFooter(trash)
+		return []unison.Paneler{side}
+	})
+	rows := func() string {
+		var names []string
+		screen.Do(func() {
+			side.MarkForLayoutRecursively()
+			side.ValidateLayout()
+			foot := side.Children()[2:] // after the bar and the places
+			for _, c := range append(side.Rows(), foot...) {
+				switch row := c.Self.(type) {
+				case *kvitui.SidebarItem:
+					names = append(names, row.Text)
+				case *kvitui.SidebarHeading:
+					names = append(names, "["+row.Text+"]")
+				}
+			}
+		})
+		return strings.Join(names, " ")
+	}
+	want := func(when, shown string) {
+		t.Helper()
+		screen.Sync()
+		if got := rows(); got != shown {
+			t.Errorf("%s: the rows are %q, want %q", when, got, shown)
+		}
+	}
+	want("closed", "All Notes [Folders] Work Home Trash")
+	if n := screen.AccessibilityNodeFor(side); n == nil || n.Role != role.Tree {
+		t.Errorf("a sidebar whose places hold places: %+v", n)
+	}
+	if n := screen.AccessibilityNodeFor(folders); n == nil || n.Role != role.Heading || n.Name != "Folders" {
+		t.Errorf("the heading's node: %+v", n)
+	}
+	n := screen.AccessibilityNodeFor(work)
+	if n == nil || n.Role != role.Row || n.Level != 1 || !n.Expandable || n.Expanded {
+		t.Fatalf("a closed folder's node: %+v", n)
+	}
+
+	// A press on the mark opens the item and goes nowhere; a press on its
+	// words goes there and leaves it as it is.
+	mark := func(it *kvitui.SidebarItem) geom.Point {
+		var at geom.Point
+		screen.Do(func() {
+			at = geom.NewPoint(float32(ui.Interface.SpaceWide()+it.Depth()*ui.Interface.SpaceLoose()), it.FrameRect().Height/2)
+		})
+		return screen.PanelPoint(it, at)
+	}
+	screen.Click(mark(work))
+	want("the mark pressed", "All Notes [Folders] Work Clients Home Trash")
+	if chosen != "" || toggled != 1 {
+		t.Errorf("a press on the mark chose %q and told OnToggle %d times", chosen, toggled)
+	}
+	screen.Click(screen.PanelCenter(clients))
+	want("a place pressed", "All Notes [Folders] Work Clients Home Trash")
+	if chosen != "Clients" {
+		t.Errorf("a press on a place chose %q", chosen)
+	}
+
+	// Right opens the item the keyboard is on, then steps into it; Left steps
+	// out to the item a place is inside, then closes that.
+	focused := func() string {
+		name := ""
+		screen.Do(func() {
+			for _, it := range []*kvitui.SidebarItem{all, work, clients, acme, home, trash} {
+				if it.Focused() {
+					name = it.Text
+				}
+			}
+		})
+		return name
+	}
+	screen.KeyPress(unison.KeyRight, 0)
+	want("Right on a closed item", "All Notes [Folders] Work Clients Acme Home Trash")
+	screen.KeyPress(unison.KeyRight, 0)
+	screen.Sync()
+	if got := focused(); got != "Acme" {
+		t.Errorf("Right on an open item put the keyboard on %q", got)
+	}
+	screen.Do(func() {
+		m := ui.Interface
+		if got, want := acme.Depth(), 2; got != want {
+			t.Errorf("a place two items in is at depth %d", got)
+		}
+		if h := folders.FrameRect().Height; h != float32(m.RowHeightSlim()) {
+			t.Errorf("the heading is %.1f tall, want %d", h, m.RowHeightSlim())
+		}
+		// The foot keeps its place under the rows that came.
+		if bottom := trash.FrameRect().Bottom(); bottom != side.ContentRect(false).Bottom() {
+			t.Errorf("the foot's item ends at %.1f, the sidebar at %.1f", bottom, side.ContentRect(false).Bottom())
+		}
+	})
+	screen.KeyPress(unison.KeyLeft, 0)
+	screen.Sync()
+	if got := focused(); got != "Clients" {
+		t.Errorf("Left on a place put the keyboard on %q", got)
+	}
+	screen.KeyPress(unison.KeyLeft, 0)
+	want("Left on an open item", "All Notes [Folders] Work Clients Home Trash")
+	if got := focused(); got != "Clients" {
+		t.Errorf("an item that closed lost the keyboard to %q", got)
+	}
+	screen.KeyPress(unison.KeyDown, 0)
+	screen.Sync()
+	if got := focused(); got != "Home" {
+		t.Errorf("Down from the last place inside went to %q", got)
+	}
+
+	// A screen reader closes an item, and the keyboard inside it moves out.
+	screen.Do(func() { clients.SetExpanded(true) })
+	screen.Sync()
+	screen.Do(func() { acme.Focus() })
+	screen.Sync()
+	n = screen.AccessibilityNodeFor(work)
+	screen.PerformAccessibilityAction(accessibility.ActionRequest{Node: n.ID, Action: accessibility.Collapse})
+	want("a screen reader's collapse", "All Notes [Folders] Work Home Trash")
+	if got := focused(); got != "Work" {
+		t.Errorf("the keyboard inside an item that closed went to %q", got)
+	}
+
+	// The rail is the top level alone, without the headings.
+	screen.Do(func() { work.SetExpanded(true); side.Collapsed = true })
+	want("the rail", "All Notes Work Home Trash")
+	screen.Do(func() { side.Collapsed = false })
+	want("the sidebar again", "All Notes [Folders] Work Clients Acme Home Trash")
+}
+
+// A sidebar with more places than fit scrolls them above its foot, which
+// stays where it is, and brings the place the keyboard reaches into view.
+func TestASidebarScrollsItsPlacesAboveItsFoot(t *testing.T) {
+	var side *kvitui.Sidebar
+	var places []*kvitui.SidebarItem
+	var trash *kvitui.SidebarItem
+	screen, ui := session(t, func(ui *kvitui.UI) []unison.Paneler {
+		ui.Theme.SetReducedMotion(true)
+		var rows []unison.Paneler
+		for i := range 20 {
+			it := kvitui.NewSidebarItem(ui, "Folder "+strconv.Itoa(i+1), "folder")
+			places = append(places, it)
+			rows = append(rows, it)
+		}
+		places[0].Selected = true
+		side = kvitui.NewSidebar(ui, rows...)
+		trash = kvitui.NewSidebarItem(ui, "Trash", "trash")
+		side.AddFooter(trash)
+		return []unison.Paneler{kvitui.Height(ui, kvitui.Px(240), side)}
+	})
+	row := float32(ui.Interface.RowHeightSlim())
+	// inView reports whether a place is wholly in sight, above the foot.
+	inView := func(it *kvitui.SidebarItem) bool {
+		var in bool
+		screen.Do(func() {
+			box, foot := rootRect(it), rootRect(trash)
+			in = box.Y >= rootRect(side).Y && box.Bottom() <= foot.Y
+		})
+		return in
+	}
+	check := func(when string, position float32, first, last int) {
+		t.Helper()
+		screen.Sync()
+		screen.Do(func() {
+			if got := side.Position(); got != position {
+				t.Errorf("%s: scrolled to %.1f, want %.1f", when, got, position)
+			}
+			if bottom := trash.FrameRect().Bottom(); bottom != side.ContentRect(false).Bottom() || side.FrameRect().Height != float32(ui.Interface.Px(240)) {
+				t.Errorf("%s: the foot's item ends at %.1f in a sidebar %.1f tall", when, bottom, side.FrameRect().Height)
+			}
+		})
+		for i, it := range places {
+			if got, want := inView(it), i >= first && i <= last; got != want {
+				t.Errorf("%s: place %d in view is %v, want %v", when, i+1, got, want)
+			}
+		}
+	}
+	// 240 less the foot's row leaves room for seven rows.
+	check("at first", 0, 0, 6)
+	bar := func() *unison.Panel { return side.Children()[0] }
+	screen.Do(func() {
+		if bar().Hidden {
+			t.Error("there is no bar while places are out of sight")
+		}
+	})
+	screen.Wheel(screen.PanelCenter(places[2]), geom.NewPoint(0, -1), 0)
+	screen.Sync()
+	var turned float32
+	screen.Do(func() { turned = side.Position() })
+	if turned <= 0 || turned > 20*row {
+		t.Errorf("a notch of the wheel scrolled to %.1f", turned)
+	}
+	// End goes to the last item, which is the foot's; Up from it reaches the
+	// last place, scrolled into view.
+	screen.Do(func() { side.ScrollTo(0); places[0].Focus() })
+	screen.Sync()
+	screen.KeyPress(unison.KeyEnd, 0)
+	screen.KeyPress(unison.KeyUp, 0)
+	check("the keyboard on the last place", 20*row-7*row, 13, 19)
+	screen.KeyPress(unison.KeyHome, 0)
+	check("the keyboard on the first place", 0, 0, 6)
+	// A sidebar whose places fit has no bar and does not scroll.
+	screen.Do(func() {
+		for _, it := range places[3:] {
+			it.Hidden = true
+		}
+		side.MarkForLayoutRecursively()
+		side.ValidateLayout()
+		if !bar().Hidden || side.Position() != 0 {
+			t.Errorf("three places that fit: the bar is hidden %v, scrolled to %.1f", bar().Hidden, side.Position())
+		}
+	})
+}
+
 func TestARegionScrollsBesideItsBarAndAnswersTheWheelAndKeys(t *testing.T) {
 	var region *kvitui.Region
 	var first, last *kvitui.ListRow

@@ -177,6 +177,13 @@ library follows the system the app runs on (`UI.Form`: `FormWindows`, also
 Linux's, or `FormMac`); a test draws either form on any system with
 `uitest.Options{Form: kvitui.FormMac}`, and `Session.CheckLabels` and
 `uitest.CheckApp` check a screen and an app against these rules in both.
+Two more checks come from the failures the owner has flagged in the apps
+(`agents-ux-mining/rubric.md`): `Session.CheckReach` shrinks the window to
+its smallest size and fails a control, scroll view, dialog or menu cut off
+where nothing scrolls it into view (LAY-3), and `Session.CheckResponds`
+fails an action that changes nothing a reader can see or hear. Call
+`CheckReach` on every screen, with its dialogs and menus open, and
+`CheckResponds` on each step of a scripted task.
 
 ### Labels
 

@@ -14,6 +14,7 @@ import (
 	kvitui "github.com/kvit-s/kvit-ui"
 	"github.com/kvit-s/kvit-ui/tokens"
 	"github.com/kvit-s/kvit-ui/uitest"
+	"github.com/richardwilkes/toolbox/v2/geom"
 	"github.com/richardwilkes/unison"
 )
 
@@ -338,6 +339,54 @@ func TestEveryPageFollowsTheLabelRules(t *testing.T) {
 		screen.Do(func() { screens = append(screens, uitest.Collect("gallery, "+form.String()+" form", g.wnd)) })
 	}
 	uitest.CheckApp(t, screens)
+}
+
+// TestEveryPageFitsTheSmallestWindow opens every page with the window at the
+// smallest size it allows and checks that nothing on it is cut off where
+// nothing scrolls it into view (LAY-3), as an app's tests do with
+// Session.CheckReach. The menus several pages show open beside their samples
+// are read only while their samples are in sight, and are closed before the
+// next page, so each page is read on its own.
+func TestEveryPageFitsTheSmallestWindow(t *testing.T) {
+	ui, err := kvitui.New(kvitui.Options{IgnoreDesktop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ui.Theme.SetReducedMotion(true)
+	var g *gallery
+	screen, err := unison.StartHeadless(unison.HeadlessConfig{Width: windowWidth, Height: windowHeight},
+		unison.StartupFinishedCallback(func() { g, _ = newGallery(ui, "Foundations", nil) }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Stop()
+	screen.Sync()
+	screen.Do(func() {
+		was := g.wnd.ContentRect()
+		g.wnd.SetContentRect(geom.NewRect(was.X, was.Y, float32(ui.Interface.WidthFloor()), float32(ui.Interface.HeightFloor())))
+	})
+	screen.Sync()
+	var problems []uitest.Problem
+	for _, page := range pageNames() {
+		screen.Do(func() { g.setPage(page) })
+		screen.Sync()
+		screen.Do(func() {
+			for _, p := range uitest.Reach(g.wnd) {
+				p.Where = page + ": " + p.Where
+				problems = append(problems, p)
+			}
+		})
+		for range 5 {
+			open := 0
+			screen.Do(func() { open = len(g.wnd.Popups()) })
+			if open == 0 {
+				break
+			}
+			screen.KeyPress(unison.KeyEscape, 0)
+			screen.Sync()
+		}
+	}
+	uitest.Report(t, problems)
 }
 
 // labelExceptions are the pages' known breaks of the label rules, each for a
