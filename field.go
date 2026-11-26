@@ -30,6 +30,11 @@ import (
 //
 // The typed text is drawn by unison's own text engine rather than the Kvit
 // text layer, so it can differ slightly from the labels around it.
+//
+// The caret blinks while the field is in use, and stops, shown, once nothing
+// has been typed or pressed in the field and the caret has not moved for ten
+// seconds, since unison redraws the whole window for every blink
+// (fieldcaret.go).
 type Field struct {
 	unison.Panel
 	ui *UI
@@ -92,6 +97,9 @@ type Field struct {
 	// while it has no error, as a type-ahead says how many suggestions it
 	// has.
 	describe func() string
+	// rest stops the caret blinking once the field is left alone
+	// (fieldcaret.go).
+	rest caretRest
 }
 
 // fieldFontKey is the family and pixel size the field's unison font was made
@@ -236,9 +244,18 @@ func (f *Field) initField(ui *UI, multi bool) {
 	// would change its text: typed characters, the keys that delete or break
 	// lines, and cutting and pasting. Moving, selecting and copying still work.
 	typed := e.RuneTypedCallback
-	e.RuneTypedCallback = func(ch rune) bool { return f.ReadOnly || typed(ch) }
+	e.RuneTypedCallback = func(ch rune) bool {
+		f.caretInput()
+		return f.ReadOnly || typed(ch)
+	}
+	pressed := e.MouseDownCallback
+	e.MouseDownCallback = func(where geom.Point, button, clickCount int, mods mod.Modifiers) bool {
+		f.caretInput()
+		return pressed(where, button, clickCount, mods)
+	}
 	keyDown := e.KeyDownCallback
 	e.KeyDownCallback = func(key unison.KeyCode, mods mod.Modifiers, repeat bool) bool {
+		f.caretInput()
 		if f.ReadOnly {
 			switch key {
 			case unison.KeyBackspace, unison.KeyDelete, unison.KeyReturn, unison.KeyNumPadEnter:
@@ -365,6 +382,7 @@ func (f *Field) style() {
 func (f *Field) draw(gc *unison.Canvas, dirty geom.Rect) {
 	ui, t, m := f.ui, f.ui.Theme.Tokens(), f.ui.Interface
 	f.style()
+	f.caretDrawn()
 	p := painterFor(gc, ui)
 	box := f.edit.ContentRect(true)
 	radius := f.radius()
